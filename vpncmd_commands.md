@@ -67,8 +67,8 @@
 | HubCreateDynamic | Hub 作成 (動的種別、要確認) | △ | [ ] |
 | HubCreateStatic | Hub 作成 (静的種別、要確認) | △ | [ ] |
 | HubDelete | Hub 削除 | ✅ | [x] |
-| HubGet | Hub 詳細設定取得 | ✅ | [x] |
-| HubSet | Hub 詳細設定変更 | ✅ | [ ] (パラメータ名要確認のため未着手) |
+| GetHub | Hub 詳細設定取得 | ✅ | [x] |
+| SetHub | Hub 詳細設定変更 | ✅ | [ ] (パラメータ名要確認のため未着手) |
 | Hub | 指定 Hub を選択し Hub 管理モードへ遷移 | ✅ | [~] (対話選択ではなく `/HUB:` 接続オプションで同等の効果を実現) |
 
 ### 1.5 ローカルブリッジ・Layer3 スイッチ
