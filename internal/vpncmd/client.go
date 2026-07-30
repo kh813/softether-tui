@@ -374,10 +374,31 @@ func (c *Client) UserRadiusSet(ctx context.Context, t Target, name string) error
 	return err
 }
 
+type UserSetOptions struct {
+	Group    string
+	RealName string
+	Note     string
+}
+
 // UserSetGroup reassigns a user's group via UserSet's /GROUP: parameter.
 // Pass an empty group to clear the assignment.
 func (c *Client) UserSetGroup(ctx context.Context, t Target, name, group string) error {
 	_, err := c.Run(ctx, t, "UserSet", name, "/GROUP:"+group)
+	return err
+}
+
+func (c *Client) UserSet(ctx context.Context, t Target, name string, opts UserSetOptions) error {
+	args := []string{name}
+	if opts.Group != "" {
+		args = append(args, "/GROUP:"+opts.Group)
+	}
+	if opts.RealName != "" {
+		args = append(args, "/REALNAME:"+opts.RealName)
+	}
+	if opts.Note != "" {
+		args = append(args, "/NOTE:"+opts.Note)
+	}
+	_, err := c.Run(ctx, t, "UserSet", args...)
 	return err
 }
 
@@ -513,15 +534,82 @@ func (c *Client) SecureNatStatusGet(ctx context.Context, t Target) (KeyValue, er
 	return ParseCSV(out)
 }
 
-// SecureNatHostGet returns the hub's virtual NAT host settings (IP range,
-// DHCP, ...). Changing them via SecureNatHostSet is not yet implemented:
-// its parameter set is large and unconfirmed (see vpncmd_commands.md).
 func (c *Client) SecureNatHostGet(ctx context.Context, t Target) (KeyValue, error) {
 	out, err := c.Run(ctx, t, "SecureNatHostGet")
 	if err != nil {
 		return nil, err
 	}
 	return ParseCSV(out)
+}
+
+type SecureNatHostOptions struct {
+	MAC  string
+	IP   string
+	Mask string
+}
+
+func (c *Client) SecureNatHostSet(ctx context.Context, t Target, opts SecureNatHostOptions) error {
+	args := []string{}
+	if opts.MAC != "" {
+		args = append(args, "/MAC:"+opts.MAC)
+	}
+	if opts.IP != "" {
+		args = append(args, "/IP:"+opts.IP)
+	}
+	if opts.Mask != "" {
+		args = append(args, "/MASK:"+opts.Mask)
+	}
+	_, err := c.Run(ctx, t, "SecureNatHostSet", args...)
+	return err
+}
+
+func (c *Client) DhcpGet(ctx context.Context, t Target) (KeyValue, error) {
+	out, err := c.Run(ctx, t, "DhcpGet")
+	if err != nil {
+		return nil, err
+	}
+	return ParseCSV(out)
+}
+
+type DhcpSetOptions struct {
+	Start  string
+	End    string
+	Mask   string
+	Expire string
+	GW     string
+	DNS    string
+	DNS2   string
+	Domain string
+}
+
+func (c *Client) DhcpSet(ctx context.Context, t Target, opts DhcpSetOptions) error {
+	args := []string{}
+	if opts.Start != "" {
+		args = append(args, "/START:"+opts.Start)
+	}
+	if opts.End != "" {
+		args = append(args, "/END:"+opts.End)
+	}
+	if opts.Mask != "" {
+		args = append(args, "/MASK:"+opts.Mask)
+	}
+	if opts.Expire != "" {
+		args = append(args, "/EXPIRE:"+opts.Expire)
+	}
+	if opts.GW != "" {
+		args = append(args, "/GW:"+opts.GW)
+	}
+	if opts.DNS != "" {
+		args = append(args, "/DNS:"+opts.DNS)
+	}
+	if opts.DNS2 != "" {
+		args = append(args, "/DNS2:"+opts.DNS2)
+	}
+	if opts.Domain != "" {
+		args = append(args, "/DOMAIN:"+opts.Domain)
+	}
+	_, err := c.Run(ctx, t, "DhcpSet", args...)
+	return err
 }
 
 // --- Hub Management Mode: access list (packet filter) ---

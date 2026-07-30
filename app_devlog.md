@@ -12,7 +12,12 @@
   - 空のパスワードで接続が成功した初回接続時、Windows GUI版 サーバーマネージャーと同等に「初回接続: 新しい管理者パスワードを設定してください」というダイアログ (`promptInitialPassword`) を表示。
   - パスワードが入力された場合、`ServerPasswordSet` コマンドを発行して自動設定する。
 
-### 9. ダッシュボードにおける Hub リストの単一列化表示
-- **非構造化全列展開の廃止**:
-  - `HubList` の多数の列 (`Status`, `Type`, `Users`, `Sessions`, `MAC Tables` 等) がターミナル上で折り返されて複数行に崩れて表示されていた問題を修正。
-  - 要件に基づき、ダッシュボード画面では主要識別子である Virtual Hub 名（1列目）のみを抽出し、**`> DEFAULT`** のように1行1項目でシンプルかつ美しくリスト表示されるよう `renderTable` を最適化。
+### 10. vpncmd サブメニュー機能の実装 (UserSet, SecureNatHostSet, DhcpSet)
+- **仕様書 (`app_specs.md`) および ToDo リスト (`app_todo.md`) の更新**:
+  - `app_specs.md` (5.5, 5.6) および `app_todo.md` (M3, M5) に `UserSet` (氏名・備考の編集), `SecureNatHostSet` (仮想ホスト IP 設定), `DhcpSet` (DHCP 範囲設定) の機能仕様とタスクを追加更新。
+- **`vpncmd` アダプタ (`internal/vpncmd/client.go`) のメソッド拡張**:
+  - `UserSet`: `/REALNAME:`, `/NOTE:` オプションを受け取る構造体とコマンド送信ロジックを追加。
+  - `SecureNatHostSet`: `/IP:`, `/MASK:`, `/MAC:` オプションを受け取る構造体とコマンド送信ロジックを追加。
+  - `DhcpGet` / `DhcpSet`: `/START:`, `/END:`, `/MASK:`, `/GW:`, `/DNS:` 等の DHCP オプションを受け取る構造体とコマンド送信ロジックを追加。
+- **UI 操作キーバインド・入力プロンプトの連動**:
+  - SecureNAT タブにて `i` キーで仮想ホスト IP アドレス設定 (`promptSecureNatHostIP`)、`s` キーで DHCP 範囲設定 (`promptDhcpStart`) のプロンプトダイアログを起動・実行できるよう拡張。

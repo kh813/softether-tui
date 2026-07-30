@@ -21,6 +21,10 @@ const (
 	promptAccountPassword
 	promptConnectPassword
 	promptInitialPassword
+	promptSecureNatHostIP
+	promptSecureNatHostMask
+	promptDhcpStart
+	promptDhcpEnd
 )
 
 // prompt is a single-line input overlay, e.g. for password reset or setting

@@ -1048,6 +1048,32 @@ func (m Model) submitPrompt() (tea.Model, tea.Cmd) {
 				return m, m.setServerPassword(p, value)
 			}
 		}
+
+	case promptSecureNatHostIP:
+		parts := strings.Split(strings.TrimSpace(value), "/")
+		ip := parts[0]
+		mask := "255.255.255.0"
+		if len(parts) > 1 {
+			mask = parts[1]
+		}
+		if ip != "" {
+			m.status = fmt.Sprintf(tr("Hub %q の仮想ホスト IP を変更しています..."), hub)
+			m.statusErr = false
+			return m, m.setSecureNatHost(profile, hub, ip, mask)
+		}
+
+	case promptDhcpStart:
+		parts := strings.Split(strings.TrimSpace(value), "-")
+		startIp := parts[0]
+		endIp := startIp
+		if len(parts) > 1 {
+			endIp = parts[1]
+		}
+		if startIp != "" {
+			m.status = fmt.Sprintf(tr("Hub %q の DHCP 範囲を変更しています..."), hub)
+			m.statusErr = false
+			return m, m.setDhcpRange(profile, hub, startIp, endIp)
+		}
 	}
 	return m, nil
 }
@@ -1517,6 +1543,27 @@ func (m Model) handleHubGroupsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if name, ok := m.hubDetail.currentGroupName(); ok {
 			m.confirm.Show(confirmDeleteGroup, name, fmt.Sprintf(tr("グループ %q を削除しますか?"), name))
 		}
+	}
+	return m, nil
+}
+
+func (m Model) handleHubSecureNATKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "o":
+		m.status = fmt.Sprintf(tr("Hub %q の SecureNAT を有効化しています..."), m.hubDetail.hubName)
+		m.statusErr = false
+		return m, m.setSecureNatEnabled(m.hubDetail.profile, m.hubDetail.hubName, true)
+
+	case "f":
+		m.status = fmt.Sprintf(tr("Hub %q の SecureNAT を無効化しています..."), m.hubDetail.hubName)
+		m.statusErr = false
+		return m, m.setSecureNatEnabled(m.hubDetail.profile, m.hubDetail.hubName, false)
+
+	case "i":
+		m.prompt.Show(promptSecureNatHostIP, m.hubDetail.hubName, tr("SecureNAT 仮想ホスト IP アドレス設定"), tr("例: 192.168.30.1/255.255.255.0"), false)
+
+	case "s":
+		m.prompt.Show(promptDhcpStart, m.hubDetail.hubName, tr("DHCP サーバー配布 IP 範囲設定"), tr("例: 192.168.30.10-192.168.30.200"), false)
 	}
 	return m, nil
 }

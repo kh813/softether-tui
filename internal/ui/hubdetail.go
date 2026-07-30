@@ -267,8 +267,7 @@ func (d hubDetailState) viewSecureNAT(b *strings.Builder) {
 		b.WriteString("\n" + headerStyle.Render(tr("仮想ホスト設定")) + "\n")
 		writeKV(b, d.secureNatHost)
 	}
-	b.WriteString("\n" + dimStyle.Render(tr("(仮想ホスト設定の変更は今後のマイルストーンで対応予定)")))
-	b.WriteString("\n" + dimStyle.Render(tr("o:有効化  f:無効化  Tab/Shift+Tab:タブ切替  r:更新  Esc:戻る  q:終了")))
+	b.WriteString("\n" + dimStyle.Render(tr("o:有効化  f:無効化  i:仮想ホストIP設定  s:DHCP範囲設定  Tab/Shift+Tab:タブ切替  r:更新  Esc:戻る  q:終了")))
 }
 
 func (d hubDetailState) viewAccessList(b *strings.Builder) {
@@ -350,6 +349,28 @@ func (m Model) setSecureNatEnabled(p config.Profile, hub string, enabled bool) t
 	}
 }
 
+func (m Model) setSecureNatHost(p config.Profile, hub, ip, mask string) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		err := client.SecureNatHostSet(ctx, target, vpncmd.SecureNatHostOptions{IP: ip, Mask: mask})
+		return secureNatActionResultMsg{action: tr("仮想ホスト IP 設定"), err: err}
+	}
+}
+
+func (m Model) setDhcpRange(p config.Profile, hub, startIp, endIp string) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		err := client.DhcpSet(ctx, target, vpncmd.DhcpSetOptions{Start: startIp, End: endIp})
+		return secureNatActionResultMsg{action: tr("DHCP 範囲設定"), err: err}
+	}
+}
+
 func (m Model) fetchAccessList(p config.Profile, hub string) tea.Cmd {
 	client := m.client
 	target := m.targetFromProfile(p).WithHub(hub)
@@ -393,20 +414,6 @@ func (m Model) setAccessRuleEnabled(p config.Profile, hub, id string, enabled bo
 }
 
 // --- key handling ---
-
-func (m Model) handleHubSecureNATKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "o":
-		m.status = fmt.Sprintf(tr("Hub %q の SecureNAT を有効化しています..."), m.hubDetail.hubName)
-		m.statusErr = false
-		return m, m.setSecureNatEnabled(m.hubDetail.profile, m.hubDetail.hubName, true)
-	case "f":
-		m.status = fmt.Sprintf(tr("Hub %q の SecureNAT を無効化しています..."), m.hubDetail.hubName)
-		m.statusErr = false
-		return m, m.setSecureNatEnabled(m.hubDetail.profile, m.hubDetail.hubName, false)
-	}
-	return m, nil
-}
 
 func (m Model) handleHubACLKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {

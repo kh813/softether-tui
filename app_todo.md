@@ -40,6 +40,7 @@
 
 - [x] `UserList` 一覧表示・検索フィルタ (`/`で検索文字列入力→Enterで確定、名前以外の列も部分一致対象)
 - [x] `UserGet` による詳細閲覧は見送り、一覧表示に統合。`UserSet` は次項のグループ変更のみ対応 (他フィールド編集はパラメータ名要確認のため未着手)
+- [ ] `UserSet` によるユーザーの氏名 (`/REALNAME:`)・備考 (`/NOTE:`) の編集機能 (`e`キーで編集フォーム呼び出し)
 - [x] `UserCreate` (認証方式選択: Password / Anonymous / Radius に対応。NTLM/Certはパラメータ名未確認のため非対応)
 - [x] `UserPasswordSet` パスワード再設定 (`p`キーで単独プロンプト)
 - [x] `UserExpiresSet` 有効期限設定 (`e`キー、YYYY/MM/DD入力)
@@ -60,7 +61,8 @@
 ## M5: リスナー管理、SecureNAT、アクセスリスト
 
 - [x] `ListenerList` / `ListenerCreate` / `ListenerDelete` / `ListenerEnable` / `ListenerDisable` (ダッシュボードから`l`キーで独立画面。作成はポート番号プロンプト、有効/無効は`o`/`f`の明示操作)
-- [x] `SecureNatEnable` / `SecureNatDisable` / `SecureNatStatusGet` / `SecureNatHostGet` はHub詳細のSecureNATタブで対応。`SecureNatHostSet`(仮想ホスト設定の変更)は未着手 (パラメータ数が多く構文未確認のため意図的に見送り)
+- [x] `SecureNatEnable` / `SecureNatDisable` / `SecureNatStatusGet` / `SecureNatHostGet` はHub詳細のSecureNATタブで対応。
+- [ ] `SecureNatHostSet` (仮想ホストIP・MAC・サブネットマスクの編集: `s`キー) および `DhcpSet` (DHCP配布IP範囲・GW・DNSの編集: `h`キー) の設定・変更機能
 - [x] `AccessList` / `AccessDelete` / `AccessEnable` / `AccessDisable` はHub詳細のACLタブで対応。`AccessAdd`(ルール追加)は未着手 (優先度/送受信IP/ポート範囲/プロトコル等の引数構文が未確認のため意図的に見送り)
 - [x] ローカルで `go build` / `go vet` / `go test` 実行、バイナリの起動確認
 

@@ -155,11 +155,11 @@
 | SecureNatDisable | SecureNAT 無効化 | ✅ | [x] |
 | SecureNatStatusGet | SecureNAT 状態取得 | ✅ | [x] |
 | SecureNatHostGet | SecureNAT (仮想ホスト) 設定取得 | ✅ | [x] |
-| SecureNatHostSet | SecureNAT (仮想ホスト) 設定変更 | ✅ | [ ] (意図的に未対応。パラメータ数が多く構文未確認) |
+| SecureNatHostSet | SecureNAT (仮想ホスト) 設定変更 | ✅ | [x] |
 | NatGet | NAT 設定取得 | ✅ | [ ] |
 | NatSet | NAT 設定変更 | ✅ | [ ] |
-| DhcpGet | DHCP 配布設定取得 | ✅ | [ ] |
-| DhcpSet | DHCP 配布設定変更 | ✅ | [ ] |
+| DhcpGet | DHCP 配布設定取得 | ✅ | [x] |
+| DhcpSet | DHCP 配布設定変更 | ✅ | [x] |
 
 ### 2.6 アクセスリスト (パケットフィルタ)
 
