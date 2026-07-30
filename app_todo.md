@@ -82,7 +82,8 @@
 - [x] `install.sh` (curl ワンライナーインストール。ローカルHTTPサーバーでダウンロード→チェックサム検証→展開→`~/.local/bin`配置→バージョン確認まで実地検証済み)
 - [x] `Makefile` (ローカルでの(クロス)コンパイル用。`build`/`run`/`install`/`fmt`/`vet`/`test`/`lint`/`check`/`cross`/`checksums`/`clean`/`help`の各ターゲットを実装し、`make check`・`make build VERSION=...`・`make cross`(5プラットフォーム全て)・`make checksums`を実行して動作確認済み)
 - [x] `main.go`に`commit`/`date`変数を追加。`.goreleaser.yaml`が注入する`main.commit`/`main.date`のldflagsが実は変数未定義で黙って無視されていたバグを修正し、`--version`出力にコミットハッシュとビルド日時を追加表示するようにした
-- [ ] リポジトリパス `GITHUB_USER/softether-tui` はプレースホルダー。実際のGitHubリポジトリ作成後に `.goreleaser.yaml` の `release.github` と `install.sh` の `REPO` を実値に差し替える必要あり
+- [x] リポジトリパスを実値 `kh813/softether-tui` に差し替え (`.goreleaser.yaml` の `release.github.owner`、`install.sh` の `REPO` と使用例コメント)
+- [x] 初回push後のCI失敗を修正: `ci.yml` の `golangci-lint-action@v6` (v1系CLI前提) が `version: latest` で導入されたv2系golangci-lintと非互換 (v6が渡す `--out-format` フラグをv2 CLIが未サポート、exit code 3) だったため `golangci-lint-action@v7` に更新。ローカルで同事象を再現の上、修正後 `golangci-lint run` が0件で通ることを確認
 
 ## M7: VPN Client モード対応 (`/CLIENT`、前倒し着手)
 

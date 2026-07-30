@@ -2,15 +2,15 @@
 # Installs softether-tui from GitHub Releases.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/GITHUB_USER/softether-tui/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/kh813/softether-tui/main/install.sh | sh
 #   VERSION=v0.1.0 curl -fsSL .../install.sh | sh   # install a specific version
 #
 # Before piping this into `sh`, you can inspect it first:
-#   curl -fsSL https://raw.githubusercontent.com/GITHUB_USER/softether-tui/main/install.sh -o install.sh
+#   curl -fsSL https://raw.githubusercontent.com/kh813/softether-tui/main/install.sh -o install.sh
 #   less install.sh && sh install.sh
 set -eu
 
-REPO="${SOFTETHER_TUI_REPO:-GITHUB_USER/softether-tui}"
+REPO="${SOFTETHER_TUI_REPO:-kh813/softether-tui}"
 VERSION="${VERSION:-latest}"
 BIN_NAME="softether-tui"
 

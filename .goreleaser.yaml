@@ -47,5 +47,5 @@ changelog:
 
 release:
   github:
-    owner: GITHUB_USER
+    owner: kh813
     name: softether-tui
