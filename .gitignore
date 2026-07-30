@@ -1,0 +1,4 @@
+/dist/
+/softether-tui
+*.test
+.claude/settings.local.json
