@@ -164,6 +164,12 @@ func (c *Client) ServerStatus(ctx context.Context, t Target) (KeyValue, error) {
 	return ParseCSV(out)
 }
 
+// ServerPasswordSet sets the VPN Server administrator password.
+func (c *Client) ServerPasswordSet(ctx context.Context, t Target, newPassword string) error {
+	_, err := c.Run(ctx, t, "ServerPasswordSet", newPassword)
+	return err
+}
+
 // Table holds the parsed result of a List-style vpncmd command, which emits
 // one CSV header row followed by one row per item (Hub, User, Session, ...).
 type Table struct {

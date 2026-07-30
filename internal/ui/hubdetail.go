@@ -314,7 +314,7 @@ type accessActionResultMsg struct {
 
 func (m Model) fetchSecureNAT(p config.Profile, hub string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -332,7 +332,7 @@ func (m Model) fetchSecureNAT(p config.Profile, hub string) tea.Cmd {
 
 func (m Model) setSecureNatEnabled(p config.Profile, hub string, enabled bool) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	action := tr("無効化")
 	if enabled {
 		action = tr("有効化")
@@ -352,7 +352,7 @@ func (m Model) setSecureNatEnabled(p config.Profile, hub string, enabled bool) t
 
 func (m Model) fetchAccessList(p config.Profile, hub string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -363,7 +363,7 @@ func (m Model) fetchAccessList(p config.Profile, hub string) tea.Cmd {
 
 func (m Model) deleteAccessRule(p config.Profile, hub, id string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
@@ -374,7 +374,7 @@ func (m Model) deleteAccessRule(p config.Profile, hub, id string) tea.Cmd {
 
 func (m Model) setAccessRuleEnabled(p config.Profile, hub, id string, enabled bool) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	action := tr("無効化")
 	if enabled {
 		action = tr("有効化")
@@ -454,7 +454,7 @@ type cascadeActionResultMsg struct {
 
 func (m Model) fetchCascade(p config.Profile, hub string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -465,7 +465,7 @@ func (m Model) fetchCascade(p config.Profile, hub string) tea.Cmd {
 
 func (m Model) deleteCascade(p config.Profile, hub, name string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
@@ -476,7 +476,7 @@ func (m Model) deleteCascade(p config.Profile, hub, name string) tea.Cmd {
 
 func (m Model) setCascadeOnline(p config.Profile, hub, name string, online bool) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	action := tr("オフライン化")
 	if online {
 		action = tr("オンライン化")

@@ -65,22 +65,27 @@ type Model struct {
 	status    string
 	statusErr bool
 
+	sessionPasswords        map[string]string
+	initialPasswordPrompted map[string]bool
+
 	quitting bool
 	width    int
 }
 
 func New(store *config.Store, client *vpncmd.Client, version string) Model {
 	return Model{
-		store:       store,
-		client:      client,
-		version:     version,
-		form:        newProfileForm(),
-		hubForm:     newHubForm(),
-		userForm:    newUserForm(),
-		groupForm:   newGroupForm(),
-		bridgeForm:  newBridgeForm(),
-		accountForm: newAccountForm(),
-		testResults: map[string]error{},
+		store:                   store,
+		client:                  client,
+		version:                 version,
+		form:                    newProfileForm(),
+		hubForm:                 newHubForm(),
+		userForm:                newUserForm(),
+		groupForm:               newGroupForm(),
+		bridgeForm:              newBridgeForm(),
+		accountForm:             newAccountForm(),
+		testResults:             map[string]error{},
+		sessionPasswords:        map[string]string{},
+		initialPasswordPrompted: map[string]bool{},
 	}
 }
 
@@ -107,6 +112,11 @@ type serverInfoMsg struct {
 	info        vpncmd.KeyValue
 	status      vpncmd.KeyValue
 	hubs        vpncmd.Table
+	err         error
+}
+
+type serverPasswordSetResultMsg struct {
+	profileName string
 	err         error
 }
 
@@ -214,7 +224,7 @@ func (m Model) saveProfiles() tea.Cmd {
 
 func (m Model) testConnection(p config.Profile) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	name := p.Name
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -233,7 +243,7 @@ func (m Model) testConnection(p config.Profile) tea.Cmd {
 
 func (m Model) fetchServerInfo(p config.Profile) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	name := p.Name
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -256,7 +266,7 @@ func (m Model) fetchServerInfo(p config.Profile) tea.Cmd {
 
 func (m Model) fetchHubDetail(p config.Profile, hubName string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -265,9 +275,20 @@ func (m Model) fetchHubDetail(p config.Profile, hubName string) tea.Cmd {
 	}
 }
 
+func (m Model) setServerPassword(p config.Profile, newPassword string) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		err := client.ServerPasswordSet(ctx, target, newPassword)
+		return serverPasswordSetResultMsg{profileName: p.Name, err: err}
+	}
+}
+
 func (m Model) createHub(p config.Profile, name, password string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -278,7 +299,7 @@ func (m Model) createHub(p config.Profile, name, password string) tea.Cmd {
 
 func (m Model) deleteHub(p config.Profile, name string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -289,7 +310,7 @@ func (m Model) deleteHub(p config.Profile, name string) tea.Cmd {
 
 func (m Model) setHubOnline(p config.Profile, hubName string, online bool) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
@@ -300,7 +321,7 @@ func (m Model) setHubOnline(p config.Profile, hubName string, online bool) tea.C
 
 func (m Model) fetchUsers(p config.Profile, hub string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -311,7 +332,7 @@ func (m Model) fetchUsers(p config.Profile, hub string) tea.Cmd {
 
 func (m Model) fetchGroups(p config.Profile, hub string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -322,7 +343,7 @@ func (m Model) fetchGroups(p config.Profile, hub string) tea.Cmd {
 
 func (m Model) createUser(p config.Profile, hub, name string, opts vpncmd.UserCreateOptions, authType vpncmd.UserAuthType, password string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -344,7 +365,7 @@ func (m Model) createUser(p config.Profile, hub, name string, opts vpncmd.UserCr
 
 func (m Model) deleteUser(p config.Profile, hub, name string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
@@ -355,7 +376,7 @@ func (m Model) deleteUser(p config.Profile, hub, name string) tea.Cmd {
 
 func (m Model) setUserPassword(p config.Profile, hub, name, password string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
@@ -366,7 +387,7 @@ func (m Model) setUserPassword(p config.Profile, hub, name, password string) tea
 
 func (m Model) setUserGroup(p config.Profile, hub, name, group string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
@@ -377,7 +398,7 @@ func (m Model) setUserGroup(p config.Profile, hub, name, group string) tea.Cmd {
 
 func (m Model) setUserExpires(p config.Profile, hub, name string, expires time.Time) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
@@ -388,7 +409,7 @@ func (m Model) setUserExpires(p config.Profile, hub, name string, expires time.T
 
 func (m Model) createGroup(p config.Profile, hub, name string, opts vpncmd.GroupCreateOptions) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -399,7 +420,7 @@ func (m Model) createGroup(p config.Profile, hub, name string, opts vpncmd.Group
 
 func (m Model) deleteGroup(p config.Profile, hub, name string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
@@ -410,7 +431,7 @@ func (m Model) deleteGroup(p config.Profile, hub, name string) tea.Cmd {
 
 func (m Model) fetchSessions(p config.Profile, hub string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -421,7 +442,7 @@ func (m Model) fetchSessions(p config.Profile, hub string) tea.Cmd {
 
 func (m Model) disconnectSession(p config.Profile, hub, name string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
@@ -432,7 +453,7 @@ func (m Model) disconnectSession(p config.Profile, hub, name string) tea.Cmd {
 
 func (m Model) fetchLog(p config.Profile, hub string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p).WithHub(hub)
+	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -459,21 +480,25 @@ func (m Model) startSessionAutoRefresh() (tea.Model, tea.Cmd) {
 	)
 }
 
-func targetFromProfile(p config.Profile) vpncmd.Target {
+func (m Model) targetFromProfile(p config.Profile) vpncmd.Target {
+	pw := m.passwordFromEnvOrSession(p)
 	return vpncmd.Target{
 		Host:     p.Host,
 		Port:     p.Port,
 		Mode:     p.Mode,
 		Hub:      p.Hub,
-		Password: passwordFromEnv(p),
+		Password: pw,
 	}
 }
 
-func passwordFromEnv(p config.Profile) string {
-	if p.PasswordEnv == "" {
-		return ""
+func (m Model) passwordFromEnvOrSession(p config.Profile) string {
+	if pw, ok := m.sessionPasswords[p.Name]; ok {
+		return pw
 	}
-	return os.Getenv(p.PasswordEnv)
+	if p.PasswordEnv != "" {
+		return os.Getenv(p.PasswordEnv)
+	}
+	return ""
 }
 
 // --- update ---
@@ -512,6 +537,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case serverInfoMsg:
+		p := m.dashboard.profile
+		currentPw := m.passwordFromEnvOrSession(p)
+		if msg.err != nil && (strings.Contains(msg.err.Error(), "Access has been denied") || strings.Contains(msg.err.Error(), "exit status 1")) {
+			if currentPw == "" {
+				// Prompt user to enter admin password
+				m.dashboard.loading = false
+				m.dashboard.err = msg.err
+				m.prompt.Show(promptConnectPassword, p.Name, fmt.Sprintf(tr("管理者パスワードを入力してください (%s)"), p.Name), tr("パスワード"), true)
+				return m, nil
+			}
+		}
+
 		m.dashboard.loading = false
 		m.dashboard.err = msg.err
 		m.dashboard.info = msg.info
@@ -524,6 +561,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.dashboard.hubCursor = 0
 		}
 		m.testResults[msg.profileName] = msg.err
+
+		// Check if initial password setup is needed
+		if msg.err == nil && p.Mode != config.ModeClient {
+			if !m.initialPasswordPrompted[p.Name] {
+				if currentPw == "" {
+					m.initialPasswordPrompted[p.Name] = true
+					m.prompt.Show(promptInitialPassword, p.Name, fmt.Sprintf(tr("初回接続: 新しい管理者パスワードを設定してください (%s)"), p.Name), tr("新しいパスワード (空欄で変更なし)"), true)
+				}
+			}
+		}
+
+		return m, nil
+
+	case serverPasswordSetResultMsg:
+		if msg.err != nil {
+			m.status = fmt.Sprintf(tr("管理者パスワードの設定に失敗しました: %s"), msg.err.Error())
+			m.statusErr = true
+		} else {
+			m.status = tr("管理者パスワードを設定しました")
+			m.statusErr = false
+		}
 		return m, nil
 
 	case hubDetailMsg:
@@ -972,6 +1030,24 @@ func (m Model) submitPrompt() (tea.Model, tea.Cmd) {
 		m.status = fmt.Sprintf(tr("%s のパスワードを再設定しています..."), target)
 		m.statusErr = false
 		return m, m.setAccountPassword(m.clientDashboard.profile, target, value)
+
+	case promptConnectPassword:
+		m.sessionPasswords[target] = value
+		if p, ok := m.currentProfile(); ok && p.Name == target {
+			m.dashboard = dashboardState{profile: p, loading: true}
+			m.screen = screenDashboard
+			return m, m.fetchServerInfo(p)
+		}
+
+	case promptInitialPassword:
+		if strings.TrimSpace(value) != "" {
+			if p, ok := m.currentProfile(); ok && p.Name == target {
+				m.status = fmt.Sprintf(tr("管理者パスワードを設定しています (%s)..."), target)
+				m.statusErr = false
+				m.sessionPasswords[target] = value
+				return m, m.setServerPassword(p, value)
+			}
+		}
 	}
 	return m, nil
 }

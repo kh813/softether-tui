@@ -8,6 +8,12 @@ var enCatalog = map[string]string{
 	// Added by hand after the mechanical retrofit's AST-completeness test
 	// (TestEnCatalogCoversAllSourceStrings) caught entries missed by the
 	// earlier ad-hoc edits that predated the generator script.
+	"管理者パスワードを入力してください (%s)": "Please enter administrator password (%s)",
+	"初回接続: 新しい管理者パスワードを設定してください (%s)": "First connection: Please set a new administrator password (%s)",
+	"新しいパスワード (空欄で変更なし)": "New password (leave empty to keep unchanged)",
+	"管理者パスワードの設定に失敗しました: %s": "Failed to set administrator password: %s",
+	"管理者パスワードを設定しました": "Administrator password set successfully",
+	"管理者パスワードを設定しています (%s)...": "Setting administrator password (%s)...",
 	"読み込み中...": "Loading...",
 	"エラー: ":    "Error: ",
 	"接続確認中...": "Connecting...",

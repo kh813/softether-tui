@@ -79,7 +79,7 @@ type accountActionResultMsg struct {
 
 func (m Model) fetchAccounts(p config.Profile) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	name := p.Name
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -91,7 +91,7 @@ func (m Model) fetchAccounts(p config.Profile) tea.Cmd {
 
 func (m Model) createAccount(p config.Profile, name string, opts vpncmd.AccountCreateOptions, authType vpncmd.AccountAuthType, password string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -111,7 +111,7 @@ func (m Model) createAccount(p config.Profile, name string, opts vpncmd.AccountC
 
 func (m Model) deleteAccount(p config.Profile, name string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
@@ -122,7 +122,7 @@ func (m Model) deleteAccount(p config.Profile, name string) tea.Cmd {
 
 func (m Model) setAccountConnected(p config.Profile, name string, connect bool) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	action := tr("切断")
 	if connect {
 		action = tr("接続")
@@ -142,7 +142,7 @@ func (m Model) setAccountConnected(p config.Profile, name string, connect bool) 
 
 func (m Model) setAccountPassword(p config.Profile, name, password string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()

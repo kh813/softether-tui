@@ -76,12 +76,25 @@ func NewStore(path string) *Store {
 	return &Store{path: path}
 }
 
-// Load reads the profiles file. A missing file is not an error; it yields
-// an empty profile list so first-run startup works without setup.
+// DefaultProfiles returns the default set of connection targets (e.g. localhost:443).
+func DefaultProfiles() []Profile {
+	return []Profile{
+		{
+			Name: "localhost",
+			Host: "localhost",
+			Port: 443,
+			Mode: ModeServer,
+		},
+	}
+}
+
+// Load reads the profiles file. If the file does not exist, it returns DefaultProfiles().
 func (s *Store) Load() ([]Profile, error) {
 	data, err := os.ReadFile(s.path)
 	if os.IsNotExist(err) {
-		return nil, nil
+		defaults := DefaultProfiles()
+		_ = s.Save(defaults)
+		return defaults, nil
 	}
 	if err != nil {
 		return nil, err
@@ -89,6 +102,10 @@ func (s *Store) Load() ([]Profile, error) {
 	var profiles []Profile
 	if err := yaml.Unmarshal(data, &profiles); err != nil {
 		return nil, fmt.Errorf("parse %s: %w", s.path, err)
+	}
+	if len(profiles) == 0 {
+		profiles = DefaultProfiles()
+		_ = s.Save(profiles)
 	}
 	return profiles, nil
 }

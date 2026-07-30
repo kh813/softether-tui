@@ -69,7 +69,7 @@ type bridgeActionResultMsg struct {
 
 func (m Model) fetchBridges(p config.Profile) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -87,7 +87,7 @@ func (m Model) fetchBridges(p config.Profile) tea.Cmd {
 
 func (m Model) createBridge(p config.Profile, hubName, deviceName string, tap bool) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -98,7 +98,7 @@ func (m Model) createBridge(p config.Profile, hubName, deviceName string, tap bo
 
 func (m Model) deleteBridge(p config.Profile, hubName string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()

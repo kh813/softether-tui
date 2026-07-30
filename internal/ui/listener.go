@@ -65,7 +65,7 @@ type listenerActionResultMsg struct {
 
 func (m Model) fetchListeners(p config.Profile) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -76,7 +76,7 @@ func (m Model) fetchListeners(p config.Profile) tea.Cmd {
 
 func (m Model) createListener(p config.Profile, port int) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
@@ -87,7 +87,7 @@ func (m Model) createListener(p config.Profile, port int) tea.Cmd {
 
 func (m Model) deleteListener(p config.Profile, port string) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	return func() tea.Msg {
 		n, err := strconv.Atoi(port)
 		if err != nil {
@@ -102,7 +102,7 @@ func (m Model) deleteListener(p config.Profile, port string) tea.Cmd {
 
 func (m Model) setListenerEnabled(p config.Profile, port string, enabled bool) tea.Cmd {
 	client := m.client
-	target := targetFromProfile(p)
+	target := m.targetFromProfile(p)
 	action := tr("無効化")
 	if enabled {
 		action = tr("有効化")

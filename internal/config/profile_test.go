@@ -31,7 +31,7 @@ func TestStoreSaveLoadRoundTrip(t *testing.T) {
 	}
 }
 
-func TestStoreLoadMissingFileReturnsEmpty(t *testing.T) {
+func TestStoreLoadMissingFileReturnsDefaults(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "does-not-exist.yaml")
 	store := NewStore(path)
 
@@ -39,8 +39,8 @@ func TestStoreLoadMissingFileReturnsEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if len(got) != 0 {
-		t.Fatalf("got %d profiles, want 0", len(got))
+	if len(got) != 1 || got[0].Name != "localhost" {
+		t.Fatalf("got %v, want default localhost profile", got)
 	}
 }
 
