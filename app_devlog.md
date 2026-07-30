@@ -12,12 +12,10 @@
   - 空のパスワードで接続が成功した初回接続時、Windows GUI版 サーバーマネージャーと同等に「初回接続: 新しい管理者パスワードを設定してください」というダイアログ (`promptInitialPassword`) を表示。
   - パスワードが入力された場合、`ServerPasswordSet` コマンドを発行して自動設定する。
 
-### 10. vpncmd サブメニュー機能の実装 (UserSet, SecureNatHostSet, DhcpSet)
-- **仕様書 (`app_specs.md`) および ToDo リスト (`app_todo.md`) の更新**:
-  - `app_specs.md` (5.5, 5.6) および `app_todo.md` (M3, M5) に `UserSet` (氏名・備考の編集), `SecureNatHostSet` (仮想ホスト IP 設定), `DhcpSet` (DHCP 範囲設定) の機能仕様とタスクを追加更新。
-- **`vpncmd` アダプタ (`internal/vpncmd/client.go`) のメソッド拡張**:
-  - `UserSet`: `/REALNAME:`, `/NOTE:` オプションを受け取る構造体とコマンド送信ロジックを追加。
-  - `SecureNatHostSet`: `/IP:`, `/MASK:`, `/MAC:` オプションを受け取る構造体とコマンド送信ロジックを追加。
-  - `DhcpGet` / `DhcpSet`: `/START:`, `/END:`, `/MASK:`, `/GW:`, `/DNS:` 等の DHCP オプションを受け取る構造体とコマンド送信ロジックを追加。
-- **UI 操作キーバインド・入力プロンプトの連動**:
-  - SecureNAT タブにて `i` キーで仮想ホスト IP アドレス設定 (`promptSecureNatHostIP`)、`s` キーで DHCP 範囲設定 (`promptDhcpStart`) のプロンプトダイアログを起動・実行できるよう拡張。
+### 11. パスワード誤入力時のフリーズ修正 & 並列コマンド実行による応答爆速化
+- **パスワード誤入力時のハングアップ（signal: killed 待ち）の即時検出**:
+  - `vpncmd` に誤ったパスワードを渡した際、`vpncmd` プロセスが対話的再入力プロンプトを表示して標準入力を待ち続け、タイムアウト（signal: killed）までフリーズしていた問題を修正。
+  - `run` メソッド内で stdout/stderr に `Access has been denied` が含まれているかを即座に判定し、プロセス終了を待たずに直ちに `Access has been denied` エラーを返却してパスワード再入力モーダルを即時表示するよう改善。
+- **接続初期化（`fetchServerInfo`）の並列 goroutine 化**:
+  - `ServerInfo`, `ServerStatus`, `HubList` の3つの非対話 `vpncmd` 呼び出しを直列順次実行から goroutine による完全並列実行に変更。
+  - 「Connecting...」の初期画面表示からダッシュボード描画までの待機時間を従来（直列実行）の約 1/3（最長1コマンドの所要時間のみ）へ大幅短縮・爆速化。

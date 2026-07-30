@@ -246,21 +246,51 @@ func (m Model) fetchServerInfo(p config.Profile) tea.Cmd {
 	target := m.targetFromProfile(p)
 	name := p.Name
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		info, err := client.ServerInfo(ctx, target)
-		if err != nil {
-			return serverInfoMsg{profileName: name, err: err}
+
+		type resStruct struct {
+			info   vpncmd.KeyValue
+			status vpncmd.KeyValue
+			hubs   vpncmd.Table
+			err    error
 		}
-		status, err := client.ServerStatus(ctx, target)
-		if err != nil {
-			return serverInfoMsg{profileName: name, err: err}
+
+		infoChan := make(chan resStruct, 1)
+		statusChan := make(chan resStruct, 1)
+		hubsChan := make(chan resStruct, 1)
+
+		go func() {
+			info, err := client.ServerInfo(ctx, target)
+			infoChan <- resStruct{info: info, err: err}
+		}()
+
+		go func() {
+			status, err := client.ServerStatus(ctx, target)
+			statusChan <- resStruct{status: status, err: err}
+		}()
+
+		go func() {
+			hubs, err := client.HubList(ctx, target)
+			hubsChan <- resStruct{hubs: hubs, err: err}
+		}()
+
+		r1 := <-infoChan
+		if r1.err != nil {
+			return serverInfoMsg{profileName: name, err: r1.err}
 		}
-		hubs, err := client.HubList(ctx, target)
-		if err != nil {
-			return serverInfoMsg{profileName: name, err: err}
+
+		r2 := <-statusChan
+		if r2.err != nil {
+			return serverInfoMsg{profileName: name, err: r2.err}
 		}
-		return serverInfoMsg{profileName: name, info: info, status: status, hubs: hubs}
+
+		r3 := <-hubsChan
+		if r3.err != nil {
+			return serverInfoMsg{profileName: name, err: r3.err}
+		}
+
+		return serverInfoMsg{profileName: name, info: r1.info, status: r2.status, hubs: r3.hubs}
 	}
 }
 

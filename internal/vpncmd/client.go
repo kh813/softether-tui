@@ -116,9 +116,14 @@ func (c *Client) run(ctx context.Context, t Target, command string, args []strin
 	cmd.Stderr = &stderr
 
 	if err := cmd.Run(); err != nil {
-		msg := strings.TrimSpace(stderr.String())
+		outStr := stdout.String()
+		errStr := stderr.String()
+		msg := strings.TrimSpace(errStr)
 		if msg == "" {
-			msg = strings.TrimSpace(stdout.String())
+			msg = strings.TrimSpace(outStr)
+		}
+		if strings.Contains(msg, "Access has been denied") {
+			return "", fmt.Errorf("Access has been denied")
 		}
 		return "", fmt.Errorf("vpncmd %s failed: %w: %s", command, err, msg)
 	}
