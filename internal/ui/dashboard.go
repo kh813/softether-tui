@@ -66,28 +66,10 @@ func renderTable(table vpncmd.Table, cursor int) string {
 		return dimStyle.Render(tr("(項目がありません)")) + "\n"
 	}
 
-	widths := make([]int, len(table.Headers))
-	for i, h := range table.Headers {
-		widths[i] = len(h)
-	}
-	for _, row := range table.Rows {
-		for i, h := range table.Headers {
-			if l := len(row[h]); l > widths[i] {
-				widths[i] = l
-			}
-		}
-	}
+	// For HubList and simple list views, extract only the first primary column (e.g. "Virtual Hub Name")
+	mainHeader := table.Headers[0]
 
 	var b strings.Builder
-	// Only render column header row if there are multiple columns
-	if len(table.Headers) > 1 {
-		b.WriteString("  ")
-		for i, h := range table.Headers {
-			fmt.Fprintf(&b, "%-*s  ", widths[i], h)
-		}
-		b.WriteString("\n")
-	}
-
 	for ri, row := range table.Rows {
 		marker := "  "
 		style := statusBarStyle
@@ -95,11 +77,11 @@ func renderTable(table vpncmd.Table, cursor int) string {
 			marker = "> "
 			style = selectedStyle
 		}
-		var line strings.Builder
-		for i, h := range table.Headers {
-			fmt.Fprintf(&line, "%-*s  ", widths[i], row[h])
+		val := row[mainHeader]
+		if val == "" {
+			val = table.NameOf(row)
 		}
-		b.WriteString(marker + style.Render(line.String()) + "\n")
+		b.WriteString(marker + style.Render(val) + "\n")
 	}
 	return b.String()
 }
