@@ -12,9 +12,7 @@
   - 空のパスワードで接続が成功した初回接続時、Windows GUI版 サーバーマネージャーと同等に「初回接続: 新しい管理者パスワードを設定してください」というダイアログ (`promptInitialPassword`) を表示。
   - パスワードが入力された場合、`ServerPasswordSet` コマンドを発行して自動設定する。
 
-### 7. 接続タイムアウト最適化 & CSVテーブル解析ロジックの抜本的改修
-- **タイムアウト時間の短縮 (15s -> 5s)**:
-  - `vpncmd.Client` のデフォルトタイムアウトを 15秒から 5秒へ短縮し、「Connecting...」表示の待ち時間を大幅に削減。
-- **`ParseCSVTable` による `Password`/`Item`/`Value` メタデータ行・列の自動除去**:
-  - `vpncmd` の出力に含まれる「Password:」「Item,Value」などの副次的メタデータ行・ヘッダー行を `ParseCSVTable` で解析段階から除去。
-  - 実在する Virtual Hub のデータ行のみが確実に取得・表示され、上位の `DEFAULT` Hub がデフォルトカーソル位置で選択されるよう改修。
+### 8. `vpncmd` プロンプト行排除による Hub 名行の誤認識修正
+- **`Password:` プロンプト行の事前スキップ**:
+  - `vpncmd` の stdout/stderr に先頭出力される `Password:` のプロンプト行が原因で、1列目の「Virtual Hub Name (データ枠の固定ヘッダー)」を行データと勘違いして `Virtual Hub Name` という架空の Hub 名が表示されていた現象を修正。
+  - CSV 解析処理で `Password:` などのプロンプト行をパース前に完全無視するよう改修し、実在する `DEFAULT` のみが上位（インデックス 0）にカーソル初期選択された状態で正しく表示されるよう改善。

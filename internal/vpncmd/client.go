@@ -197,28 +197,30 @@ func ParseCSVTable(output string) (Table, error) {
 	if err != nil {
 		return Table{}, fmt.Errorf("parse csv: %w", err)
 	}
-	if len(records) == 0 {
-		return Table{}, nil
-	}
-	headers := records[0]
-	// Filter out extraneous vpncmd output lines or metadata headers (e.g. Password row/header)
-	var cleanHeaders []string
-	for _, h := range headers {
-		hTrim := strings.TrimSpace(h)
-		if strings.EqualFold(hTrim, "Password") || strings.EqualFold(hTrim, "Item") || strings.EqualFold(hTrim, "Value") {
+
+	// Filter out non-CSV lines (e.g. "Password:" prompt line) before locating header row
+	var cleanRecords [][]string
+	for _, rec := range records {
+		if len(rec) == 0 {
 			continue
 		}
-		cleanHeaders = append(cleanHeaders, h)
-	}
-	if len(cleanHeaders) == 0 {
-		cleanHeaders = headers
+		// Ignore single field records that look like prompts (e.g. "Password:", "Password: ****")
+		if len(rec) == 1 && (strings.HasPrefix(strings.TrimSpace(rec[0]), "Password:") || strings.TrimSpace(rec[0]) == "") {
+			continue
+		}
+		cleanRecords = append(cleanRecords, rec)
 	}
 
-	rows := make([]KeyValue, 0, len(records)-1)
-	for _, rec := range records[1:] {
-		row := make(KeyValue, len(cleanHeaders))
+	if len(cleanRecords) == 0 {
+		return Table{}, nil
+	}
+
+	headers := cleanRecords[0]
+	rows := make([]KeyValue, 0, len(cleanRecords)-1)
+	for _, rec := range cleanRecords[1:] {
+		row := make(KeyValue, len(headers))
 		hasValue := false
-		for i, h := range cleanHeaders {
+		for i, h := range headers {
 			if i < len(rec) {
 				val := strings.TrimSpace(rec[i])
 				if val != "" {
@@ -231,7 +233,7 @@ func ParseCSVTable(output string) (Table, error) {
 			rows = append(rows, row)
 		}
 	}
-	return Table{Headers: cleanHeaders, Rows: rows}, nil
+	return Table{Headers: headers, Rows: rows}, nil
 }
 
 // hubScoped returns a copy of t with Hub cleared, for commands that operate
