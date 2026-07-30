@@ -21,6 +21,7 @@ var enCatalog = map[string]string{
 	"接続":       "connect",
 	"確認":       "Confirm",
 	"[ y: 実行する ]   [ n: キャンセル ]": "[ y: confirm ]   [ n: cancel ]",
+	"Hub数: %s   総セッション数: %s\n": "Hubs: %s   Total Sessions: %s\n",
 	"Hub一覧": "Hubs",
 	"↑/↓:Hub選択  Enter:Hub詳細  a:Hub作成  d:Hub削除  l:リスナー管理  b:ローカルブリッジ  Esc:戻る  r:更新  q:終了": "Up/Down: select Hub  Enter: Hub details  a: create Hub  d: delete Hub  l: listeners  b: local bridges  Esc: back  r: refresh  q: quit",
 	"(項目がありません)":            "(no items)",

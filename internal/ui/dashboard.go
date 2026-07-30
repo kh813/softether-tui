@@ -22,7 +22,8 @@ type dashboardState struct {
 
 func (d dashboardState) View() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "%s\n\n", titleStyle.Render(fmt.Sprintf("%s (%s)", d.profile.Name, d.profile.Address())))
+	fmt.Fprintf(&b, "%s\n", titleStyle.Render(fmt.Sprintf("%s (%s)", d.profile.Name, d.profile.Address())))
+	b.WriteString(strings.Repeat("─", 60) + "\n")
 
 	if d.loading {
 		b.WriteString(tr("接続確認中...") + "\n")
@@ -33,12 +34,23 @@ func (d dashboardState) View() string {
 		return b.String()
 	}
 
-	b.WriteString(headerStyle.Render("Server Info") + "\n")
-	writeKV(&b, d.info)
-	b.WriteString("\n" + headerStyle.Render("Server Status") + "\n")
-	writeKV(&b, d.status)
+	// Compact server summary header
+	product := d.info["Product Name"]
+	if product == "" {
+		product = "SoftEther VPN Server"
+	}
+	ver := d.info["Version"]
+	osType := d.info["Type of Operating System"]
+	hubsCount := d.status["Number of Virtual Hubs"]
+	sessionsCount := d.status["Number of Sessions"]
 
-	b.WriteString("\n" + headerStyle.Render(tr("Hub一覧")) + "\n")
+	fmt.Fprintf(&b, "%s %s (%s)\n", product, ver, osType)
+	if hubsCount != "" || sessionsCount != "" {
+		fmt.Fprintf(&b, tr("Hub数: %s   総セッション数: %s\n"), hubsCount, sessionsCount)
+	}
+	b.WriteString(strings.Repeat("─", 60) + "\n\n")
+
+	b.WriteString(headerStyle.Render(tr("Hub一覧")) + "\n")
 	b.WriteString(renderTable(d.hubs, d.hubCursor))
 
 	b.WriteString("\n" + dimStyle.Render(tr("↑/↓:Hub選択  Enter:Hub詳細  a:Hub作成  d:Hub削除  l:リスナー管理  b:ローカルブリッジ  Esc:戻る  r:更新  q:終了")))
