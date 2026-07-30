@@ -231,11 +231,11 @@ func (c *Client) HubList(ctx context.Context, t Target) (Table, error) {
 	return ParseCSVTable(out)
 }
 
-// HubGet fetches configuration/status for a specific hub using GetHub command in Hub Management Mode.
+// HubGet fetches configuration/status for a specific hub using StatusGet command in Hub Management Mode.
 func (c *Client) HubGet(ctx context.Context, t Target, hubName string) (KeyValue, error) {
 	target := t
 	target.Hub = hubName
-	out, err := c.Run(ctx, target, "GetHub")
+	out, err := c.Run(ctx, target, "StatusGet")
 	if err != nil {
 		return nil, err
 	}

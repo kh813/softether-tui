@@ -1652,14 +1652,14 @@ func (m Model) View() string {
 		body += "\n" + style.Render(m.status)
 	}
 
-	content := borderStyle().Width(m.contentWidth()).Render(body)
 	if m.confirm.active {
-		content += "\n\n" + m.confirm.View()
+		return borderStyle().Width(m.contentWidth()).Render(m.confirm.View())
 	}
 	if m.prompt.active {
-		content += "\n\n" + m.prompt.View()
+		return borderStyle().Width(m.contentWidth()).Render(m.prompt.View())
 	}
-	return content
+
+	return borderStyle().Width(m.contentWidth()).Render(body)
 }
 
 func (m Model) contentWidth() int {

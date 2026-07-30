@@ -12,12 +12,10 @@
   - 空のパスワードで接続が成功した初回接続時、Windows GUI版 サーバーマネージャーと同等に「初回接続: 新しい管理者パスワードを設定してください」というダイアログ (`promptInitialPassword`) を表示。
   - パスワードが入力された場合、`ServerPasswordSet` コマンドを発行して自動設定する。
 
-### 2. vpncmd コマンド名の不一致修正
-- **`GetHub` コマンドへの修正**:
-  - `HubGet` コマンドが存在せず `exit status 117` となっていた箇所を、/HUB: コンテキストで動作する正式なコマンド `GetHub` に変更。
-  - `vpncmd_commands.md` のチェックリストも合わせて最新化。
-
-### 3. バグ修正と単体テスト・i18n追従
-- 同一ディレクトリおよびカレントディレクトリからの `vpncmd` 自動探索 (`Locate`) をサポート。
-- 新規追加した UI メッセージ 6 件を `internal/ui/catalog_en.go` に英訳追加し、`TestEnCatalogCoversAllSourceStrings` の自動テストを PASS。
-- 全パッケージ (`internal/config`, `internal/i18n`, `internal/ui`, `internal/vpncmd`) の `go test ./...` が正常通過することを確認。
+### 4. モーダルレイアウト枠外溢れ修正 & Virtual HUB 詳細状態コマンド修正
+- **モーダル表示時のレイアウト枠外溢れ修正**:
+  - `prompt` や `confirm` ダイアログアクティブ時に、親画面テキストに縦追加（改行連結）されていたためターミナル枠線外にはみ出す問題を修正。
+  - モーダル有効時は全画面コンテンツをモーダル自身に差し替えて1つの枠線内に収めて描画するレイアウト構造に改修。
+- **Virtual HUB 詳細取得コマンドの修正 (`StatusGet`)**:
+  - SoftEther vpncmd には `GetHub` や `HubGet` コマンドが存在せず `exit status 117` となる現象が発生していたため、対象 Hub コンテキスト (`/HUB:<name>`) で実行可能な正式コマンド **`StatusGet`** に修正。
+  - `vpncmd_commands.md` および `internal/vpncmd/client.go` を更新。
