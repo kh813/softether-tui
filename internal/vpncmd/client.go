@@ -8,7 +8,9 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -16,10 +18,27 @@ import (
 	"softether-tui/internal/config"
 )
 
-var ErrNotFound = errors.New("vpncmd: binary not found in PATH")
+var ErrNotFound = errors.New("vpncmd: binary not found in PATH or executable directory")
 
-// Locate finds the vpncmd binary on PATH.
+// Locate finds the vpncmd binary. It checks:
+// 1. Same directory as the current executable
+// 2. Current working directory
+// 3. System PATH
 func Locate() (string, error) {
+	if exePath, err := os.Executable(); err == nil {
+		sameDirBinary := filepath.Join(filepath.Dir(exePath), "vpncmd")
+		if info, err := os.Stat(sameDirBinary); err == nil && !info.IsDir() {
+			return sameDirBinary, nil
+		}
+	}
+
+	if info, err := os.Stat("./vpncmd"); err == nil && !info.IsDir() {
+		if absPath, err := filepath.Abs("./vpncmd"); err == nil {
+			return absPath, nil
+		}
+		return "./vpncmd", nil
+	}
+
 	path, err := exec.LookPath("vpncmd")
 	if err != nil {
 		return "", ErrNotFound

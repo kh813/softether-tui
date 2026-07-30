@@ -286,3 +286,37 @@ func TestUserExpiresSetFormatsDate(t *testing.T) {
 		t.Errorf("argv = %q, want suffix %q", got, want)
 	}
 }
+
+func TestLocateSameDirectory(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("fake vpncmd script requires a POSIX shell")
+	}
+
+	dir := t.TempDir()
+	fakeBin := filepath.Join(dir, "vpncmd")
+	if err := os.WriteFile(fakeBin, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
+		t.Fatalf("write fake vpncmd: %v", err)
+	}
+
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd: %v", err)
+	}
+	defer func() { _ = os.Chdir(origDir) }()
+
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("Chdir: %v", err)
+	}
+
+	loc, err := Locate()
+	if err != nil {
+		t.Fatalf("Locate failed: %v", err)
+	}
+
+	expected, _ := filepath.Abs(fakeBin)
+	locEval, _ := filepath.EvalSymlinks(loc)
+	expectedEval, _ := filepath.EvalSymlinks(expected)
+	if locEval != expectedEval {
+		t.Errorf("Locate() = %q, want %q", locEval, expectedEval)
+	}
+}
