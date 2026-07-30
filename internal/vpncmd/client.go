@@ -62,7 +62,7 @@ type Client struct {
 }
 
 func NewClient(binaryPath string) *Client {
-	return &Client{BinaryPath: binaryPath, Timeout: 15 * time.Second}
+	return &Client{BinaryPath: binaryPath, Timeout: 5 * time.Second}
 }
 
 func buildArgs(t Target, command string, args []string) []string {
@@ -201,17 +201,37 @@ func ParseCSVTable(output string) (Table, error) {
 		return Table{}, nil
 	}
 	headers := records[0]
+	// Filter out extraneous vpncmd output lines or metadata headers (e.g. Password row/header)
+	var cleanHeaders []string
+	for _, h := range headers {
+		hTrim := strings.TrimSpace(h)
+		if strings.EqualFold(hTrim, "Password") || strings.EqualFold(hTrim, "Item") || strings.EqualFold(hTrim, "Value") {
+			continue
+		}
+		cleanHeaders = append(cleanHeaders, h)
+	}
+	if len(cleanHeaders) == 0 {
+		cleanHeaders = headers
+	}
+
 	rows := make([]KeyValue, 0, len(records)-1)
 	for _, rec := range records[1:] {
-		row := make(KeyValue, len(headers))
-		for i, h := range headers {
+		row := make(KeyValue, len(cleanHeaders))
+		hasValue := false
+		for i, h := range cleanHeaders {
 			if i < len(rec) {
+				val := strings.TrimSpace(rec[i])
+				if val != "" {
+					hasValue = true
+				}
 				row[h] = rec[i]
 			}
 		}
-		rows = append(rows, row)
+		if hasValue {
+			rows = append(rows, row)
+		}
 	}
-	return Table{Headers: headers, Rows: rows}, nil
+	return Table{Headers: cleanHeaders, Rows: rows}, nil
 }
 
 // hubScoped returns a copy of t with Hub cleared, for commands that operate
