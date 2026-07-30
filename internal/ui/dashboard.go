@@ -66,12 +66,24 @@ func renderTable(table vpncmd.Table, cursor int) string {
 		return dimStyle.Render(tr("(項目がありません)")) + "\n"
 	}
 
-	widths := make([]int, len(table.Headers))
-	for i, h := range table.Headers {
+	// Filter headers: omit extraneous metadata columns like "Password" if returned
+	var validHeaders []string
+	for _, h := range table.Headers {
+		if strings.EqualFold(h, "Password") {
+			continue
+		}
+		validHeaders = append(validHeaders, h)
+	}
+	if len(validHeaders) == 0 {
+		validHeaders = table.Headers
+	}
+
+	widths := make([]int, len(validHeaders))
+	for i, h := range validHeaders {
 		widths[i] = len(h)
 	}
 	for _, row := range table.Rows {
-		for i, h := range table.Headers {
+		for i, h := range validHeaders {
 			if l := len(row[h]); l > widths[i] {
 				widths[i] = l
 			}
@@ -79,11 +91,14 @@ func renderTable(table vpncmd.Table, cursor int) string {
 	}
 
 	var b strings.Builder
-	b.WriteString("  ")
-	for i, h := range table.Headers {
-		fmt.Fprintf(&b, "%-*s  ", widths[i], h)
+	// If the table only has a single column (e.g. Virtual Hub Name), omit header row for cleaner list view
+	if len(validHeaders) > 1 {
+		b.WriteString("  ")
+		for i, h := range validHeaders {
+			fmt.Fprintf(&b, "%-*s  ", widths[i], h)
+		}
+		b.WriteString("\n")
 	}
-	b.WriteString("\n")
 
 	for ri, row := range table.Rows {
 		marker := "  "
@@ -93,7 +108,7 @@ func renderTable(table vpncmd.Table, cursor int) string {
 			style = selectedStyle
 		}
 		var line strings.Builder
-		for i, h := range table.Headers {
+		for i, h := range validHeaders {
 			fmt.Fprintf(&line, "%-*s  ", widths[i], row[h])
 		}
 		b.WriteString(marker + style.Render(line.String()) + "\n")
