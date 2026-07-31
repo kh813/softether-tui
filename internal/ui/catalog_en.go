@@ -9,6 +9,11 @@ var enCatalog = map[string]string{
 	// (TestEnCatalogCoversAllSourceStrings) caught entries missed by the
 	// earlier ad-hoc edits that predated the generator script.
 	"管理者パスワードを入力してください (%s)": "Please enter administrator password (%s)",
+	"Hub %q のパスワード設定に失敗しました: %s": "Failed to set password for Hub %q: %s",
+	"Hub %q のパスワードを設定しました": "Set password for Hub %q successfully",
+	"Hub %q のパスワードを設定しています...": "Setting password for Hub %q...",
+	"Hub %q の新しいパスワードを入力してください:": "Enter new password for Hub %q:",
+	"Hubパスワード設定": "Hub password",
 	"Hub %q の Virtual NAT を有効化しています...": "Enabling Virtual NAT for Hub %q...",
 	"Hub %q の Virtual NAT を無効化しています...": "Disabling Virtual NAT for Hub %q...",
 	"Hub %q の Virtual DHCP を有効化しています...": "Enabling Virtual DHCP for Hub %q...",

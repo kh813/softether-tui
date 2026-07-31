@@ -447,6 +447,22 @@ func (m Model) setUserExpires(p config.Profile, hub, name string, expires time.T
 	}
 }
 
+type hubPasswordResultMsg struct {
+	hubName string
+	err     error
+}
+
+func (m Model) setHubPassword(p config.Profile, hubName, password string) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		err := client.SetHubPassword(ctx, target, hubName, password)
+		return hubPasswordResultMsg{hubName: hubName, err: err}
+	}
+}
+
 func (m Model) createGroup(p config.Profile, hub, name string, opts vpncmd.GroupCreateOptions) tea.Cmd {
 	client := m.client
 	target := m.targetFromProfile(p).WithHub(hub)
@@ -679,6 +695,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusErr = false
 		m.dashboard.loading = true
 		return m, m.fetchServerInfo(m.dashboard.profile)
+
+	case hubPasswordResultMsg:
+		if msg.err != nil {
+			m.status = fmt.Sprintf(tr("Hub %q のパスワード設定に失敗しました: %s"), msg.hubName, msg.err.Error())
+			m.statusErr = true
+			return m, nil
+		}
+		m.status = fmt.Sprintf(tr("Hub %q のパスワードを設定しました"), msg.hubName)
+		m.statusErr = false
+		return m, nil
 
 	case hubOnlineResultMsg:
 		label := tr("オフライン化")
@@ -1197,6 +1223,11 @@ func (m Model) submitPrompt() (tea.Model, tea.Cmd) {
 			}
 			return m, m.createCascade(profile, hub, opts)
 		}
+
+	case promptHubPassword:
+		m.status = fmt.Sprintf(tr("Hub %q のパスワードを設定しています..."), target)
+		m.statusErr = false
+		return m, m.setHubPassword(m.dashboard.profile, target, value)
 	}
 	return m, nil
 }
@@ -1386,6 +1417,11 @@ func (m Model) handleDashboardKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "d":
 		if name, ok := m.currentHubName(); ok {
 			m.confirm.Show(confirmDeleteHub, name, fmt.Sprintf(tr("Hub %q を削除しますか?"), name))
+		}
+
+	case "p":
+		if name, ok := m.currentHubName(); ok {
+			m.prompt.Show(promptHubPassword, name, fmt.Sprintf(tr("Hub %q の新しいパスワードを入力してください:"), name), tr("パスワード"), true)
 		}
 
 	case "l":

@@ -39,11 +39,9 @@
 | ServerPasswordSet | サーバー管理パスワード設定 | △ | [x] |
 | ServerCertGet | サーバー証明書取得 | ✅ | [ ] |
 | ServerCertSet | サーバー証明書設定 | ✅ | [ ] |
-| ServerCipherSet | 使用暗号化アルゴリズム設定 (要確認) | △ | [ ] |
-| VpnOverIcmpDnsGet | ICMP/DNS 経由 VPN の有効状態取得 (要確認) | △ | [ ] |
-| VpnOverIcmpDnsEnable / Disable | ICMP/DNS 経由 VPN の有効/無効化 (要確認) | △ | [ ] |
-| SysLogEnable / Disable | syslog 転送設定 | △ | [ ] |
-| SysLogGet | syslog 転送設定の取得 | △ | [ ] |
+| ServerCipherGet / ServerCipherSet | 暗号化アルゴリズム取得/設定 | △ | [x] (クライアント実装完了) |
+| VpnOverIcmpDnsGet / VpnOverIcmpDnsEnable | ICMP/DNS 経由 VPN の状態取得/有効・無効化 | △ | [x] (クライアント実装完了) |
+| SysLogEnable / SyslogDisable / SysLogGet | syslog 転送設定の取得/有効・無効化 | △ | [x] (クライアント実装完了) |
 | GetConfig | サーバー設定全体をテキストでバックアップ (要確認) | △ | [ ] |
 | SetConfig | サーバー設定全体を復元 (要確認) | △ | [ ] |
 | RebootServer | VPN Server サービスの再起動 | △ | [ ] |
@@ -68,7 +66,7 @@
 | HubCreateStatic | Hub 作成 (静的種別、要確認) | △ | [ ] |
 | HubDelete | Hub 削除 | ✅ | [x] |
 | StatusGet | Hub 詳細状態取得 | ✅ | [x] |
-| SetHubPassword | Hub パスワード設定 | ✅ | [ ] |
+| SetHubPassword | Hub パスワード設定 | ✅ | [x] (ダッシュボード画面にて `p` キーでプロンプト設定対応) |
 | Hub | 指定 Hub を選択し Hub 管理モードへ遷移 | ✅ | [~] (対話選択ではなく `/HUB:` 接続オプションで同等の効果を実現) |
 
 ### 1.5 ローカルブリッジ・Layer3 スイッチ

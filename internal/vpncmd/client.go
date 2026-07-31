@@ -175,6 +175,70 @@ func (c *Client) ServerPasswordSet(ctx context.Context, t Target, newPassword st
 	return err
 }
 
+// SetHubPassword sets the administrator password for a Virtual Hub.
+func (c *Client) SetHubPassword(ctx context.Context, t Target, hubName, password string) error {
+	_, err := c.RunWithInput(ctx, t, "SetHubPassword", []string{hubName}, []string{password, password})
+	return err
+}
+
+// ServerCipherGet returns the currently used and supported encryption algorithms.
+func (c *Client) ServerCipherGet(ctx context.Context, t Target) (string, error) {
+	out, err := c.Run(ctx, t, "ServerCipherGet")
+	return out, err
+}
+
+// ServerCipherSet sets the encryption algorithm for VPN communication.
+func (c *Client) ServerCipherSet(ctx context.Context, t Target, cipherName string) error {
+	_, err := c.Run(ctx, t, "ServerCipherSet", cipherName)
+	return err
+}
+
+// VpnOverIcmpDnsGet gets current ICMP / DNS VPN status.
+func (c *Client) VpnOverIcmpDnsGet(ctx context.Context, t Target) (KeyValue, error) {
+	out, err := c.Run(ctx, t, "VpnOverIcmpDnsGet")
+	if err != nil {
+		return nil, err
+	}
+	return ParseCSV(out)
+}
+
+// VpnOverIcmpDnsEnable enables ICMP or DNS VPN.
+func (c *Client) VpnOverIcmpDnsEnable(ctx context.Context, t Target, icmp, dns bool) error {
+	icmpFlag, dnsFlag := "no", "no"
+	if icmp {
+		icmpFlag = "yes"
+	}
+	if dns {
+		dnsFlag = "yes"
+	}
+	_, err := c.Run(ctx, t, "VpnOverIcmpDnsEnable", "/ICMP:"+icmpFlag, "/DNS:"+dnsFlag)
+	return err
+}
+
+// SyslogGet gets syslog settings.
+func (c *Client) SyslogGet(ctx context.Context, t Target) (KeyValue, error) {
+	out, err := c.Run(ctx, t, "SyslogGet")
+	if err != nil {
+		return nil, err
+	}
+	return ParseCSV(out)
+}
+
+// SyslogEnable enables syslog forwarding to specified host and port.
+func (c *Client) SyslogEnable(ctx context.Context, t Target, host string, port int) error {
+	if port <= 0 {
+		port = 514
+	}
+	_, err := c.Run(ctx, t, "SyslogEnable", fmt.Sprintf("%s:%d", host, port))
+	return err
+}
+
+// SyslogDisable disables syslog forwarding.
+func (c *Client) SyslogDisable(ctx context.Context, t Target) error {
+	_, err := c.Run(ctx, t, "SyslogDisable")
+	return err
+}
+
 // Table holds the parsed result of a List-style vpncmd command, which emits
 // one CSV header row followed by one row per item (Hub, User, Session, ...).
 type Table struct {

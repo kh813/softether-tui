@@ -58,6 +58,7 @@ func (d dashboardState) View() string {
 		"Enter", tr("Hub詳細"),
 		"a", tr("Hub作成"),
 		"d", tr("Hub削除"),
+		"p", tr("Hubパスワード設定"),
 		"l", tr("リスナー管理"),
 		"b", tr("ローカルブリッジ"),
 		"Esc", tr("戻る"),

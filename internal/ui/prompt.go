@@ -27,6 +27,7 @@ const (
 	promptDhcpEnd
 	promptAccessAddMemo
 	promptCascadeCreateName
+	promptHubPassword
 )
 
 // prompt is a single-line input overlay, e.g. for password reset or setting
