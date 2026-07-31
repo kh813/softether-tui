@@ -34,9 +34,9 @@
 
 | コマンド | 概要 | MVP対象 | 実装状況 |
 |---|---|---|---|
-| ServerInfoGet | サーバー情報 (バージョン/OS等) 取得 | ✅ | [ ] |
-| ServerStatusGet | サーバー状態 (セッション数等) 取得 | ✅ | [ ] |
-| ServerPasswordSet | サーバー管理パスワード設定 | △ | [ ] |
+| ServerInfoGet | サーバー情報 (バージョン/OS等) 取得 | ✅ | [x] |
+| ServerStatusGet | サーバー状態 (セッション数等) 取得 | ✅ | [x] |
+| ServerPasswordSet | サーバー管理パスワード設定 | △ | [x] |
 | ServerCertGet | サーバー証明書取得 | ✅ | [ ] |
 | ServerCertSet | サーバー証明書設定 | ✅ | [ ] |
 | ServerCipherSet | 使用暗号化アルゴリズム設定 (要確認) | △ | [ ] |
@@ -117,8 +117,8 @@
 |---|---|---|---|
 | UserList | ユーザー一覧取得 | ✅ | [x] |
 | UserCreate | ユーザー作成 | ✅ | [x] |
-| UserGet | ユーザー詳細取得 | ✅ | [ ] (一覧表示に統合し個別詳細画面は未実装) |
-| UserSet | ユーザー詳細変更 | ✅ | [~] (`/GROUP:` によるグループ変更のみ対応) |
+| UserGet | ユーザー詳細取得 | ✅ | [x] (専用のユーザー詳細画面でインライン編集対応) |
+| UserSet | ユーザー詳細変更 | ✅ | [x] (グループ、氏名、備考などの編集に対応) |
 | UserDelete | ユーザー削除 | ✅ | [x] |
 | UserPasswordSet | パスワード認証への設定/再設定 | ✅ | [x] |
 | UserAnonymousSet | 匿名認証への変更 | ✅ | [x] |
@@ -135,8 +135,8 @@
 |---|---|---|---|
 | GroupList | グループ一覧取得 | ✅ | [x] |
 | GroupCreate | グループ作成 | ✅ | [x] |
-| GroupGet | グループ詳細取得 | ✅ | [ ] (一覧表示に統合し個別詳細画面は未実装) |
-| GroupSet | グループ詳細変更 (所属ユーザーの割当含む、要確認) | ✅ | [ ] |
+| GroupGet | グループ詳細取得 | ✅ | [x] (専用のグループ詳細画面でインライン編集対応) |
+| GroupSet | グループ詳細変更 (所属ユーザーの割当含む、要確認) | ✅ | [x] (氏名、備考の編集に対応) |
 | GroupDelete | グループ削除 | ✅ | [x] |
 
 ### 2.4 セッション管理 (重点機能)
@@ -147,7 +147,7 @@
 | SessionGet | セッション詳細取得 | ✅ | [ ] (一覧表示に統合し個別詳細画面は未実装) |
 | SessionDisconnect | セッション強制切断 | ✅ | [x] |
 
-### 2.5 SecureNAT / DHCP
+### 2.5 SecureNAT / DHCP / RADIUS
 
 | コマンド | 概要 | MVP対象 | 実装状況 |
 |---|---|---|---|
@@ -160,6 +160,9 @@
 | NatSet | NAT 設定変更 | ✅ | [ ] |
 | DhcpGet | DHCP 配布設定取得 | ✅ | [x] |
 | DhcpSet | DHCP 配布設定変更 | ✅ | [x] |
+| RadiusServerGet | RADIUS サーバー設定取得 | ✅ | [x] |
+| RadiusServerSet | RADIUS サーバー設定変更 | ✅ | [x] |
+| RadiusServerDelete | RADIUS サーバー設定削除 | ✅ | [x] |
 
 ### 2.6 アクセスリスト (パケットフィルタ)
 
@@ -190,9 +193,9 @@
 | コマンド | 概要 | MVP対象 | 実装状況 |
 |---|---|---|---|
 | LogGet | ログ設定取得 | ✅ | [x] |
-| LogEnable | ログ (セキュリティ/パケット) 有効化 (要確認) | ✅ | [ ] (意図的に未対応。パラメータ名要確認) |
-| LogPacketSaveType | パケットログの保存種別設定 | ✅ | [ ] (意図的に未対応。パラメータ名要確認) |
-| LogSwitchType | ログファイルの切り替え周期設定 | ✅ | [ ] (意図的に未対応。パラメータ名要確認) |
+| LogEnable / Disable | ログ (セキュリティ/パケット) 有効化/無効化 | ✅ | [x] |
+| LogPacketSaveType | パケットログの保存種別設定 | ✅ | [x] |
+| LogSwitchType | ログファイルの切り替え周期設定 | ✅ | [x] |
 | LogFileList | ログファイル一覧 (要確認) | ✅ | [ ] (ログ取得範囲の設計判断が未確定。app_specs.md 12章参照) |
 | LogFileGet | ログファイル内容取得 (要確認) | ✅ | [ ] (同上) |
 

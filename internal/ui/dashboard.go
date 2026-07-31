@@ -53,7 +53,17 @@ func (d dashboardState) View() string {
 	b.WriteString(headerStyle.Render(tr("Hub一覧")) + "\n")
 	b.WriteString(renderTable(d.hubs, d.hubCursor))
 
-	b.WriteString("\n" + dimStyle.Render(tr("↑/↓:Hub選択  Enter:Hub詳細  a:Hub作成  d:Hub削除  l:リスナー管理  b:ローカルブリッジ  Esc:戻る  r:更新  q:終了")))
+	b.WriteString("\n" + renderHelp(
+		"↑/↓", tr("Hub選択"),
+		"Enter", tr("Hub詳細"),
+		"a", tr("Hub作成"),
+		"d", tr("Hub削除"),
+		"l", tr("リスナー管理"),
+		"b", tr("ローカルブリッジ"),
+		"Esc", tr("戻る"),
+		"r", tr("更新"),
+		"q", tr("終了"),
+	))
 	return b.String()
 }
 
@@ -93,7 +103,9 @@ func writeKV(b *strings.Builder, kv vpncmd.KeyValue) {
 	}
 	keys := make([]string, 0, len(kv))
 	for k := range kv {
-		keys = append(keys, k)
+		if k != "---" && k != "Item" {
+			keys = append(keys, k)
+		}
 	}
 	sort.Strings(keys)
 	for _, k := range keys {

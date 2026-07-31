@@ -39,13 +39,13 @@
 ## M3: ユーザー / グループ管理 (重点機能)
 
 - [x] `UserList` 一覧表示・検索フィルタ (`/`で検索文字列入力→Enterで確定、名前以外の列も部分一致対象)
-- [x] `UserGet` による詳細閲覧は見送り、一覧表示に統合。`UserSet` は次項のグループ変更のみ対応 (他フィールド編集はパラメータ名要確認のため未着手)
-- [ ] `UserSet` によるユーザーの氏名 (`/REALNAME:`)・備考 (`/NOTE:`) の編集機能 (`e`キーで編集フォーム呼び出し)
+- [x] `UserGet` による詳細閲覧および `UserSet` による属性（氏名・グループ・備考・パスワード・有効期限）のインライン編集・保存対応（専用 `UserDetail` 画面）
+
 - [x] `UserCreate` (認証方式選択: Password / Anonymous / Radius に対応。NTLM/Certはパラメータ名未確認のため非対応)
 - [x] `UserPasswordSet` パスワード再設定 (`p`キーで単独プロンプト)
 - [x] `UserExpiresSet` 有効期限設定 (`e`キー、YYYY/MM/DD入力)
 - [x] `UserDelete` (確認ダイアログ必須)
-- [x] `GroupList` / `GroupCreate` / `GroupDelete`。`GroupSet`(表示名/備考の編集)は未着手
+- [x] `GroupList` / `GroupCreate` / `GroupDelete` / `GroupGet` / `GroupSet` (専用 `GroupDetail` 画面で氏名・備考のインライン編集・保存対応)
 - [x] ユーザーのグループ割当変更 (`g`キー、`UserSet /GROUP:`)
 - [x] ローカルで `go build` / `go vet` / `go test` 実行、バイナリの起動確認
 
@@ -54,7 +54,7 @@
 - [x] `SessionList` 一覧表示 + 自動リフレッシュ (既定 5 秒、`+`/`-`キーで2〜60秒の範囲で変更可)
 - [ ] `SessionGet` 詳細表示は見送り (一覧表示に統合。個別詳細画面は未実装)
 - [x] `SessionDisconnect` (確認ダイアログ必須、`x`キー)
-- [x] `LogGet` による閲覧のみ対応。`LogEnable`/`LogPacketSaveType`/`LogSwitchType`によるログ設定変更は未着手 (vpncmdの正確な引数構文が未確認のため意図的に見送り。5章/12章の既存の未決事項と同じ理由)
+- [x] `LogGet` による閲覧に加え、`LogEnable`/`LogDisable`/`LogPacketSaveType`/`LogSwitchSet` によるログ設定変更機能
 - [ ] ログファイル内容の閲覧 (tail 的ビュー、キーワードフィルタ) は未着手 (ローカル/リモートでのログ取得範囲の設計判断が必要。app_specs.md 12章の未決事項として残存)
 - [x] ローカルで `go build` / `go vet` / `go test` 実行、バイナリの起動確認
 
@@ -62,7 +62,7 @@
 
 - [x] `ListenerList` / `ListenerCreate` / `ListenerDelete` / `ListenerEnable` / `ListenerDisable` (ダッシュボードから`l`キーで独立画面。作成はポート番号プロンプト、有効/無効は`o`/`f`の明示操作)
 - [x] `SecureNatEnable` / `SecureNatDisable` / `SecureNatStatusGet` / `SecureNatHostGet` はHub詳細のSecureNATタブで対応。
-- [ ] `SecureNatHostSet` (仮想ホストIP・MAC・サブネットマスクの編集: `s`キー) および `DhcpSet` (DHCP配布IP範囲・GW・DNSの編集: `h`キー) の設定・変更機能
+- [x] `SecureNatHostSet` (仮想ホストIP・MAC・サブネットマスクの編集) および `DhcpSet` (DHCP配布IP範囲・GW・DNS・ドメインの編集) の設定・変更機能（専用 `SecureNATDetail` 画面でインライン編集対応）
 - [x] `AccessList` / `AccessDelete` / `AccessEnable` / `AccessDisable` はHub詳細のACLタブで対応。`AccessAdd`(ルール追加)は未着手 (優先度/送受信IP/ポート範囲/プロトコル等の引数構文が未確認のため意図的に見送り)
 - [x] ローカルで `go build` / `go vet` / `go test` 実行、バイナリの起動確認
 

@@ -25,6 +25,8 @@ type Profile struct {
 	Port int    `yaml:"port"`
 	Mode Mode   `yaml:"mode"`
 	Hub  string `yaml:"hub,omitempty"`
+	// Password holds the connection password (saved after successful authentication).
+	Password string `yaml:"password,omitempty"`
 	// PasswordEnv names an environment variable holding the admin password,
 	// so the password itself is never written to the profile file on disk.
 	PasswordEnv string `yaml:"password_env,omitempty"`

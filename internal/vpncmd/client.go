@@ -271,7 +271,11 @@ func (c *Client) HubGet(ctx context.Context, t Target, hubName string) (KeyValue
 
 // HubCreate creates a new virtual hub with the given initial admin password.
 func (c *Client) HubCreate(ctx context.Context, t Target, hubName, hubPassword string) error {
-	_, err := c.RunWithInput(ctx, hubScoped(t), "HubCreate", []string{hubName}, []string{hubPassword})
+	args := []string{hubName}
+	if hubPassword != "" {
+		args = append(args, "/PASSWORD:"+hubPassword)
+	}
+	_, err := c.Run(ctx, hubScoped(t), "HubCreate", args...)
 	return err
 }
 
@@ -343,16 +347,19 @@ func (c *Client) UserGet(ctx context.Context, t Target, name string) (KeyValue, 
 // method until a matching UserXxxSet call configures one (UserPasswordSet,
 // UserAnonymousSet, UserRadiusSet).
 func (c *Client) UserCreate(ctx context.Context, t Target, name string, opts UserCreateOptions) error {
-	args := []string{name}
-	if opts.Group != "" {
-		args = append(args, "/GROUP:"+opts.Group)
+	group := opts.Group
+	if group == "" {
+		group = "none"
 	}
-	if opts.RealName != "" {
-		args = append(args, "/REALNAME:"+opts.RealName)
+	realName := opts.RealName
+	if realName == "" {
+		realName = "none"
 	}
-	if opts.Note != "" {
-		args = append(args, "/NOTE:"+opts.Note)
+	note := opts.Note
+	if note == "" {
+		note = "none"
 	}
+	args := []string{name, "/GROUP:" + group, "/REALNAME:" + realName, "/NOTE:" + note}
 	_, err := c.Run(ctx, t, "UserCreate", args...)
 	return err
 }
@@ -363,9 +370,13 @@ func (c *Client) UserDelete(ctx context.Context, t Target, name string) error {
 }
 
 // UserPasswordSet switches the user to password authentication with the
-// given password. The password is sent over stdin, not argv.
+// given password.
 func (c *Client) UserPasswordSet(ctx context.Context, t Target, name, password string) error {
-	_, err := c.RunWithInput(ctx, t, "UserPasswordSet", []string{name}, []string{password})
+	args := []string{name}
+	if password != "" {
+		args = append(args, "/PASSWORD:"+password)
+	}
+	_, err := c.Run(ctx, t, "UserPasswordSet", args...)
 	return err
 }
 
@@ -388,21 +399,27 @@ type UserSetOptions struct {
 // UserSetGroup reassigns a user's group via UserSet's /GROUP: parameter.
 // Pass an empty group to clear the assignment.
 func (c *Client) UserSetGroup(ctx context.Context, t Target, name, group string) error {
+	if group == "" {
+		group = "none"
+	}
 	_, err := c.Run(ctx, t, "UserSet", name, "/GROUP:"+group)
 	return err
 }
 
 func (c *Client) UserSet(ctx context.Context, t Target, name string, opts UserSetOptions) error {
-	args := []string{name}
-	if opts.Group != "" {
-		args = append(args, "/GROUP:"+opts.Group)
+	group := opts.Group
+	if group == "" {
+		group = "none"
 	}
-	if opts.RealName != "" {
-		args = append(args, "/REALNAME:"+opts.RealName)
+	realName := opts.RealName
+	if realName == "" {
+		realName = "none"
 	}
-	if opts.Note != "" {
-		args = append(args, "/NOTE:"+opts.Note)
+	note := opts.Note
+	if note == "" {
+		note = "none"
 	}
+	args := []string{name, "/GROUP:" + group, "/REALNAME:" + realName, "/NOTE:" + note}
 	_, err := c.Run(ctx, t, "UserSet", args...)
 	return err
 }
@@ -437,14 +454,35 @@ func (c *Client) GroupGet(ctx context.Context, t Target, name string) (KeyValue,
 }
 
 func (c *Client) GroupCreate(ctx context.Context, t Target, name string, opts GroupCreateOptions) error {
-	args := []string{name}
-	if opts.RealName != "" {
-		args = append(args, "/REALNAME:"+opts.RealName)
+	realName := opts.RealName
+	if realName == "" {
+		realName = "none"
 	}
-	if opts.Note != "" {
-		args = append(args, "/NOTE:"+opts.Note)
+	note := opts.Note
+	if note == "" {
+		note = "none"
 	}
+	args := []string{name, "/REALNAME:" + realName, "/NOTE:" + note}
 	_, err := c.Run(ctx, t, "GroupCreate", args...)
+	return err
+}
+
+type GroupSetOptions struct {
+	RealName string
+	Note     string
+}
+
+func (c *Client) GroupSet(ctx context.Context, t Target, name string, opts GroupSetOptions) error {
+	realName := opts.RealName
+	if realName == "" {
+		realName = "none"
+	}
+	note := opts.Note
+	if note == "" {
+		note = "none"
+	}
+	args := []string{name, "/REALNAME:" + realName, "/NOTE:" + note}
+	_, err := c.Run(ctx, t, "GroupSet", args...)
 	return err
 }
 
@@ -614,6 +652,56 @@ func (c *Client) DhcpSet(ctx context.Context, t Target, opts DhcpSetOptions) err
 		args = append(args, "/DOMAIN:"+opts.Domain)
 	}
 	_, err := c.Run(ctx, t, "DhcpSet", args...)
+	return err
+}
+
+func (c *Client) RadiusServerGet(ctx context.Context, t Target) (KeyValue, error) {
+	out, err := c.Run(ctx, t, "RadiusServerGet")
+	if err != nil {
+		return nil, err
+	}
+	return ParseCSV(out)
+}
+
+type RadiusServerSetOptions struct {
+	Secret        string
+	RetryInterval string
+}
+
+func (c *Client) RadiusServerSet(ctx context.Context, t Target, serverPort string, opts RadiusServerSetOptions) error {
+	args := []string{serverPort}
+	if opts.Secret != "" {
+		args = append(args, "/SECRET:"+opts.Secret)
+	}
+	if opts.RetryInterval != "" {
+		args = append(args, "/RETRY_INTERVAL:"+opts.RetryInterval)
+	}
+	_, err := c.Run(ctx, t, "RadiusServerSet", args...)
+	return err
+}
+
+func (c *Client) RadiusServerDelete(ctx context.Context, t Target) error {
+	_, err := c.Run(ctx, t, "RadiusServerDelete")
+	return err
+}
+
+func (c *Client) LogEnable(ctx context.Context, t Target, logType string) error {
+	_, err := c.Run(ctx, t, "LogEnable", logType)
+	return err
+}
+
+func (c *Client) LogDisable(ctx context.Context, t Target, logType string) error {
+	_, err := c.Run(ctx, t, "LogDisable", logType)
+	return err
+}
+
+func (c *Client) LogSwitchSet(ctx context.Context, t Target, logType, switchCycle string) error {
+	_, err := c.Run(ctx, t, "LogSwitchSet", logType, "/SWITCH:"+switchCycle)
+	return err
+}
+
+func (c *Client) LogPacketSaveType(ctx context.Context, t Target, packetType, saveType string) error {
+	_, err := c.Run(ctx, t, "LogPacketSaveType", "/TYPE:"+packetType, "/SAVE:"+saveType)
 	return err
 }
 

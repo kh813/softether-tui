@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -73,12 +74,19 @@ type hubDetailState struct {
 	logLoaded  bool
 	logLoading bool
 	logErr     error
+	logCursor  int
 
-	secureNatStatus  vpncmd.KeyValue
-	secureNatHost    vpncmd.KeyValue
-	secureNatLoaded  bool
-	secureNatLoading bool
-	secureNatErr     error
+	secureNatStatus        vpncmd.KeyValue
+	secureNatHost          vpncmd.KeyValue
+	secureNatDhcp          vpncmd.KeyValue
+	secureNatLoaded        bool
+	secureNatLoading       bool
+	secureNatErr           error
+	secureNatCursor        editableSecureNATField
+	secureNatEditing       bool
+	secureNatEditingField  editableSecureNATField
+	secureNatEditedValues  map[editableSecureNATField]string
+	secureNatDirty         bool
 
 	access        vpncmd.Table
 	accessLoaded  bool
@@ -185,7 +193,15 @@ func (d hubDetailState) viewOverview(b *strings.Builder) {
 	default:
 		writeKV(b, d.info)
 	}
-	b.WriteString("\n" + dimStyle.Render(tr("Tab/Shift+Tab:タブ切替  o:オンライン化  f:オフライン化  r:更新  Esc:戻る  q:終了")))
+	b.WriteString("\n" + renderHelp(
+		"R", tr("RADIUS設定"),
+		"o", tr("オンライン化"),
+		"f", tr("オフライン化"),
+		"←/→/Tab", tr("タブ切替"),
+		"r", tr("更新"),
+		"Esc", tr("戻る"),
+		"q", tr("終了"),
+	))
 }
 
 func (d hubDetailState) viewUsers(b *strings.Builder) {
@@ -206,8 +222,22 @@ func (d hubDetailState) viewUsers(b *strings.Builder) {
 		fmt.Fprintf(b, tr("%d件 / 全%d件\n"), len(rows), len(d.users.Rows))
 	}
 
-	b.WriteString("\n" + dimStyle.Render(tr("↑/↓:選択  /:検索  a:追加  d:削除  p:パスワード再設定  g:グループ変更  e:有効期限設定")))
-	b.WriteString("\n" + dimStyle.Render(tr("Tab/Shift+Tab:タブ切替  r:更新  Esc:戻る  q:終了")))
+	b.WriteString("\n" + renderHelp(
+		"↑/↓", tr("選択"),
+		"Enter", tr("詳細"),
+		"/", tr("検索"),
+		"a", tr("追加"),
+		"d", tr("削除"),
+		"p", tr("パスワード再設定"),
+		"g", tr("グループ変更"),
+		"e", tr("有効期限設定"),
+	))
+	b.WriteString("\n" + renderHelp(
+		"←/→/Tab", tr("タブ切替"),
+		"r", tr("更新"),
+		"Esc", tr("戻る"),
+		"q", tr("終了"),
+	))
 }
 
 func (d hubDetailState) viewGroups(b *strings.Builder) {
@@ -219,7 +249,16 @@ func (d hubDetailState) viewGroups(b *strings.Builder) {
 	default:
 		b.WriteString(renderTable(d.groups, d.groupCursor))
 	}
-	b.WriteString("\n" + dimStyle.Render(tr("↑/↓:選択  a:追加  d:削除  Tab/Shift+Tab:タブ切替  r:更新  Esc:戻る  q:終了")))
+	b.WriteString("\n" + renderHelp(
+		"↑/↓", tr("選択"),
+		"Enter", tr("詳細"),
+		"a", tr("追加"),
+		"d", tr("削除"),
+		"←/→/Tab", tr("タブ切替"),
+		"r", tr("更新"),
+		"Esc", tr("戻る"),
+		"q", tr("終了"),
+	))
 }
 
 func (d hubDetailState) viewSessions(b *strings.Builder) {
@@ -238,8 +277,33 @@ func (d hubDetailState) viewSessions(b *strings.Builder) {
 		b.WriteString(renderTable(d.sessions, d.sessionCursor))
 	}
 
-	b.WriteString("\n" + dimStyle.Render(tr("↑/↓:選択  x:切断  +/-:更新間隔変更  r:手動更新")))
-	b.WriteString("\n" + dimStyle.Render(tr("Tab/Shift+Tab:タブ切替  Esc:戻る  q:終了")))
+	b.WriteString("\n" + renderHelp(
+		"↑/↓", tr("選択"),
+		"x", tr("切断"),
+		"+/-", tr("更新間隔変更"),
+		"r", tr("手動更新"),
+		"←/→/Tab", tr("タブ切替"),
+		"Esc", tr("戻る"),
+		"q", tr("終了"),
+	))
+}
+
+var logSettingKeys = []struct {
+	key   string
+	label string
+}{
+	{"Save Security Log", "Save Security Log"},
+	{"Security Switch Cycle", "Security Log Switch Cycle"},
+	{"Save Packet Log", "Save Packet Log"},
+	{"Packet Switch Cycle", "Packet Log Switch Cycle"},
+	{"TCP Connection Log", "TCP Connection Log (tcpconn)"},
+	{"TCP Packet Log", "TCP Packet Log (tcpdata)"},
+	{"DHCP Log", "DHCP Log (dhcp)"},
+	{"UDP Log", "UDP Log (udp)"},
+	{"ICMP Log", "ICMP Log (icmp)"},
+	{"IP Log", "IP Log (ip)"},
+	{"ARP Log", "ARP Log (arp)"},
+	{"Ethernet Log", "Ethernet Log (ether)"},
 }
 
 func (d hubDetailState) viewLog(b *strings.Builder) {
@@ -249,10 +313,43 @@ func (d hubDetailState) viewLog(b *strings.Builder) {
 	case d.logErr != nil:
 		b.WriteString(errorStyle.Render(tr("エラー: ")+d.logErr.Error()) + "\n")
 	default:
-		writeKV(b, d.logInfo)
+		d.renderLogFields(b)
 	}
-	b.WriteString("\n" + dimStyle.Render(tr("(ログファイル内容の閲覧・保存設定の変更は今後のマイルストーンで対応予定)")))
-	b.WriteString("\n" + dimStyle.Render(tr("Tab/Shift+Tab:タブ切替  r:更新  Esc:戻る  q:終了")))
+	b.WriteString("\n" + renderHelp(
+		"↑/↓", tr("項目選択"),
+		"Space/Enter", tr("設定切替"),
+		"←/→/Tab", tr("タブ切替"),
+		"r", tr("更新"),
+		"Esc", tr("戻る"),
+		"q", tr("終了"),
+	))
+}
+
+func (d hubDetailState) renderLogFields(b *strings.Builder) {
+	b.WriteString(headerStyle.Render(tr("Log Settings (ログ保存設定)")) + "\n")
+	for i, item := range logSettingKeys {
+		val := d.getLogKV(item.key)
+		if val == "" {
+			val = "(None)"
+		}
+		marker := "  "
+		style := statusBarStyle
+		if d.logCursor == i {
+			marker = "> "
+			style = selectedStyle
+		}
+		fmt.Fprintf(b, "%s%-32s %s\n", marker, item.label+":", style.Render(val))
+	}
+}
+
+func (d hubDetailState) getLogKV(key string) string {
+	if val, ok := d.logInfo[key]; ok {
+		return val
+	}
+	if key == "Security Switch Cycle" {
+		return d.logInfo["Log File Switch Cycle"]
+	}
+	return ""
 }
 
 func (d hubDetailState) viewSecureNAT(b *strings.Builder) {
@@ -262,12 +359,118 @@ func (d hubDetailState) viewSecureNAT(b *strings.Builder) {
 	case d.secureNatErr != nil:
 		b.WriteString(errorStyle.Render(tr("エラー: ")+d.secureNatErr.Error()) + "\n")
 	default:
-		b.WriteString(headerStyle.Render(tr("状態")) + "\n")
-		writeKV(b, d.secureNatStatus)
-		b.WriteString("\n" + headerStyle.Render(tr("仮想ホスト設定")) + "\n")
-		writeKV(b, d.secureNatHost)
+		d.renderSecureNATFields(b)
 	}
-	b.WriteString("\n" + dimStyle.Render(tr("o:有効化  f:無効化  i:仮想ホストIP設定  s:DHCP範囲設定  Tab/Shift+Tab:タブ切替  r:更新  Esc:戻る  q:終了")))
+
+	if d.secureNatEditing {
+		b.WriteString("\n" + renderHelp("Enter", tr("決定"), "Esc", tr("キャンセル")))
+	} else if d.secureNatDirty {
+		b.WriteString("\n" + renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更"), "s", tr("保存 (Save)"), "c", tr("変更を破棄 (Cancel)")))
+	} else {
+		b.WriteString("\n" + renderHelp(
+			"↑/↓", tr("項目選択"),
+			"Enter", tr("値の変更"),
+			"o", tr("有効化"),
+			"f", tr("無効化"),
+			"←/→/Tab", tr("タブ切替"),
+			"r", tr("更新"),
+			"Esc", tr("戻る"),
+			"q", tr("終了"),
+		))
+	}
+}
+
+func (d hubDetailState) renderSecureNATFields(b *strings.Builder) {
+	b.WriteString(headerStyle.Render(tr("Virtual host settings (仮想ホスト・DHCP設定)")) + "\n")
+
+	d.renderEditableNatField(b, fieldNatIP, "IP Address", d.getNatHostKV("IP Address", "IP"))
+	d.renderEditableNatField(b, fieldNatMask, "Subnet Mask", d.getNatHostKV("Subnet Mask", "Mask"))
+	d.renderEditableNatField(b, fieldNatMAC, "MAC Address", d.getNatHostKV("MAC Address", "MAC"))
+	d.renderEditableNatField(b, fieldNatMTU, "MTU", d.getNatHostKV("MTU", "Mtu"))
+
+	startIp := d.getNatDhcpKV("Start Distribution Address Band", "Start")
+	endIp := d.getNatDhcpKV("End Distribution Address Band", "End")
+	rangeVal := startIp
+	if endIp != "" {
+		rangeVal = startIp + " - " + endIp
+	}
+	d.renderEditableNatField(b, fieldDhcpRange, "DHCP Range", rangeVal)
+	d.renderEditableNatField(b, fieldDhcpLease, "DHCP Lease Time (sec)", d.getNatDhcpKV("Lease Limit (Seconds)", "Lease"))
+	d.renderEditableNatField(b, fieldDhcpGW, "Default Gateway", d.getNatDhcpKV("Default Gateway Address", "Gateway", "GW"))
+	d.renderEditableNatField(b, fieldDhcpDNS1, "DNS Server 1", d.getNatDhcpKV("DNS Server Address 1", "DNS"))
+	d.renderEditableNatField(b, fieldDhcpDNS2, "DNS Server 2", d.getNatDhcpKV("DNS Server Address 2", "DNS2"))
+	d.renderEditableNatField(b, fieldDhcpDomain, "Domain Name", d.getNatDhcpKV("Domain Name", "Domain"))
+
+	b.WriteString("\n" + headerStyle.Render(tr("Status (動作状態)")) + "\n")
+	statusKeys := []string{
+		"Virtual Hub Name",
+		"Allocated DHCP Clients",
+		"Kernel-mode NAT is Active",
+		"Raw IP mode NAT is Active",
+		"NAT TCP/IP Sessions",
+		"NAT UDP/IP Sessions",
+		"NAT ICMP Sessions",
+		"NAT DNS Sessions",
+	}
+	for _, k := range statusKeys {
+		if v, ok := d.secureNatStatus[k]; ok {
+			fmt.Fprintf(b, "  %-32s %s\n", k+":", statusBarStyle.Render(v))
+		}
+	}
+	// Render any extra status keys not in the fixed list
+	fixedMap := make(map[string]bool)
+	for _, k := range statusKeys {
+		fixedMap[k] = true
+	}
+	var extraKeys []string
+	for k := range d.secureNatStatus {
+		if !fixedMap[k] && k != "---" && k != "Item" {
+			extraKeys = append(extraKeys, k)
+		}
+	}
+	sort.Strings(extraKeys)
+	for _, k := range extraKeys {
+		fmt.Fprintf(b, "  %-32s %s\n", k+":", statusBarStyle.Render(d.secureNatStatus[k]))
+	}
+}
+
+func (d hubDetailState) getNatHostKV(keys ...string) string {
+	for _, k := range keys {
+		if v, ok := d.secureNatHost[k]; ok {
+			return v
+		}
+	}
+	return ""
+}
+
+func (d hubDetailState) getNatDhcpKV(keys ...string) string {
+	for _, k := range keys {
+		if v, ok := d.secureNatDhcp[k]; ok {
+			return v
+		}
+	}
+	return ""
+}
+
+func (d hubDetailState) renderEditableNatField(b *strings.Builder, field editableSecureNATField, label, val string) {
+	if ed, ok := d.secureNatEditedValues[field]; ok {
+		val = ed + " " + selectedStyle.Render(tr("(変更あり)"))
+	} else if val == "" {
+		val = "(None)"
+	}
+
+	marker := "  "
+	style := statusBarStyle
+	if d.secureNatCursor == field {
+		marker = "> "
+		style = selectedStyle
+	}
+
+	if d.secureNatEditing && d.secureNatEditingField == field {
+		fmt.Fprintf(b, "%s%-32s %s\n", marker, label+":", d.filterInput.View())
+	} else {
+		fmt.Fprintf(b, "%s%-32s %s\n", marker, label+":", style.Render(val))
+	}
 }
 
 func (d hubDetailState) viewAccessList(b *strings.Builder) {
@@ -280,7 +483,16 @@ func (d hubDetailState) viewAccessList(b *strings.Builder) {
 		b.WriteString(renderTable(d.access, d.accessCursor))
 	}
 	b.WriteString("\n" + dimStyle.Render(tr("(ルール追加は今後のマイルストーンで対応予定。既存ルールの削除/有効/無効のみ対応)")))
-	b.WriteString("\n" + dimStyle.Render(tr("↑/↓:選択  d:削除  o:有効化  f:無効化  Tab/Shift+Tab:タブ切替  r:更新  Esc:戻る  q:終了")))
+	b.WriteString("\n" + renderHelp(
+		"↑/↓", tr("選択"),
+		"d", tr("削除"),
+		"o", tr("有効化"),
+		"f", tr("無効化"),
+		"←/→/Tab", tr("タブ切替"),
+		"r", tr("更新"),
+		"Esc", tr("戻る"),
+		"q", tr("終了"),
+	))
 }
 
 // --- messages ---
@@ -289,6 +501,7 @@ type secureNatLoadedMsg struct {
 	hubName string
 	status  vpncmd.KeyValue
 	host    vpncmd.KeyValue
+	dhcp    vpncmd.KeyValue
 	err     error
 }
 
@@ -325,7 +538,8 @@ func (m Model) fetchSecureNAT(p config.Profile, hub string) tea.Cmd {
 		if err != nil {
 			return secureNatLoadedMsg{hubName: hub, err: err}
 		}
-		return secureNatLoadedMsg{hubName: hub, status: status, host: host}
+		dhcp, _ := client.DhcpGet(ctx, target)
+		return secureNatLoadedMsg{hubName: hub, status: status, host: host, dhcp: dhcp}
 	}
 }
 
@@ -535,19 +749,28 @@ func (d hubDetailState) viewCascade(b *strings.Builder) {
 	default:
 		b.WriteString(renderTable(d.cascade, d.cascadeCursor))
 	}
-	b.WriteString("\n" + dimStyle.Render(tr("(新規カスケード接続の作成は今後のマイルストーンで対応予定。既存接続の削除/オンライン/オフラインのみ対応)")))
-	b.WriteString("\n" + dimStyle.Render(tr("↑/↓:選択  d:削除  o:オンライン化  f:オフライン化  Tab/Shift+Tab:タブ切替  r:更新  Esc:戻る  q:終了")))
+	b.WriteString("\n" + renderHelp(
+		"↑/↓", tr("選択"),
+		"d", tr("削除"),
+		"o", tr("オンライン化"),
+		"f", tr("オフライン化"),
+		"←/→/Tab", tr("タブ切替"),
+		"r", tr("更新"),
+		"Esc", tr("戻る"),
+		"q", tr("終了"),
+	))
 }
 
 func renderHubTabs(active hubTab) string {
 	tabLabels := hubTabLabels()
-	labels := make([]string, len(tabLabels))
+	var rendered []string
+	sep := tabSepStyle.Render("|")
 	for i, label := range tabLabels {
 		if hubTab(i) == active {
-			labels[i] = selectedStyle.Render("[" + label + "]")
+			rendered = append(rendered, activeTabStyle.Render(label))
 		} else {
-			labels[i] = dimStyle.Render(label)
+			rendered = append(rendered, inactiveTabStyle.Render(label))
 		}
 	}
-	return strings.Join(labels, " ")
+	return strings.Join(rendered, sep)
 }

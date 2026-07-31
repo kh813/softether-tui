@@ -56,9 +56,12 @@ func (f *hubForm) setFocus(field hubFormField) {
 // Build validates the form and returns the hub name and initial password.
 func (f *hubForm) Build() (name, password string, err error) {
 	name = strings.TrimSpace(f.inputs[hubFieldName].Value())
-	password = f.inputs[hubFieldPassword].Value()
+	password = strings.TrimSpace(f.inputs[hubFieldPassword].Value())
 	if name == "" {
 		return "", "", errors.New(tr("Hub名は必須です"))
+	}
+	if password == "" {
+		return "", "", errors.New(tr("初期管理パスワードは必須です"))
 	}
 	return name, password, nil
 }
@@ -78,7 +81,7 @@ func (f *hubForm) Update(msg tea.KeyMsg) tea.Cmd {
 }
 
 func (f *hubForm) View() string {
-	labels := []string{tr("Hub名"), tr("初期管理パスワード")}
+	labels := []string{tr("Hub name"), tr("Admin password")}
 	var b strings.Builder
 	b.WriteString(titleStyle.Render(tr("Hub作成")) + "\n\n")
 	for i, in := range f.inputs {
@@ -86,8 +89,20 @@ func (f *hubForm) View() string {
 		if f.focus == hubFormField(i) {
 			marker = "> "
 		}
-		fmt.Fprintf(&b, "%s%-18s %s\n", marker, labels[i]+":", in.View())
+		fmt.Fprintf(&b, "%s%-20s %s\n", marker, labels[i]+":", in.View())
 	}
-	b.WriteString("\n" + dimStyle.Render(tr("Tab/↑↓: 項目移動  Enter: 作成  Esc: キャンセル")))
+
+	nameValid := strings.TrimSpace(f.inputs[hubFieldName].Value()) != ""
+	pwValid := strings.TrimSpace(f.inputs[hubFieldPassword].Value()) != ""
+	canSave := nameValid && pwValid
+
+	b.WriteString("\n")
+	if canSave {
+		b.WriteString(saveKeyStyle.Render(" [ Save ] ") + "\n")
+		b.WriteString("\n" + renderHelp("Tab/↑↓", tr("項目移動"), "Enter", tr("作成 (Save)"), "Esc", tr("キャンセル")))
+	} else {
+		b.WriteString(dimStyle.Render("  [ Save - Please fill required fields ]") + "\n")
+		b.WriteString("\n" + renderHelp("Tab/↑↓", tr("項目移動"), "Esc", tr("キャンセル")))
+	}
 	return b.String()
 }

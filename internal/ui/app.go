@@ -25,7 +25,11 @@ const (
 	screenHubDetail
 	screenHubForm
 	screenUserForm
+	screenUserDetail
 	screenGroupForm
+	screenGroupDetail
+	screenSecureNATDetail
+	screenRadiusForm
 	screenListener
 	screenBridge
 	screenBridgeForm
@@ -53,11 +57,15 @@ type Model struct {
 	hubForm     *hubForm
 	userForm    *userForm
 	groupForm   *groupForm
+	radiusForm  *radiusForm
 	bridgeForm  *bridgeForm
 	accountForm *accountForm
 
 	dashboard       dashboardState
 	hubDetail       hubDetailState
+	userDetail      userDetailState
+	groupDetail     groupDetailState
+	secureNatDetail secureNatDetailState
 	listener        listenerState
 	bridge          bridgeState
 	clientDashboard clientDashboardState
@@ -70,6 +78,7 @@ type Model struct {
 
 	quitting bool
 	width    int
+	height   int
 }
 
 func New(store *config.Store, client *vpncmd.Client, version string) Model {
@@ -81,6 +90,7 @@ func New(store *config.Store, client *vpncmd.Client, version string) Model {
 		hubForm:                 newHubForm(),
 		userForm:                newUserForm(),
 		groupForm:               newGroupForm(),
+		radiusForm:              newRadiusForm(),
 		bridgeForm:              newBridgeForm(),
 		accountForm:             newAccountForm(),
 		testResults:             map[string]error{},
@@ -528,6 +538,9 @@ func (m Model) passwordFromEnvOrSession(p config.Profile) string {
 	if p.PasswordEnv != "" {
 		return os.Getenv(p.PasswordEnv)
 	}
+	if p.Password != "" {
+		return p.Password
+	}
 	return ""
 }
 
@@ -537,6 +550,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
+		m.height = msg.Height
 		return m, nil
 
 	case profilesLoadedMsg:
@@ -568,16 +582,37 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case serverInfoMsg:
 		p := m.dashboard.profile
-		currentPw := m.passwordFromEnvOrSession(p)
 		if msg.err != nil && (strings.Contains(msg.err.Error(), "Access has been denied") || strings.Contains(msg.err.Error(), "exit status 1")) {
-			if currentPw == "" {
-				// Prompt user to enter admin password
-				m.dashboard.loading = false
-				m.dashboard.err = msg.err
-				m.prompt.Show(promptConnectPassword, p.Name, fmt.Sprintf(tr("管理者パスワードを入力してください (%s)"), p.Name), tr("パスワード"), true)
-				return m, nil
+			// Clear invalid password from session & saved profile so prompt is re-shown
+			delete(m.sessionPasswords, p.Name)
+			for i, prof := range m.profiles {
+				if prof.Name == p.Name && prof.Password != "" {
+					m.profiles[i].Password = ""
+					_ = m.store.Save(m.profiles)
+					break
+				}
+			}
+			m.dashboard.loading = false
+			m.dashboard.err = msg.err
+			m.prompt.Show(promptConnectPassword, p.Name, fmt.Sprintf(tr("管理者パスワードを入力してください (%s)"), p.Name), tr("パスワード"), true)
+			return m, nil
+		}
+
+		// On successful connection, persist the working password in profile if entered via prompt
+		if msg.err == nil {
+			if pw, ok := m.sessionPasswords[p.Name]; ok && pw != "" {
+				for i, prof := range m.profiles {
+					if prof.Name == p.Name && prof.Password != pw {
+						m.profiles[i].Password = pw
+						m.dashboard.profile.Password = pw
+						_ = m.store.Save(m.profiles)
+						break
+					}
+				}
 			}
 		}
+
+		currentPw := m.passwordFromEnvOrSession(p)
 
 		m.dashboard.loading = false
 		m.dashboard.err = msg.err
@@ -817,6 +852,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.hubDetail.secureNatLoaded = true
 			m.hubDetail.secureNatStatus = msg.status
 			m.hubDetail.secureNatHost = msg.host
+			m.hubDetail.secureNatDhcp = msg.dhcp
 			m.hubDetail.secureNatErr = msg.err
 		}
 		return m, nil
@@ -951,6 +987,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.statusErr = false
 		return m, m.fetchAccounts(m.clientDashboard.profile)
 
+	case userDetailLoadedMsg:
+		m.userDetail.loading = false
+		m.userDetail.err = msg.err
+		m.userDetail.info = msg.info
+		return m, nil
+
+	case groupDetailLoadedMsg:
+		m.groupDetail.loading = false
+		m.groupDetail.err = msg.err
+		m.groupDetail.info = msg.info
+		return m, nil
+
+	case secureNatDetailLoadedMsg:
+		m.secureNatDetail.loading = false
+		m.secureNatDetail.err = msg.err
+		m.secureNatDetail.status = msg.status
+		m.secureNatDetail.host = msg.host
+		m.secureNatDetail.dhcp = msg.dhcp
+		return m, nil
+
 	case tea.KeyMsg:
 		return m.handleKey(msg)
 	}
@@ -1000,8 +1056,16 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleHubFormKey(msg)
 	case screenUserForm:
 		return m.handleUserFormKey(msg)
+	case screenUserDetail:
+		return m.handleUserDetailKey(msg)
 	case screenGroupForm:
 		return m.handleGroupFormKey(msg)
+	case screenRadiusForm:
+		return m.handleRadiusFormKey(msg)
+	case screenGroupDetail:
+		return m.handleGroupDetailKey(msg)
+	case screenSecureNATDetail:
+		return m.handleSecureNATDetailKey(msg)
 	case screenListener:
 		return m.handleListenerKey(msg)
 	case screenBridge:
@@ -1340,15 +1404,28 @@ func (m Model) handleHubDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.screen = screenDashboard
 		return m, nil
 
-	case "tab":
+	case "tab", "right", "l":
+		if m.hubDetail.tab == hubTabSecureNAT && m.hubDetail.secureNatEditing {
+			return m.handleHubSecureNATKey(msg)
+		}
+		m.status = ""
+		m.statusErr = false
 		m.hubDetail.tab = (m.hubDetail.tab + 1) % hubTabCount
 		return m.loadHubTabIfNeeded()
 
-	case "shift+tab":
+	case "shift+tab", "left", "h":
+		if m.hubDetail.tab == hubTabSecureNAT && m.hubDetail.secureNatEditing {
+			return m.handleHubSecureNATKey(msg)
+		}
+		m.status = ""
+		m.statusErr = false
 		m.hubDetail.tab = (m.hubDetail.tab - 1 + hubTabCount) % hubTabCount
 		return m.loadHubTabIfNeeded()
 
 	case "r":
+		if m.hubDetail.tab == hubTabSecureNAT && m.hubDetail.secureNatEditing {
+			return m.handleHubSecureNATKey(msg)
+		}
 		return m.refreshCurrentHubTab()
 	}
 
@@ -1361,6 +1438,8 @@ func (m Model) handleHubDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleHubGroupsKey(msg)
 	case hubTabSessions:
 		return m.handleHubSessionsKey(msg)
+	case hubTabLog:
+		return m.handleHubLogKey(msg)
 	case hubTabSecureNAT:
 		return m.handleHubSecureNATKey(msg)
 	case hubTabACL:
@@ -1476,6 +1555,12 @@ func (m Model) handleHubSessionsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) handleHubOverviewKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
+	case "r", "R":
+		m.radiusForm.Reset()
+		m.screen = screenRadiusForm
+		m.status = ""
+		return m, nil
+
 	case "o":
 		m.status = fmt.Sprintf(tr("Hub %q をオンライン化しています..."), m.hubDetail.hubName)
 		m.statusErr = false
@@ -1508,8 +1593,23 @@ func (m Model) handleHubUsersKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		ti.Focus()
 		m.hubDetail.filterInput = ti
 
+	case "enter":
+		if name, ok := m.hubDetail.currentUserName(); ok {
+			m.userDetail = userDetailState{profile: m.hubDetail.profile, hubName: m.hubDetail.hubName, userName: name, loading: true}
+			m.screen = screenUserDetail
+			m.status = ""
+			return m, m.fetchUserDetail(m.hubDetail.profile, m.hubDetail.hubName, name)
+		}
+
 	case "a":
 		m.userForm.Reset()
+		var groupNames []string
+		for _, row := range m.hubDetail.groups.Rows {
+			if gName := m.hubDetail.groups.NameOf(row); gName != "" {
+				groupNames = append(groupNames, gName)
+			}
+		}
+		m.userForm.SetGroups(groupNames)
 		m.screen = screenUserForm
 		m.status = ""
 
@@ -1564,6 +1664,14 @@ func (m Model) handleHubGroupsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.hubDetail.groupCursor++
 		}
 
+	case "enter":
+		if name, ok := m.hubDetail.currentGroupName(); ok {
+			m.groupDetail = groupDetailState{profile: m.hubDetail.profile, hubName: m.hubDetail.hubName, groupName: name, loading: true}
+			m.screen = screenGroupDetail
+			m.status = ""
+			return m, m.fetchGroupDetail(m.hubDetail.profile, m.hubDetail.hubName, name)
+		}
+
 	case "a":
 		m.groupForm.Reset()
 		m.screen = screenGroupForm
@@ -1577,8 +1685,219 @@ func (m Model) handleHubGroupsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleHubSecureNATKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) handleHubLogKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	d := &m.hubDetail
+	total := len(logSettingKeys)
+
 	switch msg.String() {
+	case "up", "k":
+		if d.logCursor > 0 {
+			d.logCursor--
+		}
+
+	case "down", "j":
+		if d.logCursor < total-1 {
+			d.logCursor++
+		}
+
+	case "enter", " ", "space":
+		if d.logCursor >= 0 && d.logCursor < total {
+			return m.toggleLogSetting(d.logCursor)
+		}
+	}
+	return m, nil
+}
+
+func (m Model) toggleLogSetting(cursor int) (tea.Model, tea.Cmd) {
+	p := m.hubDetail.profile
+	hub := m.hubDetail.hubName
+	item := logSettingKeys[cursor]
+	curr := m.hubDetail.getLogKV(item.key)
+
+	var cmd tea.Cmd
+	switch item.key {
+	case "Save Security Log":
+		enable := !strings.EqualFold(curr, "Enable")
+		m.status = fmt.Sprintf(tr("Hub %q のセキュリティログを%sに設定中..."), hub, map[bool]string{true: tr("有効"), false: tr("無効")}[enable])
+		m.statusErr = false
+		cmd = m.setLogEnableDisable(p, hub, "security", enable)
+
+	case "Save Packet Log":
+		enable := !strings.EqualFold(curr, "Enable")
+		m.status = fmt.Sprintf(tr("Hub %q のパケットログを%sに設定中..."), hub, map[bool]string{true: tr("有効"), false: tr("無効")}[enable])
+		m.statusErr = false
+		cmd = m.setLogEnableDisable(p, hub, "packet", enable)
+
+	case "Security Switch Cycle":
+		nextCycle := cycleNextLogSwitch(curr)
+		m.status = fmt.Sprintf(tr("Hub %q のセキュリティログ切り替え周期を %s に設定中..."), hub, nextCycle)
+		m.statusErr = false
+		cmd = m.setLogSwitch(p, hub, "security", nextCycle)
+
+	case "Packet Switch Cycle":
+		nextCycle := cycleNextLogSwitch(curr)
+		m.status = fmt.Sprintf(tr("Hub %q のパケットログ切り替え周期を %s に設定中..."), hub, nextCycle)
+		m.statusErr = false
+		cmd = m.setLogSwitch(p, hub, "packet", nextCycle)
+
+	default:
+		// Packet save type settings: tcpconn, tcpdata, dhcp, udp, icmp, ip, arp, ether
+		pTypeMap := map[string]string{
+			"TCP Connection Log": "tcpconn",
+			"TCP Packet Log":     "tcpdata",
+			"DHCP Log":           "dhcp",
+			"UDP Log":            "udp",
+			"ICMP Log":           "icmp",
+			"IP Log":             "ip",
+			"ARP Log":            "arp",
+			"Ethernet Log":       "ether",
+		}
+		pType, ok := pTypeMap[item.key]
+		if ok {
+			nextSave := cycleNextPacketSave(curr)
+			m.status = fmt.Sprintf(tr("Hub %q の %s ログ保存形式を %s に設定中..."), hub, pType, nextSave)
+			m.statusErr = false
+			cmd = m.setLogPacketSave(p, hub, pType, nextSave)
+		}
+	}
+
+	return m, tea.Batch(cmd, m.fetchLog(p, hub))
+}
+
+func cycleNextLogSwitch(curr string) string {
+	// cycles: day -> month -> sec -> min -> hour -> none -> day
+	switch strings.ToLower(curr) {
+	case "switch in every day", "day":
+		return "month"
+	case "switch in every month", "month":
+		return "none"
+	case "no switch", "none":
+		return "sec"
+	case "switch in every second", "sec":
+		return "min"
+	case "switch in every minute", "min":
+		return "hour"
+	default:
+		return "day"
+	}
+}
+
+func cycleNextPacketSave(curr string) string {
+	// cycles: Do not Save / none -> Header Only / header -> Save All / full -> none
+	switch strings.ToLower(curr) {
+	case "do not save", "none":
+		return "header"
+	case "header only", "header":
+		return "full"
+	default:
+		return "none"
+	}
+}
+
+func (m Model) setLogEnableDisable(p config.Profile, hub, logType string, enable bool) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		var err error
+		if enable {
+			err = client.LogEnable(ctx, target, logType)
+		} else {
+			err = client.LogDisable(ctx, target, logType)
+		}
+		return secureNatActionResultMsg{action: tr("ログ有効/無効切り替え"), err: err}
+	}
+}
+
+func (m Model) setLogSwitch(p config.Profile, hub, logType, switchCycle string) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		err := client.LogSwitchSet(ctx, target, logType, switchCycle)
+		return secureNatActionResultMsg{action: tr("ログ切り替え周期変更"), err: err}
+	}
+}
+
+func (m Model) setLogPacketSave(p config.Profile, hub, packetType, saveType string) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		err := client.LogPacketSaveType(ctx, target, packetType, saveType)
+		return secureNatActionResultMsg{action: tr("パケットログ保存形式変更"), err: err}
+	}
+}
+
+func (m Model) handleHubSecureNATKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	d := &m.hubDetail
+
+	if d.secureNatEditing {
+		switch msg.String() {
+		case "enter":
+			val := strings.TrimSpace(d.filterInput.Value())
+			if d.secureNatEditedValues == nil {
+				d.secureNatEditedValues = make(map[editableSecureNATField]string)
+			}
+			d.secureNatEditedValues[d.secureNatEditingField] = val
+			d.secureNatDirty = true
+			d.secureNatEditing = false
+			return m, nil
+
+		case "esc":
+			d.secureNatEditing = false
+			return m, nil
+		}
+		var cmd tea.Cmd
+		d.filterInput, cmd = d.filterInput.Update(msg)
+		return m, cmd
+	}
+
+	switch msg.String() {
+	case "up", "k":
+		if d.secureNatCursor > 0 {
+			d.secureNatCursor--
+		}
+
+	case "down", "j":
+		if d.secureNatCursor < editableSecureNATFieldCount-1 {
+			d.secureNatCursor++
+		}
+
+	case "enter":
+		d.secureNatEditing = true
+		d.secureNatEditingField = d.secureNatCursor
+		ti := textinput.New()
+		if prev, ok := d.secureNatEditedValues[d.secureNatCursor]; ok {
+			ti.SetValue(prev)
+		} else {
+			val := d.getNatFieldValue(d.secureNatCursor)
+			if val == "(None)" {
+				val = ""
+			}
+			ti.SetValue(val)
+		}
+		ti.Focus()
+		d.filterInput = ti
+		return m, nil
+
+	case "s", "S":
+		if d.secureNatDirty {
+			return m.saveHubSecureNATChanges()
+		}
+
+	case "c", "C":
+		if d.secureNatDirty {
+			d.secureNatEditedValues = make(map[editableSecureNATField]string)
+			d.secureNatDirty = false
+			m.status = tr("変更を破棄しました")
+			m.statusErr = false
+			return m, nil
+		}
+
 	case "o":
 		m.status = fmt.Sprintf(tr("Hub %q の SecureNAT を有効化しています..."), m.hubDetail.hubName)
 		m.statusErr = false
@@ -1588,14 +1907,96 @@ func (m Model) handleHubSecureNATKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.status = fmt.Sprintf(tr("Hub %q の SecureNAT を無効化しています..."), m.hubDetail.hubName)
 		m.statusErr = false
 		return m, m.setSecureNatEnabled(m.hubDetail.profile, m.hubDetail.hubName, false)
-
-	case "i":
-		m.prompt.Show(promptSecureNatHostIP, m.hubDetail.hubName, tr("SecureNAT 仮想ホスト IP アドレス設定"), tr("例: 192.168.30.1/255.255.255.0"), false)
-
-	case "s":
-		m.prompt.Show(promptDhcpStart, m.hubDetail.hubName, tr("DHCP サーバー配布 IP 範囲設定"), tr("例: 192.168.30.10-192.168.30.200"), false)
 	}
 	return m, nil
+}
+
+func (d hubDetailState) getNatFieldValue(field editableSecureNATField) string {
+	switch field {
+	case fieldNatIP:
+		return d.getNatHostKV("IP Address", "IP")
+	case fieldNatMask:
+		return d.getNatHostKV("Subnet Mask", "Mask")
+	case fieldNatMAC:
+		return d.getNatHostKV("MAC Address", "MAC")
+	case fieldNatMTU:
+		return d.getNatHostKV("MTU", "Mtu")
+	case fieldDhcpRange:
+		startIp := d.getNatDhcpKV("Start Distribution Address Band", "Start")
+		endIp := d.getNatDhcpKV("End Distribution Address Band", "End")
+		if startIp != "" && endIp != "" {
+			return startIp + " - " + endIp
+		}
+		return startIp
+	case fieldDhcpLease:
+		return d.getNatDhcpKV("Lease Limit (Seconds)", "Lease")
+	case fieldDhcpGW:
+		return d.getNatDhcpKV("Default Gateway Address", "Gateway", "GW")
+	case fieldDhcpDNS1:
+		return d.getNatDhcpKV("DNS Server Address 1", "DNS")
+	case fieldDhcpDNS2:
+		return d.getNatDhcpKV("DNS Server Address 2", "DNS2")
+	case fieldDhcpDomain:
+		return d.getNatDhcpKV("Domain Name", "Domain")
+	}
+	return ""
+}
+
+func (m Model) saveHubSecureNATChanges() (tea.Model, tea.Cmd) {
+	d := &m.hubDetail
+	p := d.profile
+	hub := d.hubName
+	var cmds []tea.Cmd
+
+	ip := d.secureNatEditedValues[fieldNatIP]
+	mask := d.secureNatEditedValues[fieldNatMask]
+	mac := d.secureNatEditedValues[fieldNatMAC]
+
+	if ip != "" || mask != "" || mac != "" {
+		hostOpts := vpncmd.SecureNatHostOptions{
+			IP:   ip,
+			Mask: mask,
+			MAC:  mac,
+		}
+		cmds = append(cmds, m.setSecureNatHostOpts(p, hub, hostOpts))
+	}
+
+	rangeVal := d.secureNatEditedValues[fieldDhcpRange]
+	lease := d.secureNatEditedValues[fieldDhcpLease]
+	gw := d.secureNatEditedValues[fieldDhcpGW]
+	dns1 := d.secureNatEditedValues[fieldDhcpDNS1]
+	dns2 := d.secureNatEditedValues[fieldDhcpDNS2]
+	domain := d.secureNatEditedValues[fieldDhcpDomain]
+
+	if rangeVal != "" || lease != "" || gw != "" || dns1 != "" || dns2 != "" || domain != "" {
+		startIp, endIp := "", ""
+		if rangeVal != "" {
+			parts := strings.Split(rangeVal, "-")
+			startIp = strings.TrimSpace(parts[0])
+			endIp = startIp
+			if len(parts) > 1 {
+				endIp = strings.TrimSpace(parts[1])
+			}
+		}
+		dhcpOpts := vpncmd.DhcpSetOptions{
+			Start:  startIp,
+			End:    endIp,
+			Expire: lease,
+			GW:     gw,
+			DNS:    dns1,
+			DNS2:   dns2,
+			Domain: domain,
+		}
+		cmds = append(cmds, m.setDhcpOpts(p, hub, dhcpOpts))
+	}
+
+	d.secureNatDirty = false
+	d.secureNatEditedValues = make(map[editableSecureNATField]string)
+	m.status = fmt.Sprintf(tr("Hub %q の SecureNAT 設定を保存しています..."), hub)
+	m.statusErr = false
+
+	cmds = append(cmds, m.fetchSecureNAT(p, hub))
+	return m, tea.Batch(cmds...)
 }
 
 func (m Model) handleUserFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -1640,6 +2041,40 @@ func (m Model) handleGroupFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	cmd := m.groupForm.Update(msg)
 	return m, cmd
+}
+
+func (m Model) handleRadiusFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc":
+		m.screen = screenHubDetail
+		return m, nil
+
+	case "enter":
+		serverPort, opts, err := m.radiusForm.Build()
+		if err != nil {
+			m.status = err.Error()
+			m.statusErr = true
+			return m, nil
+		}
+		m.status = fmt.Sprintf(tr("Hub %q の RADIUS サーバーを設定しています..."), m.hubDetail.hubName)
+		m.statusErr = false
+		m.screen = screenHubDetail
+		return m, m.setRadiusServer(m.hubDetail.profile, m.hubDetail.hubName, serverPort, opts)
+	}
+
+	cmd := m.radiusForm.Update(msg)
+	return m, cmd
+}
+
+func (m Model) setRadiusServer(p config.Profile, hub, serverPort string, opts vpncmd.RadiusServerSetOptions) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		err := client.RadiusServerSet(ctx, target, serverPort, opts)
+		return secureNatActionResultMsg{action: tr("RADIUSサーバー設定"), err: err}
+	}
 }
 
 func (m Model) handleBridgeFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -1707,8 +2142,16 @@ func (m Model) View() string {
 		body = m.hubForm.View()
 	case screenUserForm:
 		body = m.userForm.View()
+	case screenUserDetail:
+		body = m.userDetail.View()
 	case screenGroupForm:
 		body = m.groupForm.View()
+	case screenRadiusForm:
+		body = m.radiusForm.View()
+	case screenGroupDetail:
+		body = m.groupDetail.View()
+	case screenSecureNATDetail:
+		body = m.secureNatDetail.View()
 	case screenListener:
 		body = m.listener.View()
 	case screenBridge:
@@ -1726,17 +2169,59 @@ func (m Model) View() string {
 		if m.statusErr {
 			style = errorStyle
 		}
-		body += "\n" + style.Render(m.status)
+		statusLine := style.Render(m.status)
+
+		// Insert status message right below header line (first occurrence of ─── or newline)
+		lines := strings.Split(body, "\n")
+		inserted := false
+		var newLines []string
+		for i, line := range lines {
+			newLines = append(newLines, line)
+			if !inserted && (strings.Contains(line, "─") || (i == 1 && strings.TrimSpace(line) == "")) {
+				newLines = append(newLines, statusLine, "")
+				inserted = true
+			}
+		}
+		if !inserted {
+			newLines = append([]string{statusLine, ""}, lines...)
+		}
+		body = strings.Join(newLines, "\n")
+	}
+
+	style := borderStyle().Width(m.contentWidth())
+	if m.height > 2 {
+		targetContentHeight := m.height - 4 // minus top/bottom borders (2 lines) and padding
+		lines := strings.Split(body, "\n")
+		if len(lines) < targetContentHeight {
+			// Pad blank lines between main content and footer help line(s)
+			// Assuming footer is the last 1 or 2 lines after a newline
+			var contentLines, footerLines []string
+			// Find footer split point: renderHelp lines at end
+			lastEmptyIndex := -1
+			for i := len(lines) - 1; i >= 0; i-- {
+				if lines[i] == "" {
+					lastEmptyIndex = i
+					break
+				}
+			}
+			if lastEmptyIndex > 0 && lastEmptyIndex >= len(lines)-3 {
+				contentLines = lines[:lastEmptyIndex]
+				footerLines = lines[lastEmptyIndex:]
+				padding := make([]string, targetContentHeight-len(contentLines)-len(footerLines))
+				body = strings.Join(append(append(contentLines, padding...), footerLines...), "\n")
+			}
+		}
+		style = style.Height(m.height - 2)
 	}
 
 	if m.confirm.active {
-		return borderStyle().Width(m.contentWidth()).Render(m.confirm.View())
+		return style.Render(m.confirm.View())
 	}
 	if m.prompt.active {
-		return borderStyle().Width(m.contentWidth()).Render(m.prompt.View())
+		return style.Render(m.prompt.View())
 	}
 
-	return borderStyle().Width(m.contentWidth()).Render(body)
+	return style.Render(body)
 }
 
 func (m Model) contentWidth() int {

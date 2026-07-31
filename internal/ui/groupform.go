@@ -89,8 +89,18 @@ func (f *groupForm) View() string {
 		if f.focus == groupFormField(i) {
 			marker = "> "
 		}
-		fmt.Fprintf(&b, "%s%-10s %s\n", marker, labels[i]+":", in.View())
+		fmt.Fprintf(&b, "%s%-12s %s\n", marker, labels[i]+":", in.View())
 	}
-	b.WriteString("\n" + dimStyle.Render(tr("Tab/↑↓: 項目移動  Enter: 作成  Esc: キャンセル")))
+
+	canSave := strings.TrimSpace(f.inputs[groupFieldName].Value()) != ""
+
+	b.WriteString("\n")
+	if canSave {
+		b.WriteString(saveKeyStyle.Render(" [ Save ] ") + "\n")
+		b.WriteString("\n" + renderHelp("Tab/↑↓", tr("項目移動"), "Enter", tr("作成 (Save)"), "Esc", tr("キャンセル")))
+	} else {
+		b.WriteString(dimStyle.Render("  [ Save - Please fill required fields ]") + "\n")
+		b.WriteString("\n" + renderHelp("Tab/↑↓", tr("項目移動"), "Esc", tr("キャンセル")))
+	}
 	return b.String()
 }

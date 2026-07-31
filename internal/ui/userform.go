@@ -37,10 +37,12 @@ var userAuthOrder = []vpncmd.UserAuthType{
 // are intentionally not offered: their vpncmd parameter names are
 // unconfirmed (see vpncmd_commands.md).
 type userForm struct {
-	inputs   [4]textinput.Model // name, group, realname, note
-	password textinput.Model
-	authType vpncmd.UserAuthType
-	focus    userFormField
+	inputs      [4]textinput.Model // name, group, realname, note
+	password    textinput.Model
+	authType    vpncmd.UserAuthType
+	focus       userFormField
+	groups      []string // available groups for selector
+	groupIndex  int      // 0 for (none), 1..len(groups)
 }
 
 func newUserForm() *userForm {
@@ -62,12 +64,18 @@ func newUserForm() *userForm {
 	return f
 }
 
+func (f *userForm) SetGroups(groups []string) {
+	f.groups = groups
+	f.groupIndex = 0
+}
+
 func (f *userForm) Reset() {
 	for i := range f.inputs {
 		f.inputs[i].SetValue("")
 	}
 	f.password.SetValue("")
 	f.authType = vpncmd.UserAuthPassword
+	f.groupIndex = 0
 	f.setFocus(userFieldName)
 }
 
@@ -101,8 +109,14 @@ func (f *userForm) Build() (name string, opts vpncmd.UserCreateOptions, authType
 		err = errors.New(tr("ユーザー名は必須です"))
 		return
 	}
+	groupVal := ""
+	if f.groupIndex > 0 && f.groupIndex <= len(f.groups) {
+		groupVal = f.groups[f.groupIndex-1]
+	} else {
+		groupVal = strings.TrimSpace(f.inputs[userFieldGroup].Value())
+	}
 	opts = vpncmd.UserCreateOptions{
-		Group:    strings.TrimSpace(f.inputs[userFieldGroup].Value()),
+		Group:    groupVal,
 		RealName: strings.TrimSpace(f.inputs[userFieldRealName].Value()),
 		Note:     strings.TrimSpace(f.inputs[userFieldNote].Value()),
 	}
@@ -124,6 +138,10 @@ func (f *userForm) Update(msg tea.KeyMsg) tea.Cmd {
 		f.setFocus((f.focus - 1 + count) % count)
 		return nil
 	case "left", "right":
+		if f.focus == userFieldGroup && len(f.groups) > 0 {
+			f.cycleGroup(msg.String() == "right")
+			return nil
+		}
 		if f.focus == userFieldAuthType {
 			f.cycleAuthType(msg.String() == "right")
 			return nil
@@ -141,6 +159,15 @@ func (f *userForm) Update(msg tea.KeyMsg) tea.Cmd {
 		var cmd tea.Cmd
 		f.inputs[f.focus], cmd = f.inputs[f.focus].Update(msg)
 		return cmd
+	}
+}
+
+func (f *userForm) cycleGroup(forward bool) {
+	total := len(f.groups) + 1
+	if forward {
+		f.groupIndex = (f.groupIndex + 1) % total
+	} else {
+		f.groupIndex = (f.groupIndex - 1 + total) % total
 	}
 }
 
@@ -169,7 +196,15 @@ func (f *userForm) View() string {
 		if f.focus == userFormField(i) {
 			marker = "> "
 		}
-		fmt.Fprintf(&b, "%s%-14s %s\n", marker, labels[i]+":", in.View())
+		if userFormField(i) == userFieldGroup && len(f.groups) > 0 {
+			groupLabel := "(なし)"
+			if f.groupIndex > 0 && f.groupIndex <= len(f.groups) {
+				groupLabel = f.groups[f.groupIndex-1]
+			}
+			fmt.Fprintf(&b, "%s%-14s < %s >\n", marker, labels[i]+":", groupLabel)
+		} else {
+			fmt.Fprintf(&b, "%s%-14s %s\n", marker, labels[i]+":", in.View())
+		}
 	}
 
 	authMarker := "  "
@@ -186,7 +221,17 @@ func (f *userForm) View() string {
 		fmt.Fprintf(&b, "%s%-14s %s\n", pwMarker, tr("パスワード:"), f.password.View())
 	}
 
-	b.WriteString("\n" + dimStyle.Render(tr("Tab/↑↓: 項目移動  ←→: 認証方式切替  Enter: 作成  Esc: キャンセル")))
-	b.WriteString("\n" + dimStyle.Render(tr("(NTLM/証明書認証は未対応)")))
+	nameValid := strings.TrimSpace(f.inputs[userFieldName].Value()) != ""
+	pwValid := f.authType != vpncmd.UserAuthPassword || strings.TrimSpace(f.password.Value()) != ""
+	canSave := nameValid && pwValid
+
+	b.WriteString("\n")
+	if canSave {
+		b.WriteString(saveKeyStyle.Render(" [ Save ] ") + "\n")
+		b.WriteString("\n" + renderHelp("Tab/↑↓", tr("項目移動"), "←→", tr("認証方式切替"), "Enter", tr("作成 (Save)"), "Esc", tr("キャンセル")))
+	} else {
+		b.WriteString(dimStyle.Render("  [ Save - Please fill required fields ]") + "\n")
+		b.WriteString("\n" + renderHelp("Tab/↑↓", tr("項目移動"), "←→", tr("認証方式切替"), "Esc", tr("キャンセル")))
+	}
 	return b.String()
 }
