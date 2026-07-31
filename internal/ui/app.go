@@ -1168,6 +1168,35 @@ func (m Model) submitPrompt() (tea.Model, tea.Cmd) {
 			m.statusErr = false
 			return m, m.setDhcpRange(profile, hub, startIp, endIp)
 		}
+
+	case promptAccessAddMemo:
+		memo := strings.TrimSpace(value)
+		if memo == "" {
+			memo = "Custom Rule"
+		}
+		m.status = fmt.Sprintf(tr("アクセスリストルール %q を追加しています..."), memo)
+		m.statusErr = false
+		opts := vpncmd.AccessAddOptions{
+			Pass:     true,
+			Memo:     memo,
+			Priority: 100,
+		}
+		return m, m.addAccessRule(profile, hub, opts)
+
+	case promptCascadeCreateName:
+		name := strings.TrimSpace(value)
+		if name != "" {
+			m.status = fmt.Sprintf(tr("カスケード接続 %q を作成しています..."), name)
+			m.statusErr = false
+			opts := vpncmd.CascadeCreateOptions{
+				Name:       name,
+				ServerHost: profile.Host,
+				ServerPort: profile.Port,
+				Hub:        hub,
+				User:       "cascade",
+			}
+			return m, m.createCascade(profile, hub, opts)
+		}
 	}
 	return m, nil
 }

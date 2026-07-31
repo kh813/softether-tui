@@ -715,12 +715,73 @@ func (c *Client) AccessList(ctx context.Context, t Target) (Table, error) {
 	return ParseCSVTable(out)
 }
 
-// AccessDelete, AccessEnable and AccessDisable take the rule identifier
-// found in AccessList's first column (see Table.NameOf). AccessAdd (rule
-// creation) is intentionally not implemented: its full parameter set
-// (priority, discard/pass, source/destination address & port ranges,
-// protocol) is unconfirmed and too risky to guess at (see
-// vpncmd_commands.md).
+// AccessAddOptions contains fields required to create a new Access List rule.
+type AccessAddOptions struct {
+	Pass        bool   // true = pass, false = discard
+	Memo        string // description
+	Priority    int    // rule priority (>= 1)
+	SrcUser     string
+	DstUser     string
+	SrcMAC      string
+	DstMAC      string
+	SrcIP       string // e.g. "0.0.0.0/0"
+	DstIP       string // e.g. "0.0.0.0/0"
+	Protocol    string // e.g. "0" or "tcp", "udp", "icmpv4"
+	SrcPort     string // e.g. "0"
+	DstPort     string // e.g. "0"
+	TcpState    string // e.g. "" or "Established" / "Unestablished"
+}
+
+func (c *Client) AccessAdd(ctx context.Context, t Target, opts AccessAddOptions) error {
+	action := "discard"
+	if opts.Pass {
+		action = "pass"
+	}
+	prio := strconv.Itoa(opts.Priority)
+	if opts.Priority <= 0 {
+		prio = "100"
+	}
+	srcIP := opts.SrcIP
+	if srcIP == "" {
+		srcIP = "0.0.0.0/0"
+	}
+	dstIP := opts.DstIP
+	if dstIP == "" {
+		dstIP = "0.0.0.0/0"
+	}
+	proto := opts.Protocol
+	if proto == "" {
+		proto = "0"
+	}
+	srcPort := opts.SrcPort
+	if srcPort == "" {
+		srcPort = "0"
+	}
+	dstPort := opts.DstPort
+	if dstPort == "" {
+		dstPort = "0"
+	}
+
+	stdinLines := []string{
+		action,
+		opts.Memo,
+		prio,
+		opts.SrcUser,
+		opts.DstUser,
+		opts.SrcMAC,
+		opts.DstMAC,
+		srcIP,
+		dstIP,
+		proto,
+		srcPort,
+		dstPort,
+		opts.TcpState,
+	}
+
+	_, err := c.RunWithInput(ctx, t, "AccessAdd", nil, stdinLines)
+	return err
+}
+
 func (c *Client) AccessDelete(ctx context.Context, t Target, id string) error {
 	_, err := c.Run(ctx, t, "AccessDelete", id)
 	return err
@@ -762,16 +823,36 @@ func (c *Client) CascadeDetailGet(ctx context.Context, t Target, name string) (K
 	return ParseCSV(out)
 }
 
+// CascadeCreateOptions specifies parameters to establish a new cascade connection.
+type CascadeCreateOptions struct {
+	Name       string
+	ServerHost string
+	ServerPort int
+	Hub        string
+	User       string
+}
+
+func (c *Client) CascadeCreate(ctx context.Context, t Target, opts CascadeCreateOptions) error {
+	port := opts.ServerPort
+	if port <= 0 {
+		port = 443
+	}
+	serverAddr := fmt.Sprintf("%s:%d", opts.ServerHost, port)
+	stdinLines := []string{
+		opts.Name,
+		serverAddr,
+		opts.Hub,
+		opts.User,
+	}
+	_, err := c.RunWithInput(ctx, t, "CascadeCreate", nil, stdinLines)
+	return err
+}
+
 func (c *Client) CascadeDelete(ctx context.Context, t Target, name string) error {
 	_, err := c.Run(ctx, t, "CascadeDelete", name)
 	return err
 }
 
-// CascadeSetOnline brings a named cascade connection online or offline.
-// CascadeCreate (establishing a new cascade to a remote server) is
-// intentionally not implemented: it requires a remote host/port/hub and an
-// authentication method, and the exact vpncmd flag names for that are
-// unconfirmed (see vpncmd_commands.md).
 func (c *Client) CascadeSetOnline(ctx context.Context, t Target, name string, online bool) error {
 	command := "CascadeOffline"
 	if online {

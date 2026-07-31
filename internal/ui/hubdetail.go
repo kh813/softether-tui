@@ -482,9 +482,9 @@ func (d hubDetailState) viewAccessList(b *strings.Builder) {
 	default:
 		b.WriteString(renderTable(d.access, d.accessCursor))
 	}
-	b.WriteString("\n" + dimStyle.Render(tr("(ルール追加は今後のマイルストーンで対応予定。既存ルールの削除/有効/無効のみ対応)")))
 	b.WriteString("\n" + renderHelp(
 		"↑/↓", tr("選択"),
+		"a", tr("追加"),
 		"d", tr("削除"),
 		"o", tr("有効化"),
 		"f", tr("無効化"),
@@ -639,6 +639,9 @@ func (m Model) handleHubACLKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.hubDetail.accessCursor < len(m.hubDetail.access.Rows)-1 {
 			m.hubDetail.accessCursor++
 		}
+	case "a":
+		m.prompt.Show(promptAccessAddMemo, "", tr("ルール説明 (Memo) を入力してください:"), "Allow-All", false)
+		return m, nil
 	case "d":
 		if id, ok := m.hubDetail.currentAccessID(); ok {
 			m.confirm.Show(confirmDeleteAccessRule, id, fmt.Sprintf(tr("アクセスリストルール %q を削除しますか?"), id))
@@ -671,6 +674,28 @@ type cascadeActionResultMsg struct {
 	action string
 	name   string
 	err    error
+}
+
+func (m Model) addAccessRule(p config.Profile, hub string, opts vpncmd.AccessAddOptions) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		err := client.AccessAdd(ctx, target, opts)
+		return accessActionResultMsg{action: tr("追加"), id: opts.Memo, err: err}
+	}
+}
+
+func (m Model) createCascade(p config.Profile, hub string, opts vpncmd.CascadeCreateOptions) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		err := client.CascadeCreate(ctx, target, opts)
+		return cascadeActionResultMsg{action: tr("作成"), name: opts.Name, err: err}
+	}
 }
 
 func (m Model) fetchCascade(p config.Profile, hub string) tea.Cmd {
@@ -720,6 +745,9 @@ func (m Model) handleHubCascadeKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.hubDetail.cascadeCursor < len(m.hubDetail.cascade.Rows)-1 {
 			m.hubDetail.cascadeCursor++
 		}
+	case "a":
+		m.prompt.Show(promptCascadeCreateName, "", tr("カスケード接続名を入力してください:"), "to-branch-hub", false)
+		return m, nil
 	case "d":
 		if name, ok := m.hubDetail.currentCascadeName(); ok {
 			m.confirm.Show(confirmDeleteCascade, name, fmt.Sprintf(tr("カスケード接続 %q を削除しますか?"), name))
@@ -751,6 +779,7 @@ func (d hubDetailState) viewCascade(b *strings.Builder) {
 	}
 	b.WriteString("\n" + renderHelp(
 		"↑/↓", tr("選択"),
+		"a", tr("作成"),
 		"d", tr("削除"),
 		"o", tr("オンライン化"),
 		"f", tr("オフライン化"),
