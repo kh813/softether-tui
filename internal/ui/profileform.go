@@ -151,6 +151,17 @@ func (f *profileForm) cycleMode(forward bool) {
 
 func (f *profileForm) View() string {
 	labels := []string{tr("接続名"), tr("ホスト"), tr("ポート"), tr("Hub (任意)")}
+	modeLabelStr := tr("モード")
+
+	// Calculate maximum label string length dynamically so colons align perfectly in both JA and EN
+	maxLen := len(modeLabelStr)
+	for _, l := range labels {
+		if len(l) > maxLen {
+			maxLen = len(l)
+		}
+	}
+	maxLen += 1 // account for colon
+
 	var b strings.Builder
 
 	title := tr("プロファイル追加")
@@ -164,15 +175,14 @@ func (f *profileForm) View() string {
 		if f.focus == formField(i) {
 			marker = "> "
 		}
-		fmt.Fprintf(&b, "%s%-12s %s\n", marker, labels[i]+":", in.View())
+		fmt.Fprintf(&b, "%s%-*s %s\n", marker, maxLen, labels[i]+":", in.View())
 	}
 
 	modeMarker := "  "
 	if f.focus == fieldMode {
 		modeMarker = "> "
 	}
-	modeLabelStr := tr("モード")
-	fmt.Fprintf(&b, "%s%-12s < %s >\n", modeMarker, modeLabelStr+":", modeLabel(f.mode))
+	fmt.Fprintf(&b, "%s%-*s < %s >\n", modeMarker, maxLen, modeLabelStr+":", modeLabel(f.mode))
 
 	b.WriteString("\n" + renderHelp(
 		"Tab/↑↓", tr("項目移動"),
