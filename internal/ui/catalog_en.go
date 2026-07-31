@@ -9,6 +9,9 @@ var enCatalog = map[string]string{
 	// (TestEnCatalogCoversAllSourceStrings) caught entries missed by the
 	// earlier ad-hoc edits that predated the generator script.
 	"管理者パスワードを入力してください (%s)": "Please enter administrator password (%s)",
+	"[有効] / 無効": "[enabled] / disabled",
+	"SecureNAT": "SecureNAT",
+	"DHCP": "DHCP",
 	"プロファイルがありません。'n' で追加してください。": "No profiles found. Press 'n' to add one.",
 	"新規追加": "New Profile",
 	"接続名 (Name)": "Name",

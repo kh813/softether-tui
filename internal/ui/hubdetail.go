@@ -197,6 +197,8 @@ func (d hubDetailState) viewOverview(b *strings.Builder) {
 		"R", tr("RADIUS設定"),
 		"o", tr("オンライン化"),
 		"f", tr("オフライン化"),
+	))
+	b.WriteString("\n" + renderHelp(
 		"←/→/Tab", tr("タブ切替"),
 		"r", tr("更新"),
 		"Esc", tr("戻る"),
@@ -229,7 +231,6 @@ func (d hubDetailState) viewUsers(b *strings.Builder) {
 		"n", tr("作成"),
 		"d", tr("削除"),
 		"p", tr("パスワード再設定"),
-		"g", tr("グループ変更"),
 		"e", tr("有効期限設定"),
 	))
 	b.WriteString("\n" + renderHelp(
@@ -254,6 +255,8 @@ func (d hubDetailState) viewGroups(b *strings.Builder) {
 		"Enter", tr("詳細"),
 		"n", tr("作成"),
 		"d", tr("削除"),
+	))
+	b.WriteString("\n" + renderHelp(
 		"←/→/Tab", tr("タブ切替"),
 		"r", tr("更新"),
 		"Esc", tr("戻る"),
@@ -282,6 +285,8 @@ func (d hubDetailState) viewSessions(b *strings.Builder) {
 		"x", tr("切断"),
 		"+/-", tr("更新間隔変更"),
 		"r", tr("手動更新"),
+	))
+	b.WriteString("\n" + renderHelp(
 		"←/→/Tab", tr("タブ切替"),
 		"Esc", tr("戻る"),
 		"q", tr("終了"),
@@ -318,6 +323,8 @@ func (d hubDetailState) viewLog(b *strings.Builder) {
 	b.WriteString("\n" + renderHelp(
 		"↑/↓", tr("項目選択"),
 		"Space/Enter", tr("設定切替"),
+	))
+	b.WriteString("\n" + renderHelp(
 		"←/→/Tab", tr("タブ切替"),
 		"r", tr("更新"),
 		"Esc", tr("戻る"),
@@ -371,8 +378,9 @@ func (d hubDetailState) viewSecureNAT(b *strings.Builder) {
 			"↑/↓", tr("項目選択"),
 			"Enter", tr("値の変更"),
 			"o/f", tr("SecureNAT有効/無効"),
-			"n/N", tr("NAT有効/無効"),
 			"h/H", tr("DHCP有効/無効"),
+		))
+		b.WriteString("\n" + renderHelp(
 			"←/→/Tab", tr("タブ切替"),
 			"r", tr("更新"),
 			"Esc", tr("戻る"),
@@ -384,10 +392,28 @@ func (d hubDetailState) viewSecureNAT(b *strings.Builder) {
 func (d hubDetailState) renderSecureNATFields(b *strings.Builder) {
 	b.WriteString(headerStyle.Render(tr("Virtual host settings (仮想ホスト・DHCP設定)")) + "\n")
 
+	// Render SecureNAT enabled status
+	snStatus := tr("無効")
+	if v, ok := d.secureNatStatus["SecureNAT Functionality State"]; ok && strings.Contains(strings.ToLower(v), "enabled") {
+		snStatus = tr("[有効] / 無効")
+	} else if v, ok := d.secureNatStatus["SecureNAT Status"]; ok && strings.Contains(strings.ToLower(v), "enabled") {
+		snStatus = tr("[有効] / 無効")
+	}
+	fmt.Fprintf(b, "  %-32s %s\n", tr("SecureNAT")+":", statusBarStyle.Render(snStatus))
+
 	d.renderEditableNatField(b, fieldNatIP, "IP Address", d.getNatHostKV("IP Address", "IP"))
 	d.renderEditableNatField(b, fieldNatMask, "Subnet Mask", d.getNatHostKV("Subnet Mask", "Mask"))
 	d.renderEditableNatField(b, fieldNatMAC, "MAC Address", d.getNatHostKV("MAC Address", "MAC"))
 	d.renderEditableNatField(b, fieldNatMTU, "MTU", d.getNatHostKV("MTU", "Mtu"))
+
+	// Render DHCP enabled status
+	dhcpStatus := tr("無効")
+	if v, ok := d.secureNatDhcp["Use Virtual DHCP Server"]; ok && strings.Contains(strings.ToLower(v), "yes") {
+		dhcpStatus = tr("[有効] / 無効")
+	} else if v, ok := d.secureNatDhcp["Virtual DHCP Server"]; ok && strings.Contains(strings.ToLower(v), "yes") {
+		dhcpStatus = tr("[有効] / 無効")
+	}
+	fmt.Fprintf(b, "  %-32s %s\n", tr("DHCP")+":", statusBarStyle.Render(dhcpStatus))
 
 	startIp := d.getNatDhcpKV("Start Distribution Address Band", "Start")
 	endIp := d.getNatDhcpKV("End Distribution Address Band", "End")
@@ -489,6 +515,8 @@ func (d hubDetailState) viewAccessList(b *strings.Builder) {
 		"d", tr("削除"),
 		"o", tr("有効化"),
 		"f", tr("無効化"),
+	))
+	b.WriteString("\n" + renderHelp(
 		"←/→/Tab", tr("タブ切替"),
 		"r", tr("更新"),
 		"Esc", tr("戻る"),
@@ -824,6 +852,8 @@ func (d hubDetailState) viewCascade(b *strings.Builder) {
 		"d", tr("削除"),
 		"o", tr("オンライン化"),
 		"f", tr("オフライン化"),
+	))
+	b.WriteString("\n" + renderHelp(
 		"←/→/Tab", tr("タブ切替"),
 		"r", tr("更新"),
 		"Esc", tr("戻る"),
