@@ -518,6 +518,18 @@ func (c *Client) UserExpiresSet(ctx context.Context, t Target, name string, expi
 	return err
 }
 
+// UserPolicySet sets a security policy for a user (e.g. MaxUpload, MaxDownload, Access).
+func (c *Client) UserPolicySet(ctx context.Context, t Target, name, policyName, value string) error {
+	_, err := c.Run(ctx, t, "UserPolicySet", name, "/NAME:"+policyName, "/VALUE:"+value)
+	return err
+}
+
+// UserPolicyRemove removes a user security policy.
+func (c *Client) UserPolicyRemove(ctx context.Context, t Target, name, policyName string) error {
+	_, err := c.Run(ctx, t, "UserPolicyRemove", name, "/NAME:"+policyName)
+	return err
+}
+
 // GroupCreateOptions holds the optional fields GroupCreate accepts.
 type GroupCreateOptions struct {
 	RealName string

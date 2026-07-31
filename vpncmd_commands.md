@@ -124,8 +124,9 @@
 | UserRadiusSet | RADIUS 認証への変更 | ✅ | [x] |
 | UserNTLMSet | NTLM 認証への変更 (要確認) | ✅ | [ ] (意図的に未対応。パラメータ名要確認) |
 | UserCertSet | 証明書認証への変更 (要確認、コマンド名要確認) | ✅ | [ ] (意図的に未対応。パラメータ名要確認) |
-| UserPolicySet | ユーザーポリシー (帯域制限等) 設定 | ✅ | [ ] |
-| UserPolicyRemove | ユーザーポリシー削除 | ✅ | [ ] |
+| PolicyList | セキュリティポリシー定義一覧の取得 | ✅ | [x] (UserGet / PolicyList クライアント対応) |
+| UserPolicySet | ユーザーポリシー (帯域制限・個別ルール) 設定 | ✅ | [x] (クライアント実装完了) |
+| UserPolicyRemove | ユーザーポリシー削除 | ✅ | [x] (クライアント実装完了) |
 | UserExpiresSet | アカウント有効期限設定 | ✅ | [x] |
 
 ### 2.3 グループ管理
