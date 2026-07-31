@@ -1099,3 +1099,37 @@ func (c *Client) AccountDisconnect(ctx context.Context, t Target, name string) e
 	_, err := c.Run(ctx, t, "AccountDisconnect", name)
 	return err
 }
+
+func (c *Client) AccountGet(ctx context.Context, t Target, name string) (KeyValue, error) {
+	out, err := c.Run(ctx, t, "AccountGet", name)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCSV(out)
+}
+
+func (c *Client) AccountDetailGet(ctx context.Context, t Target, name string) (KeyValue, error) {
+	out, err := c.Run(ctx, t, "AccountDetailGet", name)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCSV(out)
+}
+
+func (c *Client) NicList(ctx context.Context, t Target) (Table, error) {
+	out, err := c.Run(ctx, t, "NicList")
+	if err != nil {
+		return Table{}, err
+	}
+	return ParseCSVTable(out)
+}
+
+func (c *Client) NicCreate(ctx context.Context, t Target, name string) error {
+	_, err := c.Run(ctx, t, "NicCreate", name)
+	return err
+}
+
+func (c *Client) NicDelete(ctx context.Context, t Target, name string) error {
+	_, err := c.Run(ctx, t, "NicDelete", name)
+	return err
+}

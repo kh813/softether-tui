@@ -9,6 +9,10 @@ var enCatalog = map[string]string{
 	// (TestEnCatalogCoversAllSourceStrings) caught entries missed by the
 	// earlier ad-hoc edits that predated the generator script.
 	"管理者パスワードを入力してください (%s)": "Please enter administrator password (%s)",
+	"%s のユーザー名を変更しています...": "Changing username for %s...",
+	"↑/↓:選択  a:追加  d:削除  o:接続  f:切断  u:ユーザー名変更  p:パスワード再設定  r:更新  Esc:戻る  q:終了": "↑/↓:Select  a:Add  d:Delete  o:Connect  f:Disconnect  u:Change Username  p:Reset Password  r:Refresh  Esc:Back  q:Quit",
+	"ユーザー名変更": "Change Username",
+	"接続 %q の新しいユーザー名": "New username for connection %q",
 	"Hub %q のパスワード設定に失敗しました: %s": "Failed to set password for Hub %q: %s",
 	"Hub %q のパスワードを設定しました": "Set password for Hub %q successfully",
 	"Hub %q のパスワードを設定しています...": "Setting password for Hub %q...",

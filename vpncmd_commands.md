@@ -204,11 +204,16 @@ VPN Bridge は VPN Server のサブセット実装であり、ローカルブリ
 |---|---|---|---|---|
 | AccountList | 接続設定 (アカウント) 一覧 | ✅ | [x] | Client画面で表示 |
 | AccountCreate | 接続設定作成 | ✅ | [x] | Client画面 `a` キーで作成 |
-| AccountSet | 接続設定変更 | ✅ | [x] | パスワード・ユーザー名変更プロンプトで対応 |
+| AccountGet / AccountDetailGet | 接続設定詳細・統計取得 | ✅ | [x] | クライアント `AccountGet` / `AccountDetailGet` 実装完了 |
+| AccountSet | 接続設定変更 | ✅ | [x] | ユーザー名 `u` キー、パスワード `p` キーで変更対応 |
 | AccountDelete | 接続設定削除 | ✅ | [x] | Client画面 `d` キーで削除 |
-| AccountConnect / AccountDisconnect | 接続開始/切断 | ✅ | [x] | Client画面 `c/x` キー |
-| AccountPasswordSet / AccountAnonymousSet | パスワード/匿名認証変更 | ✅ | [x] | Client画面で対応 |
-| NicList / NicCreate / NicDelete | 仮想 NIC 作成・削除 | △ | [ ] | OSのネットワークインターフェース特権操作が必要なためCLI推奨 |
+| AccountConnect / AccountDisconnect | 接続開始/切断 | ✅ | [x] | Client画面 `o` / `f` キーで操作 |
+| AccountStatusGet | 接続状態・統計取得 | ✅ | [x] | クライアント `AccountStatusGet` 実装完了 |
+| AccountUsernameSet | 接続ユーザー名変更 | ✅ | [x] | Client画面 `u` キーでプロンプト変更対応 |
+| AccountPasswordSet | パスワード認証設定/変更 | ✅ | [x] | Client画面 `p` キーでプロンプト変更対応 |
+| AccountAnonymousSet | 匿名認証への変更 | ✅ | [x] | クライアント実装完了 |
+| AccountCertSet | 証明書認証への変更 | △ | [ ] | クライアントPKI証明書指定プロンプト未実装 |
+| NicList / NicCreate / NicDelete | 仮想 NIC 一覧・作成・削除 | ✅ | [x] | クライアント `NicList` / `NicCreate` / `NicDelete` バックエンド実装完了 |
 
 ---
 

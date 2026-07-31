@@ -1151,6 +1151,11 @@ func (m Model) submitPrompt() (tea.Model, tea.Cmd) {
 		m.statusErr = false
 		return m, m.setAccountPassword(m.clientDashboard.profile, target, value)
 
+	case promptAccountUsername:
+		m.status = fmt.Sprintf(tr("%s のユーザー名を変更しています..."), target)
+		m.statusErr = false
+		return m, m.setAccountUsername(m.clientDashboard.profile, target, value)
+
 	case promptConnectPassword:
 		m.sessionPasswords[target] = value
 		if p, ok := m.currentProfile(); ok && p.Name == target {

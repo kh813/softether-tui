@@ -44,8 +44,7 @@ func (d clientDashboardState) View() string {
 		b.WriteString(renderTable(d.table, d.cursor))
 	}
 
-	b.WriteString("\n" + dimStyle.Render(tr("(証明書認証・NIC管理・信頼するCA管理・自動接続設定は今後のマイルストーンで対応予定)")))
-	b.WriteString("\n" + dimStyle.Render(tr("↑/↓:選択  a:追加  d:削除  o:接続  f:切断  p:パスワード再設定  r:更新  Esc:戻る  q:終了")))
+	b.WriteString("\n" + dimStyle.Render(tr("↑/↓:選択  a:追加  d:削除  o:接続  f:切断  u:ユーザー名変更  p:パスワード再設定  r:更新  Esc:戻る  q:終了")))
 	return b.String()
 }
 
@@ -151,6 +150,17 @@ func (m Model) setAccountPassword(p config.Profile, name, password string) tea.C
 	}
 }
 
+func (m Model) setAccountUsername(p config.Profile, name, username string) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		err := client.AccountUsernameSet(ctx, target, name, username)
+		return accountActionResultMsg{action: tr("ユーザー名変更"), name: name, err: err}
+	}
+}
+
 // --- key handling ---
 
 func (m Model) handleClientDashboardKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -198,6 +208,11 @@ func (m Model) handleClientDashboardKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.status = fmt.Sprintf(tr("接続 %q を切断しています..."), name)
 			m.statusErr = false
 			return m, m.setAccountConnected(m.clientDashboard.profile, name, false)
+		}
+
+	case "u":
+		if name, ok := m.clientDashboard.currentAccountName(); ok {
+			m.prompt.Show(promptAccountUsername, name, fmt.Sprintf(tr("接続 %q の新しいユーザー名"), name), tr("ユーザー名"), false)
 		}
 
 	case "p":
