@@ -103,13 +103,18 @@ func writeKV(b *strings.Builder, kv vpncmd.KeyValue) {
 		return
 	}
 	keys := make([]string, 0, len(kv))
+	maxLen := 0
 	for k := range kv {
 		if k != "---" && k != "Item" {
 			keys = append(keys, k)
+			if len(k) > maxLen {
+				maxLen = len(k)
+			}
 		}
 	}
 	sort.Strings(keys)
+	maxLen += 2 // account for ":" colon and padding
 	for _, k := range keys {
-		fmt.Fprintf(b, "  %-28s %s\n", k+":", kv[k])
+		fmt.Fprintf(b, "  %-*s %s\n", maxLen, k+":", kv[k])
 	}
 }

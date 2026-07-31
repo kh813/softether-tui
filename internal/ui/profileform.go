@@ -171,7 +171,8 @@ func (f *profileForm) View() string {
 	if f.focus == fieldMode {
 		modeMarker = "> "
 	}
-	fmt.Fprintf(&b, "%s"+tr("モード:       < %s >")+"\n", modeMarker, modeLabel(f.mode))
+	modeLabelStr := tr("モード")
+	fmt.Fprintf(&b, "%s%-12s < %s >\n", modeMarker, modeLabelStr+":", modeLabel(f.mode))
 
 	b.WriteString("\n" + renderHelp(
 		"Tab/↑↓", tr("項目移動"),
