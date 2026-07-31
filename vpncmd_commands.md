@@ -234,7 +234,7 @@ VPN Bridge は VPN Server のサブセット的な実装であり、コマンド
 | BridgeCreate | ローカルブリッジ作成 | ✅ | [x] (同上) |
 | BridgeDelete | ローカルブリッジ削除 | ✅ | [x] (同上) |
 | CascadeList | カスケード (拠点間) 接続一覧 | ✅ | [x] (同上) |
-| CascadeCreate | カスケード接続作成 | ✅ | [ ] (2章と同じ理由で未対応) |
+| CascadeCreate | カスケード接続作成 | ✅ | [x] (2章の実装を共通利用) |
 | CascadeDelete | カスケード接続削除 | ✅ | [x] (同上) |
 | CascadeOnline / Offline | カスケード接続のオンライン/オフライン切替 | ✅ | [x] (同上) |
 | ListenerList / Create / Delete | リスナー管理 (1.3 と共通) | ✅ | [x] (同上) |
