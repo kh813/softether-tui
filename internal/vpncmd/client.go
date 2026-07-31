@@ -324,13 +324,36 @@ func (c *Client) HubList(ctx context.Context, t Target) (Table, error) {
 
 // HubGet fetches configuration/status for a specific hub using StatusGet command in Hub Management Mode.
 func (c *Client) HubGet(ctx context.Context, t Target, hubName string) (KeyValue, error) {
-	target := t
-	target.Hub = hubName
-	out, err := c.Run(ctx, target, "StatusGet")
+	out, err := c.Run(ctx, t.WithHub(hubName), "StatusGet")
 	if err != nil {
 		return nil, err
 	}
 	return ParseCSV(out)
+}
+
+// OptionsGet fetches options setting for a specific hub in Hub Management Mode.
+func (c *Client) OptionsGet(ctx context.Context, t Target, hubName string) (KeyValue, error) {
+	out, err := c.Run(ctx, t.WithHub(hubName), "OptionsGet")
+	if err != nil {
+		return nil, err
+	}
+	return ParseCSV(out)
+}
+
+// SetMaxSession sets max number of concurrently connected sessions for a hub.
+func (c *Client) SetMaxSession(ctx context.Context, t Target, hubName string, max int) error {
+	_, err := c.Run(ctx, t.WithHub(hubName), "SetMaxSession", strconv.Itoa(max))
+	return err
+}
+
+// SetEnumAllow / SetEnumDeny controls enumeration of hub by anonymous users.
+func (c *Client) SetEnumAllow(ctx context.Context, t Target, hubName string, allow bool) error {
+	cmd := "SetEnumDeny"
+	if allow {
+		cmd = "SetEnumAllow"
+	}
+	_, err := c.Run(ctx, t.WithHub(hubName), cmd)
+	return err
 }
 
 // HubCreate creates a new virtual hub with the given initial admin password.

@@ -106,8 +106,9 @@
 |---|---|---|---|
 | Online | 選択中 Hub をオンライン化 | ✅ | [x] |
 | Offline | 選択中 Hub をオフライン化 | ✅ | [x] |
-| OptionsGet | Hub 動作オプション取得 (要確認) | ✅ | [ ] |
-| OptionsSet | Hub 動作オプション変更 (要確認) | ✅ | [ ] |
+| OptionsGet | Hub 動作オプション取得 | ✅ | [x] (Hub概要画面で自動取得・表示) |
+| SetMaxSession | 最大接続セッション数設定 | ✅ | [x] (クライアント実装完了) |
+| SetEnumAllow / SetEnumDeny | 匿名ユーザーによるHub列挙許可/拒否 | ✅ | [x] (クライアント実装完了) |
 
 ### 2.2 ユーザー管理 (重点機能)
 
