@@ -21,78 +21,67 @@
 
 ### 1.1 基本情報・接続
 
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| About | バージョン・ビルド情報の表示 | ✅ | [ ] |
-| Caps | サーバーの対応機能一覧の取得 | ✅ | [ ] |
-| Check | 動作環境チェック (TUN/TAP 等) | △ | [ ] |
-| Flush | 設定をディスクへ書き込み | △ | [ ] |
-| GetPerformance | パフォーマンス統計の取得 | △ | [ ] |
-| Quit / Exit | vpncmd の終了 (TUI では不要) | — | [ ] |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| About | バージョン・ビルド情報の表示 | ✅ | [x] | `ServerInfoGet` を利用してダッシュボード画面上部に表示 |
+| Caps | サーバーの対応機能一覧の取得 | ✅ | [x] | クライアント `Caps` 実装完了。内部フラグ取得として利用 |
+| Check | 動作環境チェック (TUN/TAP 等) | △ | [ ] | サーバー接続前・OS診断用ユーティリティのためTUI管理画面対象外 |
+| Flush | 設定をディスクへ書き込み | △ | [ ] | vpncmd が設定変更時に自動的にディスク保存するため手動実行不要 |
+| GetPerformance | パフォーマンス統計の取得 | △ | [ ] | リアルタイムモニターは将来ロードマップ (M8) にて検討 |
+| Quit / Exit | vpncmd の終了 (TUI では不要) | — | [ ] | TUI アプリ自体の終了 (`q` キー) で代替するため不要 |
 
 ### 1.2 サーバー基本設定
 
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| ServerInfoGet | サーバー情報 (バージョン/OS等) 取得 | ✅ | [x] |
-| ServerStatusGet | サーバー状態 (セッション数等) 取得 | ✅ | [x] |
-| ServerPasswordSet | サーバー管理パスワード設定 | △ | [x] |
-| ServerCertGet | サーバー証明書取得 | ✅ | [ ] |
-| ServerCertSet | サーバー証明書設定 | ✅ | [ ] |
-| ServerCipherGet / ServerCipherSet | 暗号化アルゴリズム取得/設定 | △ | [x] (クライアント実装完了) |
-| VpnOverIcmpDnsGet / VpnOverIcmpDnsEnable | ICMP/DNS 経由 VPN の状態取得/有効・無効化 | △ | [x] (クライアント実装完了) |
-| SysLogEnable / SyslogDisable / SysLogGet | syslog 転送設定の取得/有効・無効化 | △ | [x] (クライアント実装完了) |
-| GetConfig | サーバー設定全体をテキストでバックアップ (要確認) | △ | [ ] |
-| SetConfig | サーバー設定全体を復元 (要確認) | △ | [ ] |
-| RebootServer | VPN Server サービスの再起動 | △ | [ ] |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| ServerInfoGet | サーバー情報 (バージョン/OS等) 取得 | ✅ | [x] | ダッシュボード上部に自動表示 |
+| ServerStatusGet | サーバー状態 (セッション数等) 取得 | ✅ | [x] | ダッシュボード上部に自動表示 |
+| ServerPasswordSet | サーバー管理パスワード設定 | △ | [x] | 初回接続時ダイアログおよび設定画面にて対応 |
+| ServerCertGet / ServerCertSet | サーバー証明書取得/設定 | ✅ | [ ] | X.509証明書ファイルパス指定インターフェースは将来拡張機能 |
+| ServerCipherGet / ServerCipherSet | 暗号化アルゴリズム取得/設定 | △ | [x] | クライアント実装完了 |
+| VpnOverIcmpDnsGet / VpnOverIcmpDnsEnable | ICMP/DNS 経由 VPN の状態取得/有効・無効化 | △ | [x] | クライアント実装完了 |
+| SysLogEnable / SyslogDisable / SysLogGet | syslog 転送設定の取得/有効・無効化 | △ | [x] | クライアント実装完了 |
+| GetConfig / SetConfig | サーバー設定のテキストエクスポート/インポート | △ | [ ] | 設定ファイルのテキスト直接編集・書き戻しはCLI/ファイル操作を推奨 |
+| RebootServer | VPN Server サービスの再起動 | △ | [ ] | 意図しない切断を防止するためTUI直操作からは除外 |
 
 ### 1.3 リスナー管理
 
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| ListenerList | リスナー一覧取得 | ✅ | [x] |
-| ListenerCreate | リスナー作成 | ✅ | [x] |
-| ListenerDelete | リスナー削除 | ✅ | [x] |
-| ListenerEnable | リスナー有効化 | ✅ | [x] |
-| ListenerDisable | リスナー無効化 | ✅ | [x] |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| ListenerList | リスナー一覧取得 | ✅ | [x] | リスナー画面 `l` で表示 |
+| ListenerCreate | リスナー作成 | ✅ | [x] | リスナー画面 `a` キーで作成 |
+| ListenerDelete | リスナー削除 | ✅ | [x] | リスナー画面 `d` キーで削除 |
+| ListenerEnable | リスナー有効化 | ✅ | [x] | リスナー画面 `o` キーで有効化 |
+| ListenerDisable | リスナー無効化 | ✅ | [x] | リスナー画面 `f` キーで無効化 |
 
 ### 1.4 Virtual HUB 管理 (作成・削除等はサーバー側から)
 
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| HubList | Hub 一覧取得 | ✅ | [x] |
-| HubCreate | Hub 作成 (スタンドアロン) | ✅ | [x] |
-| HubCreateDynamic | Hub 作成 (動的種別、要確認) | △ | [ ] |
-| HubCreateStatic | Hub 作成 (静的種別、要確認) | △ | [ ] |
-| HubDelete | Hub 削除 | ✅ | [x] |
-| StatusGet | Hub 詳細状態取得 | ✅ | [x] |
-| SetHubPassword | Hub パスワード設定 | ✅ | [x] (ダッシュボード画面にて `p` キーでプロンプト設定対応) |
-| Hub | 指定 Hub を選択し Hub 管理モードへ遷移 | ✅ | [~] (対話選択ではなく `/HUB:` 接続オプションで同等の効果を実現) |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| HubList | Hub 一覧取得 | ✅ | [x] | ダッシュボードに一覧表示 |
+| HubCreate | Hub 作成 (スタンドアロン) | ✅ | [x] | ダッシュボード `a` キーで作成 |
+| HubCreateDynamic / HubCreateStatic | 動的/静的 Hub 作成 | △ | [ ] | クラスタ環境向け機能。スタンドアロン Hub 作成で代替 |
+| HubDelete | Hub 削除 | ✅ | [x] | ダッシュボード `d` キーで削除 |
+| StatusGet | Hub 詳細状態取得 | ✅ | [x] | Hub 概要タブで全自動表示 |
+| SetHubPassword | Hub パスワード設定 | ✅ | [x] | ダッシュボード `p` キーで設定プロンプト起動 |
+| Hub | 指定 Hub を選択し Hub 管理モードへ遷移 | ✅ | [x] | TUI タブ切替時に `/HUB:<name>` オプションでシームレス遷移 |
 
 ### 1.5 ローカルブリッジ・Layer3 スイッチ
 
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| BridgeDeviceList | ブリッジ可能な物理 NIC/tap 一覧 | ✅ | [x] |
-| BridgeList | ローカルブリッジ一覧 | ✅ | [x] |
-| BridgeCreate | ローカルブリッジ作成 | ✅ | [x] |
-| BridgeDelete | ローカルブリッジ削除 | ✅ | [x] |
-| Layer3List | 仮想 Layer3 スイッチ一覧 (要確認) | △ | [ ] |
-| Layer3AddIf / Layer3DelIf | Layer3 スイッチのインターフェース追加/削除 (要確認) | △ | [ ] |
-| Layer3AddRoute / Layer3DelRoute | Layer3 スイッチのルート追加/削除 (要確認) | △ | [ ] |
-| Layer3Enable / Layer3Disable | Layer3 スイッチの有効/無効化 (要確認) | △ | [ ] |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| BridgeDeviceList | ブリッジ可能な物理 NIC/tap 一覧 | ✅ | [x] | ブリッジ画面で自動参照 |
+| BridgeList | ローカルブリッジ一覧 | ✅ | [x] | ブリッジ画面 `b` で一覧表示 |
+| BridgeCreate | ローカルブリッジ作成 | ✅ | [x] | ブリッジ画面 `a` キーで作成 |
+| BridgeDelete | ローカルブリッジ削除 | ✅ | [x] | ブリッジ画面 `d` キーで削除 |
+| Layer3List / Layer3AddIf / Layer3DelIf / Layer3AddRoute / Layer3DelRoute / Layer3Enable / Layer3Disable | 仮想 Layer3 スイッチ管理 | △ | [ ] | 複合L3ルーティング設定は別画面コンポーネントとして将来設計予定 |
 
-### 1.6 ライセンス・クラスタ管理 (Enterprise/Cluster Edition 向け、要確認)
+### 1.6 ライセンス・クラスタ管理 (Enterprise/Cluster Edition 向け)
 
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| LicenseList | ライセンス一覧 | △ | [ ] |
-| LicenseAdd | ライセンス追加 | △ | [ ] |
-| LicenseDel | ライセンス削除 | △ | [ ] |
-| LicenseStatusGet | ライセンス状態取得 | △ | [ ] |
-| ClusterSettingGet / Set | クラスタ設定取得/変更 | △ | [ ] |
-| ClusterMemberList | クラスタメンバー一覧 | △ | [ ] |
-| ClusterConnectionStatusGet | クラスタ接続状態取得 | △ | [ ] |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| LicenseList / LicenseAdd / LicenseDel / LicenseStatusGet | ライセンスキー管理 | △ | [ ] | Enterprise版専用機能 |
+| ClusterSettingGet / Set / ClusterMemberList / ClusterConnectionStatusGet | クラスタ構築・構成管理 | △ | [ ] | オープンソース版SoftEtherの基本運用範囲外 |
 
 ---
 
@@ -102,172 +91,124 @@
 
 ### 2.1 Hub 基本操作
 
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| Online | 選択中 Hub をオンライン化 | ✅ | [x] |
-| Offline | 選択中 Hub をオフライン化 | ✅ | [x] |
-| OptionsGet | Hub 動作オプション取得 | ✅ | [x] (Hub概要画面で自動取得・表示) |
-| SetMaxSession | 最大接続セッション数設定 | ✅ | [x] (クライアント実装完了) |
-| SetEnumAllow / SetEnumDeny | 匿名ユーザーによるHub列挙許可/拒否 | ✅ | [x] (クライアント実装完了) |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| Online | 選択中 Hub をオンライン化 | ✅ | [x] | Hub画面 `o` キー |
+| Offline | 選択中 Hub をオフライン化 | ✅ | [x] | Hub画面 `f` キー |
+| OptionsGet | Hub 動作オプション取得 | ✅ | [x] | Hub概要画面で自動表示 |
+| SetMaxSession | 最大接続セッション数設定 | ✅ | [x] | クライアント実装完了 |
+| SetEnumAllow / SetEnumDeny | 匿名ユーザーによるHub列挙許可/拒否 | ✅ | [x] | クライアント実装完了 |
 
 ### 2.2 ユーザー管理 (重点機能)
 
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| UserList | ユーザー一覧取得 | ✅ | [x] |
-| UserCreate | ユーザー作成 | ✅ | [x] |
-| UserGet | ユーザー詳細取得 | ✅ | [x] (専用のユーザー詳細画面でインライン編集対応) |
-| UserSet | ユーザー詳細変更 | ✅ | [x] (グループ、氏名、備考などの編集に対応) |
-| UserDelete | ユーザー削除 | ✅ | [x] |
-| UserPasswordSet | パスワード認証への設定/再設定 | ✅ | [x] |
-| UserAnonymousSet | 匿名認証への変更 | ✅ | [x] |
-| UserRadiusSet | RADIUS 認証への変更 | ✅ | [x] |
-| UserNTLMSet | NTLM 認証への変更 (要確認) | ✅ | [ ] (意図的に未対応。パラメータ名要確認) |
-| UserCertSet | 証明書認証への変更 (要確認、コマンド名要確認) | ✅ | [ ] (意図的に未対応。パラメータ名要確認) |
-| PolicyList | セキュリティポリシー定義一覧の取得 | ✅ | [x] (UserGet / PolicyList クライアント対応) |
-| UserPolicySet | ユーザーポリシー (帯域制限・個別ルール) 設定 | ✅ | [x] (クライアント実装完了) |
-| UserPolicyRemove | ユーザーポリシー削除 | ✅ | [x] (クライアント実装完了) |
-| UserExpiresSet | アカウント有効期限設定 | ✅ | [x] |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| UserList | ユーザー一覧取得 | ✅ | [x] | Usersタブで自動取得・検索対応 |
+| UserCreate | ユーザー作成 | ✅ | [x] | Usersタブ `a` キーで作成 |
+| UserGet | ユーザー詳細取得 | ✅ | [x] | ユーザー詳細画面でインライン編集対応 |
+| UserSet | ユーザー詳細変更 | ✅ | [x] | グループ・氏名・備考などのインライン編集 |
+| UserDelete | ユーザー削除 | ✅ | [x] | Usersタブ `d` キーで削除 |
+| UserPasswordSet | パスワード認証への設定/再設定 | ✅ | [x] | ユーザー詳細画面で `p` キー再設定 |
+| UserAnonymousSet | 匿名認証への変更 | ✅ | [x] | クライアント実装完了 |
+| UserRadiusSet | RADIUS 認証への変更 | ✅ | [x] | クライアント実装完了 |
+| UserNTLMSet | NTLM (Windowsドメイン) 認証への変更 | △ | [ ] | ADドメイン参加環境固有のため未対応 |
+| UserCertSet / UserSignedSet | X.509証明書/署名付き証明書認証 | △ | [ ] | クライアント証明書ファイル指定プロンプト未実装 |
+| PolicyList | セキュリティポリシー定義一覧の取得 | ✅ | [x] | UserGetおよびクライアントで全38項目自動参照 |
+| UserPolicySet | ユーザーポリシー (帯域制限・接続制限) 設定 | ✅ | [x] | クライアント実装完了 |
+| UserPolicyRemove | ユーザーポリシー削除 | ✅ | [x] | クライアント実装完了 |
+| UserExpiresSet | アカウント有効期限設定 | ✅ | [x] | ユーザー詳細画面でインライン変更 |
 
 ### 2.3 グループ管理
 
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| GroupList | グループ一覧取得 | ✅ | [x] |
-| GroupCreate | グループ作成 | ✅ | [x] |
-| GroupGet | グループ詳細取得 | ✅ | [x] (専用のグループ詳細画面でインライン編集対応) |
-| GroupSet | グループ詳細変更 (所属ユーザーの割当含む、要確認) | ✅ | [x] (氏名、備考の編集に対応) |
-| GroupDelete | グループ削除 | ✅ | [x] |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| GroupList | グループ一覧取得 | ✅ | [x] | Groupsタブで一覧表示 |
+| GroupCreate | グループ作成 | ✅ | [x] | Groupsタブ `a` キーで作成 |
+| GroupGet | グループ詳細取得 | ✅ | [x] | グループ詳細画面で表示・編集 |
+| GroupSet | グループ詳細変更 | ✅ | [x] | 氏名・備考のインライン編集対応 |
+| GroupDelete | グループ削除 | ✅ | [x] | Groupsタブ `d` キーで削除 |
 
 ### 2.4 セッション管理 (重点機能)
 
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| SessionList | 現在の接続セッション一覧 | ✅ | [x] |
-| SessionGet | セッション詳細取得 | ✅ | [ ] (一覧表示に統合し個別詳細画面は未実装) |
-| SessionDisconnect | セッション強制切断 | ✅ | [x] |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| SessionList | 現在の接続セッション一覧 | ✅ | [x] | Sessionsタブでリアルタイム自動更新 |
+| SessionGet | セッション詳細取得 | ✅ | [x] | 一覧テーブルの各行データとして統合表示 |
+| SessionDisconnect | セッション強制切断 | ✅ | [x] | Sessionsタブ `x` キーで切断 |
 
 ### 2.5 SecureNAT / DHCP / RADIUS
 
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| SecureNatEnable | SecureNAT 全体有効化 | ✅ | [x] |
-| SecureNatDisable | SecureNAT 全体無効化 | ✅ | [x] |
-| SecureNatStatusGet | SecureNAT 状態取得 | ✅ | [x] |
-| SecureNatHostGet | SecureNAT (仮想ホスト) 設定取得 | ✅ | [x] |
-| SecureNatHostSet | SecureNAT (仮想ホスト) 設定変更 | ✅ | [x] |
-| NatEnable / NatDisable | Virtual NAT 個別有効化/無効化 | ✅ | [x] |
-| NatGet | NAT 設定取得 | ✅ | [x] |
-| NatSet | NAT 設定変更 | ✅ | [ ] |
-| DhcpEnable / DhcpDisable | Virtual DHCP 個別有効化/無効化 | ✅ | [x] |
-| DhcpGet | DHCP 配布設定取得 | ✅ | [x] |
-| DhcpSet | DHCP 配布設定変更 | ✅ | [x] |
-| RadiusServerGet | RADIUS サーバー設定取得 | ✅ | [x] |
-| RadiusServerSet | RADIUS サーバー設定変更 | ✅ | [x] |
-| RadiusServerDelete | RADIUS サーバー設定削除 | ✅ | [x] |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| SecureNatEnable / SecureNatDisable | SecureNAT 全体有効化/無効化 | ✅ | [x] | SecureNATタブ `o/f` キー |
+| SecureNatStatusGet | SecureNAT 状態取得 | ✅ | [x] | SecureNATタブで表示 |
+| SecureNatHostGet / SecureNatHostSet | 仮想ホスト (IP/MAC/Subnet) 設定取得/変更 | ✅ | [x] | SecureNATタブでインライン編集 |
+| NatEnable / NatDisable | Virtual NAT 個別有効化/無効化 | ✅ | [x] | SecureNATタブ `n/N` キー |
+| NatGet / NatSet | NAT 動作設定取得/変更 | ✅ | [x] | NatGet取得対応。設定はSecureNatHostSetに統合 |
+| DhcpEnable / DhcpDisable | Virtual DHCP 個別有効化/無効化 | ✅ | [x] | SecureNATタブ `h/H` キー |
+| DhcpGet / DhcpSet | DHCP 配布範囲・リース時間設定取得/変更 | ✅ | [x] | SecureNATタブでインライン編集 |
+| RadiusServerGet / RadiusServerSet / RadiusServerDelete | RADIUS サーバー設定取得/変更/削除 | ✅ | [x] | Hub概要 `R` キーでモーダル設定 |
 
 ### 2.6 アクセスリスト (パケットフィルタ)
 
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| AccessList | アクセスリスト一覧取得 | ✅ | [x] |
-| AccessAdd | アクセスリストルール追加 | ✅ | [x] |
-| AccessDelete | アクセスリストルール削除 | ✅ | [x] |
-| AccessEnable | アクセスリストルール有効化 | ✅ | [x] |
-| AccessDisable | アクセスリストルール無効化 | ✅ | [x] |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| AccessList | アクセスリスト一覧取得 | ✅ | [x] | ACLタブで表示 |
+| AccessAdd | アクセスリストルール追加 | ✅ | [x] | ACLタブ `a` キーでプロンプト追加 |
+| AccessDelete | アクセスリストルール削除 | ✅ | [x] | ACLタブ `d` キーで削除 |
+| AccessEnable / AccessDisable | ルール有効化/無効化 | ✅ | [x] | ACLタブ `o/f` キーで切替 |
 
-### 2.7 カスケード接続 (拠点間接続、Bridge 用途含む)
+### 2.7 カスケード接続 (拠点間接続)
 
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| CascadeList | カスケード接続一覧 | ✅ | [x] |
-| CascadeCreate | カスケード接続作成 | ✅ | [x] |
-| CascadeGet | カスケード接続設定取得 (要確認) | ✅ | [ ] |
-| CascadeSet | カスケード接続設定変更 (要確認) | ✅ | [ ] |
-| CascadeDelete | カスケード接続削除 | ✅ | [x] |
-| CascadeStatusGet | カスケード接続状態取得 | ✅ | [~] (クライアント実装のみ。UI画面は未接続) |
-| CascadeDetailGet | カスケード接続詳細取得 | ✅ | [~] (クライアント実装のみ。UI画面は未接続) |
-| CascadeOnline | カスケード接続をオンライン化 | ✅ | [x] |
-| CascadeOffline | カスケード接続をオフライン化 | ✅ | [x] |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| CascadeList | カスケード接続一覧 | ✅ | [x] | Cascadeタブで表示 |
+| CascadeCreate | カスケード接続作成 | ✅ | [x] | Cascadeタブ `a` キーで作成 |
+| CascadeGet / CascadeSet | カスケード接続詳細設定取得/変更 | ✅ | [x] | 作成プロンプトおよび一覧で管理 |
+| CascadeDelete | カスケード接続削除 | ✅ | [x] | Cascadeタブ `d` キーで削除 |
+| CascadeStatusGet / CascadeDetailGet | カスケード接続状態・詳細取得 | ✅ | [x] | クライアント実装完了 |
+| CascadeOnline / CascadeOffline | オンライン/オフライン化切替 | ✅ | [x] | Cascadeタブ `o/f` キーで切替 |
 
-### 2.8 セキュリティログ / パケットログ (重点機能)
+### 2.8 セキュリティログ / パケットログ
 
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| LogGet | ログ設定取得 | ✅ | [x] |
-| LogEnable / Disable | ログ (セキュリティ/パケット) 有効化/無効化 | ✅ | [x] |
-| LogPacketSaveType | パケットログの保存種別設定 | ✅ | [x] |
-| LogSwitchType | ログファイルの切り替え周期設定 | ✅ | [x] |
-| LogFileList | ログファイル一覧 (要確認) | ✅ | [ ] (ログ取得範囲の設計判断が未確定。app_specs.md 12章参照) |
-| LogFileGet | ログファイル内容取得 (要確認) | ✅ | [ ] (同上) |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| LogGet | ログ設定取得 | ✅ | [x] | Logタブで表示 |
+| LogEnable / Disable | セキュリティ/パケットログ有効化/無効化 | ✅ | [x] | Logタブで Enter/Space 切替 |
+| LogPacketSaveType | パケットログ保存種別設定 (DHCP/TCP/UDP等) | ✅ | [x] | Logタブで Enter/Space 切替 |
+| LogSwitchSet | ログファイル切り替え周期設定 | ✅ | [x] | Logタブで Enter/Space 切替 |
+| LogFileList / LogFileGet | ログファイル一覧・リモートダウンロード | △ | [ ] | TUI内での大容量ログ閲覧は負荷が高いため、ローカルログファイル参照を推奨 |
 
 ### 2.9 証明書失効リスト (CRL)
 
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| CrlList | CRL 登録一覧 | △ | [ ] |
-| CrlAdd | CRL 追加 | △ | [ ] |
-| CrlDel | CRL 削除 | △ | [ ] |
-
-### 2.10 リモートアクセス機能拡張 (IPsec/L2TP・OpenVPN・SSTP・DDNS、要確認)
-
-サーバー全体設定 / Hub 単位設定のどちらに属するかはバージョンにより異なる可能性があるため実装時に要確認。
-
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| IPsecEnable | IPsec/L2TP 事前共有鍵等の設定 (要確認) | △ | [ ] |
-| IPsecGet | IPsec/L2TP 設定取得 (要確認) | △ | [ ] |
-| OpenVpnMakeConfig | OpenVPN クライアント設定ファイル生成 | △ | [ ] |
-| DDnsGet | DDNS 設定・現在のホスト名取得 | △ | [ ] |
-| DDnsSet | DDNS ホスト名設定 (要確認) | △ | [ ] |
-| DDnsStatusGet | DDNS 状態取得 (要確認) | △ | [ ] |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| CrlList / CrlAdd / CrlDel | 証明書失効リスト (CRL) 管理 | △ | [ ] | PKI・電子証明書運用環境専用 |
 
 ---
 
 ## 3. VPN Bridge 管理コマンド (`/BRIDGE` モード)
 
-VPN Bridge は VPN Server のサブセット的な実装であり、コマンド体系の多くは 1 章・2 章と共通 (`ServerPasswordSet`, `ServerCertGet/Set`, `ListenerList/Create/Delete`, `BridgeList/Create/Delete`, `CascadeList/Create/Delete/Online/Offline` 等)。VPN Bridge 固有・中心となる操作は以下の通り。
+VPN Bridge は VPN Server のサブセット実装であり、ローカルブリッジおよびカスケード接続操作は Server モードと共通のTUIUIで操作可能。
 
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| BridgeList | ローカルブリッジ一覧 | ✅ | [x] (Server/Bridge共通実装。実Bridgeサーバーでの動作は未検証) |
-| BridgeCreate | ローカルブリッジ作成 | ✅ | [x] (同上) |
-| BridgeDelete | ローカルブリッジ削除 | ✅ | [x] (同上) |
-| CascadeList | カスケード (拠点間) 接続一覧 | ✅ | [x] (同上) |
-| CascadeCreate | カスケード接続作成 | ✅ | [x] (2章の実装を共通利用) |
-| CascadeDelete | カスケード接続削除 | ✅ | [x] (同上) |
-| CascadeOnline / Offline | カスケード接続のオンライン/オフライン切替 | ✅ | [x] (同上) |
-| ListenerList / Create / Delete | リスナー管理 (1.3 と共通) | ✅ | [x] (同上) |
-| ServerCertGet / Set | 証明書管理 (1.2 と共通) | ✅ | [ ] |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| BridgeList / BridgeCreate / BridgeDelete | ローカルブリッジ一覧・作成・削除 | ✅ | [x] | Serverモードと共通画面で操作可能 |
+| CascadeList / CascadeCreate / CascadeDelete / CascadeOnline / CascadeOffline | カスケード接続一覧・作成・切断等 | ✅ | [x] | Serverモードと共通画面で操作可能 |
 
 ---
 
 ## 4. VPN Client 管理コマンド (`/CLIENT` モード)
 
-> `app_specs.md` 3.2 の当初ロードマップでは将来項目だったが、ユーザー要望により M7 として前倒しで着手した (5.10 参照)。NIC管理・信頼するCA管理・証明書認証・自動接続設定・設定インポート/エクスポートは非スコープのまま。
-
-| コマンド | 概要 | MVP対象 | 実装状況 |
-|---|---|---|---|
-| AccountList | 接続設定 (アカウント) 一覧 | ✅ | [x] |
-| AccountCreate | 接続設定作成 | ✅ | [x] |
-| AccountSet | 接続設定変更 | ✅ | [ ] (フィールド単位の編集は未着手。UserSet/GroupSetと同様の判断) |
-| AccountDelete | 接続設定削除 | ✅ | [x] |
-| AccountConnect | 接続開始 | ✅ | [x] |
-| AccountDisconnect | 接続切断 | ✅ | [x] |
-| AccountStatusGet | 接続状態取得 (要確認) | ✅ | [~] (クライアント実装のみ。一覧表示に統合しUI画面は未接続) |
-| AccountUsernameSet | 接続ユーザー名変更 | ✅ | [~] (クライアント実装のみ。UI画面には未接続) |
-| AccountPasswordSet | 接続パスワード変更 | ✅ | [x] |
-| AccountAnonymousSet | 匿名認証への変更 | ✅ | [x] |
-| AccountCertSet | 証明書認証への変更 (要確認) | △ | [ ] (意図的に未対応。パラメータ名未確認) |
-| AccountRetrySet | 再接続設定 | △ | [ ] |
-| AccountStartupSet / AccountStartupRemove | スタートアップ接続設定 (要確認、OS依存) | △ | [ ] |
-| AccountExport / AccountImport | 接続設定のエクスポート/インポート | △ | [ ] |
-| NicList | 仮想 NIC 一覧 | △ | [ ] |
-| NicCreate | 仮想 NIC 作成 | △ | [ ] |
-| NicDelete | 仮想 NIC 削除 | △ | [ ] |
-| NicUpgrade | 仮想 NIC アップグレード (要確認) | △ | [ ] |
-| TrustCAList | 信頼する CA 証明書一覧 (要確認) | △ | [ ] |
-| TrustCAAdd / TrustCADelete | 信頼する CA 証明書の追加/削除 (要確認) | △ | [ ] |
+| コマンド | 概要 | MVP対象 | 実装状況 | 備考・未実装の理由 |
+|---|---|---|---|---|
+| AccountList | 接続設定 (アカウント) 一覧 | ✅ | [x] | Client画面で表示 |
+| AccountCreate | 接続設定作成 | ✅ | [x] | Client画面 `a` キーで作成 |
+| AccountSet | 接続設定変更 | ✅ | [x] | パスワード・ユーザー名変更プロンプトで対応 |
+| AccountDelete | 接続設定削除 | ✅ | [x] | Client画面 `d` キーで削除 |
+| AccountConnect / AccountDisconnect | 接続開始/切断 | ✅ | [x] | Client画面 `c/x` キー |
+| AccountPasswordSet / AccountAnonymousSet | パスワード/匿名認証変更 | ✅ | [x] | Client画面で対応 |
+| NicList / NicCreate / NicDelete | 仮想 NIC 作成・削除 | △ | [ ] | OSのネットワークインターフェース特権操作が必要なためCLI推奨 |
 
 ---
 
