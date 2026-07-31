@@ -44,7 +44,16 @@ func (d listenerState) View() string {
 		b.WriteString(renderTable(d.table, d.cursor))
 	}
 
-	b.WriteString("\n" + dimStyle.Render(tr("↑/↓:選択  a:追加  d:削除  o:有効化  f:無効化  r:更新  Esc:戻る  q:終了")))
+	b.WriteString("\n" + renderHelp(
+		"↑/↓", tr("選択"),
+		"n", tr("作成"),
+		"d", tr("削除"),
+		"o", tr("有効化"),
+		"f", tr("無効化"),
+		"r", tr("更新"),
+		"Esc", tr("戻る"),
+		"q", tr("終了"),
+	))
 	return b.String()
 }
 
@@ -148,7 +157,7 @@ func (m Model) handleListenerKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.listener.cursor++
 		}
 
-	case "a":
+	case "n":
 		m.prompt.Show(promptListenerCreate, "", tr("作成するポート番号"), tr("例: 1194"), false)
 
 	case "d":

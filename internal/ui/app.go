@@ -1323,7 +1323,7 @@ func (m Model) handleProfileListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.cursor++
 		}
 
-	case "a":
+	case "n":
 		m.form.Reset()
 		m.screen = screenProfileForm
 		m.status = ""
@@ -1414,7 +1414,7 @@ func (m Model) handleDashboardKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.dashboard.hubCursor++
 		}
 
-	case "a":
+	case "n":
 		m.hubForm.Reset()
 		m.screen = screenHubForm
 		m.status = ""
@@ -1671,7 +1671,7 @@ func (m Model) handleHubUsersKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, m.fetchUserDetail(m.hubDetail.profile, m.hubDetail.hubName, name)
 		}
 
-	case "a":
+	case "n":
 		m.userForm.Reset()
 		var groupNames []string
 		for _, row := range m.hubDetail.groups.Rows {
@@ -1742,7 +1742,7 @@ func (m Model) handleHubGroupsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, m.fetchGroupDetail(m.hubDetail.profile, m.hubDetail.hubName, name)
 		}
 
-	case "a":
+	case "n":
 		m.groupForm.Reset()
 		m.screen = screenGroupForm
 		m.status = ""
@@ -2332,7 +2332,7 @@ func (m Model) viewProfileList() string {
 	b.WriteString(tr("接続プロファイルを選択\n\n"))
 
 	if len(m.profiles) == 0 {
-		b.WriteString(dimStyle.Render(tr("プロファイルがありません。'a' で追加してください。")) + "\n")
+		b.WriteString(dimStyle.Render(tr("プロファイルがありません。'n' で追加してください。")) + "\n")
 	} else {
 		// Table Header
 		header := fmt.Sprintf("  %-16s %-24s %-8s %s", tr("接続名 (Name)"), tr("接続先 (Host:Port)"), tr("モード"), tr("状態 (Status)"))
@@ -2364,7 +2364,7 @@ func (m Model) viewProfileList() string {
 	b.WriteString("\n" + renderHelp(
 		"↑/↓ j/k", tr("選択"),
 		"Enter", tr("接続"),
-		"a", tr("追加"),
+		"n", tr("新規追加"),
 		"e", tr("編集"),
 		"d", tr("削除"),
 		"t", tr("接続テスト"),

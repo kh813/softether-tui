@@ -226,7 +226,7 @@ func (d hubDetailState) viewUsers(b *strings.Builder) {
 		"↑/↓", tr("選択"),
 		"Enter", tr("詳細"),
 		"/", tr("検索"),
-		"a", tr("追加"),
+		"n", tr("作成"),
 		"d", tr("削除"),
 		"p", tr("パスワード再設定"),
 		"g", tr("グループ変更"),
@@ -252,7 +252,7 @@ func (d hubDetailState) viewGroups(b *strings.Builder) {
 	b.WriteString("\n" + renderHelp(
 		"↑/↓", tr("選択"),
 		"Enter", tr("詳細"),
-		"a", tr("追加"),
+		"n", tr("作成"),
 		"d", tr("削除"),
 		"←/→/Tab", tr("タブ切替"),
 		"r", tr("更新"),
@@ -485,7 +485,7 @@ func (d hubDetailState) viewAccessList(b *strings.Builder) {
 	}
 	b.WriteString("\n" + renderHelp(
 		"↑/↓", tr("選択"),
-		"a", tr("追加"),
+		"n", tr("追加"),
 		"d", tr("削除"),
 		"o", tr("有効化"),
 		"f", tr("無効化"),
@@ -680,7 +680,7 @@ func (m Model) handleHubACLKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.hubDetail.accessCursor < len(m.hubDetail.access.Rows)-1 {
 			m.hubDetail.accessCursor++
 		}
-	case "a":
+	case "n":
 		m.prompt.Show(promptAccessAddMemo, "", tr("ルール説明 (Memo) を入力してください:"), "Allow-All", false)
 		return m, nil
 	case "d":
@@ -786,7 +786,7 @@ func (m Model) handleHubCascadeKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.hubDetail.cascadeCursor < len(m.hubDetail.cascade.Rows)-1 {
 			m.hubDetail.cascadeCursor++
 		}
-	case "a":
+	case "n":
 		m.prompt.Show(promptCascadeCreateName, "", tr("カスケード接続名を入力してください:"), "to-branch-hub", false)
 		return m, nil
 	case "d":
@@ -820,7 +820,7 @@ func (d hubDetailState) viewCascade(b *strings.Builder) {
 	}
 	b.WriteString("\n" + renderHelp(
 		"↑/↓", tr("選択"),
-		"a", tr("作成"),
+		"n", tr("作成"),
 		"d", tr("削除"),
 		"o", tr("オンライン化"),
 		"f", tr("オフライン化"),

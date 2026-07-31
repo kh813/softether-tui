@@ -47,7 +47,14 @@ func (d bridgeState) View() string {
 		b.WriteString(renderTable(d.bridges, d.cursor))
 	}
 
-	b.WriteString("\n" + dimStyle.Render(tr("↑/↓:選択  a:追加  d:削除  r:更新  Esc:戻る  q:終了")))
+	b.WriteString("\n" + renderHelp(
+		"↑/↓", tr("選択"),
+		"n", tr("作成"),
+		"d", tr("削除"),
+		"r", tr("更新"),
+		"Esc", tr("戻る"),
+		"q", tr("終了"),
+	))
 	return b.String()
 }
 
@@ -132,7 +139,7 @@ func (m Model) handleBridgeKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.bridge.cursor++
 		}
 
-	case "a":
+	case "n":
 		m.bridgeForm.Reset()
 		m.screen = screenBridgeForm
 		m.status = ""

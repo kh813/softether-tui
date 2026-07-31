@@ -9,6 +9,8 @@ var enCatalog = map[string]string{
 	// (TestEnCatalogCoversAllSourceStrings) caught entries missed by the
 	// earlier ad-hoc edits that predated the generator script.
 	"管理者パスワードを入力してください (%s)": "Please enter administrator password (%s)",
+	"プロファイルがありません。'n' で追加してください。": "No profiles found. Press 'n' to add one.",
+	"新規追加": "New Profile",
 	"接続名 (Name)": "Name",
 	"接続先 (Host:Port)": "Host:Port",
 	"モード": "Mode",

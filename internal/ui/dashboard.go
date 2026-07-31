@@ -56,7 +56,7 @@ func (d dashboardState) View() string {
 	b.WriteString("\n" + renderHelp(
 		"↑/↓", tr("Hub選択"),
 		"Enter", tr("Hub詳細"),
-		"a", tr("Hub作成"),
+		"n", tr("Hub作成"),
 		"d", tr("Hub削除"),
 		"p", tr("Hubパスワード設定"),
 		"l", tr("リスナー管理"),
