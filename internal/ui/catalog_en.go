@@ -9,6 +9,17 @@ var enCatalog = map[string]string{
 	// (TestEnCatalogCoversAllSourceStrings) caught entries missed by the
 	// earlier ad-hoc edits that predated the generator script.
 	"管理者パスワードを入力してください (%s)": "Please enter administrator password (%s)",
+	"接続名 (Name)": "Name",
+	"接続先 (Host:Port)": "Host:Port",
+	"モード": "Mode",
+	"状態 (Status)": "Status",
+	"[OK] 接続確認済み": "[OK] Connected",
+	"[ERR] ": "[ERR] ",
+	"編集": "Edit",
+	"接続テスト": "Test Connection",
+	"モード:       < %s >": "Mode:       < %s >",
+	"モード切替": "Change Mode",
+	"保存": "Save",
 	"%s のユーザー名を変更しています...": "Changing username for %s...",
 	"↑/↓:選択  a:追加  d:削除  o:接続  f:切断  u:ユーザー名変更  p:パスワード再設定  r:更新  Esc:戻る  q:終了": "↑/↓:Select  a:Add  d:Delete  o:Connect  f:Disconnect  u:Change Username  p:Reset Password  r:Refresh  Esc:Back  q:Quit",
 	"ユーザー名変更": "Change Username",

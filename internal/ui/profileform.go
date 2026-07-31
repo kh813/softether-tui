@@ -150,7 +150,7 @@ func (f *profileForm) cycleMode(forward bool) {
 }
 
 func (f *profileForm) View() string {
-	labels := []string{tr("表示名"), tr("ホスト"), tr("ポート"), tr("Hub (任意)")}
+	labels := []string{tr("接続名"), tr("ホスト"), tr("ポート"), tr("Hub (任意)")}
 	var b strings.Builder
 
 	title := tr("プロファイル追加")
@@ -164,15 +164,20 @@ func (f *profileForm) View() string {
 		if f.focus == formField(i) {
 			marker = "> "
 		}
-		fmt.Fprintf(&b, "%s%-10s %s\n", marker, labels[i]+":", in.View())
+		fmt.Fprintf(&b, "%s%-12s %s\n", marker, labels[i]+":", in.View())
 	}
 
 	modeMarker := "  "
 	if f.focus == fieldMode {
 		modeMarker = "> "
 	}
-	fmt.Fprintf(&b, "%s"+tr("モード:     < %s >")+"\n", modeMarker, modeLabel(f.mode))
+	fmt.Fprintf(&b, "%s"+tr("モード:       < %s >")+"\n", modeMarker, modeLabel(f.mode))
 
-	b.WriteString("\n" + dimStyle.Render(tr("Tab/↑↓: 項目移動  ←→: モード切替  Enter: 保存  Esc: キャンセル")))
+	b.WriteString("\n" + renderHelp(
+		"Tab/↑↓", tr("項目移動"),
+		"←/→", tr("モード切替"),
+		"Enter", tr("保存"),
+		"Esc", tr("キャンセル"),
+	))
 	return b.String()
 }

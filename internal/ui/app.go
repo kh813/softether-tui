@@ -2333,30 +2333,43 @@ func (m Model) viewProfileList() string {
 
 	if len(m.profiles) == 0 {
 		b.WriteString(dimStyle.Render(tr("プロファイルがありません。'a' で追加してください。")) + "\n")
-	}
+	} else {
+		// Table Header
+		header := fmt.Sprintf("  %-16s %-24s %-8s %s", tr("接続名 (Name)"), tr("接続先 (Host:Port)"), tr("モード"), tr("状態 (Status)"))
+		b.WriteString(headerStyle.Render(header) + "\n")
+		b.WriteString(dimStyle.Render("  "+strings.Repeat("─", 68)) + "\n")
 
-	for i, p := range m.profiles {
-		marker := "  "
-		style := statusBarStyle
-		if i == m.cursor {
-			marker = "> "
-			style = selectedStyle
-		}
-
-		statusLabel := tr("未確認")
-		if err, ok := m.testResults[p.Name]; ok {
-			if err == nil {
-				statusLabel = tr("● 接続確認済み")
-			} else {
-				statusLabel = tr("✕ ") + err.Error()
+		for i, p := range m.profiles {
+			marker := "  "
+			style := statusBarStyle
+			if i == m.cursor {
+				marker = "> "
+				style = selectedStyle
 			}
-		}
 
-		line := fmt.Sprintf("%s%-16s %-24s %-8s %s", marker, p.Name, p.Address(), modeLabel(p.Mode), statusLabel)
-		b.WriteString(style.Render(line) + "\n")
+			statusLabel := tr("未確認")
+			if err, ok := m.testResults[p.Name]; ok {
+				if err == nil {
+					statusLabel = tr("[OK] 接続確認済み")
+				} else {
+					statusLabel = tr("[ERR] ") + err.Error()
+				}
+			}
+
+			line := fmt.Sprintf("%s%-16s %-24s %-8s %s", marker, p.Name, p.Address(), modeLabel(p.Mode), statusLabel)
+			b.WriteString(style.Render(line) + "\n")
+		}
 	}
 
-	b.WriteString("\n" + dimStyle.Render(tr("↑/↓ j/k:選択  Enter:接続  a:追加  e:編集  d:削除  t:接続テスト  q:終了")))
+	b.WriteString("\n" + renderHelp(
+		"↑/↓ j/k", tr("選択"),
+		"Enter", tr("接続"),
+		"a", tr("追加"),
+		"e", tr("編集"),
+		"d", tr("削除"),
+		"t", tr("接続テスト"),
+		"q", tr("終了"),
+	))
 	return b.String()
 }
 
