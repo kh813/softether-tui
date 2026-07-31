@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -189,6 +190,15 @@ func (m Model) handleUserDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "enter":
 			val := strings.TrimSpace(d.input.Value())
+			if d.editingField == fieldExpires && val != "" {
+				// Normalize and auto-format date to YYYY/MM/DD
+				val = normalizeAndFormatDate(val)
+				if val == "" {
+					m.status = tr("有効期限は YYYY/MM/DD 形式（数字8桁等）で入力してください")
+					m.statusErr = true
+					return m, nil
+				}
+			}
 			if d.editedValues == nil {
 				d.editedValues = make(map[editableUserField]string)
 			}
@@ -201,6 +211,15 @@ func (m Model) handleUserDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			d.editing = false
 			return m, nil
 		}
+
+		if d.editingField == fieldExpires {
+			// Restrict Expiration Date input to numbers only (and / or backspace/delete)
+			key := msg.String()
+			if len(key) == 1 && (key < "0" || key > "9") && key != "/" {
+				return m, nil
+			}
+		}
+
 		var cmd tea.Cmd
 		d.input, cmd = d.input.Update(msg)
 		return m, cmd
@@ -340,4 +359,39 @@ func (m Model) setUserSet(p config.Profile, hub, name string, opts vpncmd.UserSe
 		err := client.UserSet(ctx, target, name, opts)
 		return userActionResultMsg{action: tr("ユーザー設定変更"), name: name, err: err}
 	}
+}
+
+// normalizeAndFormatDate parses raw input (e.g. "2026111", "2026/11/1", "20261101")
+// and returns a normalized YYYY/MM/DD string (e.g. "2026/11/01"), or empty string if invalid.
+func normalizeAndFormatDate(input string) string {
+	clean := strings.ReplaceAll(input, "-", "/")
+	parts := strings.Split(clean, "/")
+
+	if len(parts) == 3 {
+		yearStr, monthStr, dayStr := parts[0], parts[1], parts[2]
+		year, yErr := strconv.Atoi(yearStr)
+		month, mErr := strconv.Atoi(monthStr)
+		day, dErr := strconv.Atoi(dayStr)
+		if yErr == nil && mErr == nil && dErr == nil && year >= 2000 && year <= 2100 && month >= 1 && month <= 12 && day >= 1 && day <= 31 {
+			return fmt.Sprintf("%04d/%02d/%02d", year, month, day)
+		}
+	} else if len(parts) == 1 {
+		// Pure digits e.g. "20261101" or "2026111"
+		digits := parts[0]
+		if len(digits) == 8 {
+			year, _ := strconv.Atoi(digits[:4])
+			month, _ := strconv.Atoi(digits[4:6])
+			day, _ := strconv.Atoi(digits[6:8])
+			if year >= 2000 && year <= 2100 && month >= 1 && month <= 12 && day >= 1 && day <= 31 {
+				return fmt.Sprintf("%04d/%02d/%02d", year, month, day)
+			}
+		}
+	}
+
+	// Fallback attempt with time.Parse
+	t, err := time.Parse("2006/1/2", clean)
+	if err == nil {
+		return t.Format("2006/01/02")
+	}
+	return ""
 }

@@ -9,6 +9,7 @@ var enCatalog = map[string]string{
 	// (TestEnCatalogCoversAllSourceStrings) caught entries missed by the
 	// earlier ad-hoc edits that predated the generator script.
 	"管理者パスワードを入力してください (%s)": "Please enter administrator password (%s)",
+	"有効期限は YYYY/MM/DD 形式（数字8桁等）で入力してください": "Please enter expiry date as YYYY/MM/DD (e.g. 8 digits 20261101)",
 	"[有効] / 無効": "[enabled] / disabled",
 	"SecureNAT": "SecureNAT",
 	"DHCP": "DHCP",

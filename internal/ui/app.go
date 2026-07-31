@@ -1474,7 +1474,7 @@ func (m Model) handleHubDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.screen = screenDashboard
 		return m, nil
 
-	case "tab", "right", "l":
+	case "tab", "right":
 		if m.hubDetail.tab == hubTabSecureNAT && m.hubDetail.secureNatEditing {
 			return m.handleHubSecureNATKey(msg)
 		}
@@ -1483,7 +1483,7 @@ func (m Model) handleHubDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.hubDetail.tab = (m.hubDetail.tab + 1) % hubTabCount
 		return m.loadHubTabIfNeeded()
 
-	case "shift+tab", "left", "h":
+	case "shift+tab", "left":
 		if m.hubDetail.tab == hubTabSecureNAT && m.hubDetail.secureNatEditing {
 			return m.handleHubSecureNATKey(msg)
 		}
