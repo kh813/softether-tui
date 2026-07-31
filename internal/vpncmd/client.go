@@ -569,6 +569,34 @@ func (c *Client) SecureNatDisable(ctx context.Context, t Target) error {
 	return err
 }
 
+func (c *Client) NatEnable(ctx context.Context, t Target) error {
+	_, err := c.Run(ctx, t, "NatEnable")
+	return err
+}
+
+func (c *Client) NatDisable(ctx context.Context, t Target) error {
+	_, err := c.Run(ctx, t, "NatDisable")
+	return err
+}
+
+func (c *Client) DhcpEnable(ctx context.Context, t Target) error {
+	_, err := c.Run(ctx, t, "DhcpEnable")
+	return err
+}
+
+func (c *Client) DhcpDisable(ctx context.Context, t Target) error {
+	_, err := c.Run(ctx, t, "DhcpDisable")
+	return err
+}
+
+func (c *Client) NatGet(ctx context.Context, t Target) (KeyValue, error) {
+	out, err := c.Run(ctx, t, "NatGet")
+	if err != nil {
+		return nil, err
+	}
+	return ParseCSV(out)
+}
+
 func (c *Client) SecureNatStatusGet(ctx context.Context, t Target) (KeyValue, error) {
 	out, err := c.Run(ctx, t, "SecureNatStatusGet")
 	if err != nil {

@@ -370,8 +370,9 @@ func (d hubDetailState) viewSecureNAT(b *strings.Builder) {
 		b.WriteString("\n" + renderHelp(
 			"↑/↓", tr("項目選択"),
 			"Enter", tr("値の変更"),
-			"o", tr("有効化"),
-			"f", tr("無効化"),
+			"o/f", tr("SecureNAT有効/無効"),
+			"n/N", tr("NAT有効/無効"),
+			"h/H", tr("DHCP有効/無効"),
 			"←/→/Tab", tr("タブ切替"),
 			"r", tr("更新"),
 			"Esc", tr("戻る"),
@@ -558,6 +559,46 @@ func (m Model) setSecureNatEnabled(p config.Profile, hub string, enabled bool) t
 			err = client.SecureNatEnable(ctx, target)
 		} else {
 			err = client.SecureNatDisable(ctx, target)
+		}
+		return secureNatActionResultMsg{action: action, err: err}
+	}
+}
+
+func (m Model) setNatEnabled(p config.Profile, hub string, enabled bool) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	action := tr("Virtual NAT 無効化")
+	if enabled {
+		action = tr("Virtual NAT 有効化")
+	}
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		var err error
+		if enabled {
+			err = client.NatEnable(ctx, target)
+		} else {
+			err = client.NatDisable(ctx, target)
+		}
+		return secureNatActionResultMsg{action: action, err: err}
+	}
+}
+
+func (m Model) setDhcpEnabled(p config.Profile, hub string, enabled bool) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	action := tr("Virtual DHCP 無効化")
+	if enabled {
+		action = tr("Virtual DHCP 有効化")
+	}
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		var err error
+		if enabled {
+			err = client.DhcpEnable(ctx, target)
+		} else {
+			err = client.DhcpDisable(ctx, target)
 		}
 		return secureNatActionResultMsg{action: action, err: err}
 	}

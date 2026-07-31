@@ -1936,6 +1936,26 @@ func (m Model) handleHubSecureNATKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.status = fmt.Sprintf(tr("Hub %q の SecureNAT を無効化しています..."), m.hubDetail.hubName)
 		m.statusErr = false
 		return m, m.setSecureNatEnabled(m.hubDetail.profile, m.hubDetail.hubName, false)
+
+	case "n":
+		m.status = fmt.Sprintf(tr("Hub %q の Virtual NAT を有効化しています..."), m.hubDetail.hubName)
+		m.statusErr = false
+		return m, m.setNatEnabled(m.hubDetail.profile, m.hubDetail.hubName, true)
+
+	case "N":
+		m.status = fmt.Sprintf(tr("Hub %q の Virtual NAT を無効化しています..."), m.hubDetail.hubName)
+		m.statusErr = false
+		return m, m.setNatEnabled(m.hubDetail.profile, m.hubDetail.hubName, false)
+
+	case "h":
+		m.status = fmt.Sprintf(tr("Hub %q の Virtual DHCP を有効化しています..."), m.hubDetail.hubName)
+		m.statusErr = false
+		return m, m.setDhcpEnabled(m.hubDetail.profile, m.hubDetail.hubName, true)
+
+	case "H":
+		m.status = fmt.Sprintf(tr("Hub %q の Virtual DHCP を無効化しています..."), m.hubDetail.hubName)
+		m.statusErr = false
+		return m, m.setDhcpEnabled(m.hubDetail.profile, m.hubDetail.hubName, false)
 	}
 	return m, nil
 }

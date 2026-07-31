@@ -9,6 +9,17 @@ var enCatalog = map[string]string{
 	// (TestEnCatalogCoversAllSourceStrings) caught entries missed by the
 	// earlier ad-hoc edits that predated the generator script.
 	"管理者パスワードを入力してください (%s)": "Please enter administrator password (%s)",
+	"Hub %q の Virtual NAT を有効化しています...": "Enabling Virtual NAT for Hub %q...",
+	"Hub %q の Virtual NAT を無効化しています...": "Disabling Virtual NAT for Hub %q...",
+	"Hub %q の Virtual DHCP を有効化しています...": "Enabling Virtual DHCP for Hub %q...",
+	"Hub %q の Virtual DHCP を無効化しています...": "Disabling Virtual DHCP for Hub %q...",
+	"SecureNAT有効/無効": "SecureNAT enable/disable",
+	"NAT有効/無効": "NAT enable/disable",
+	"DHCP有効/無効": "DHCP enable/disable",
+	"Virtual NAT 無効化": "Disable Virtual NAT",
+	"Virtual NAT 有効化": "Enable Virtual NAT",
+	"Virtual DHCP 無効化": "Disable Virtual DHCP",
+	"Virtual DHCP 有効化": "Enable Virtual DHCP",
 	"アクセスリストルール %q を追加しています...": "Adding access list rule %q...",
 	"カスケード接続 %q を作成しています...": "Creating cascade connection %q...",
 	"ルール説明 (Memo) を入力してください:": "Enter rule description (Memo):",

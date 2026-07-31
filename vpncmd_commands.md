@@ -151,13 +151,15 @@
 
 | コマンド | 概要 | MVP対象 | 実装状況 |
 |---|---|---|---|
-| SecureNatEnable | SecureNAT 有効化 | ✅ | [x] |
-| SecureNatDisable | SecureNAT 無効化 | ✅ | [x] |
+| SecureNatEnable | SecureNAT 全体有効化 | ✅ | [x] |
+| SecureNatDisable | SecureNAT 全体無効化 | ✅ | [x] |
 | SecureNatStatusGet | SecureNAT 状態取得 | ✅ | [x] |
 | SecureNatHostGet | SecureNAT (仮想ホスト) 設定取得 | ✅ | [x] |
 | SecureNatHostSet | SecureNAT (仮想ホスト) 設定変更 | ✅ | [x] |
-| NatGet | NAT 設定取得 | ✅ | [ ] |
+| NatEnable / NatDisable | Virtual NAT 個別有効化/無効化 | ✅ | [x] |
+| NatGet | NAT 設定取得 | ✅ | [x] |
 | NatSet | NAT 設定変更 | ✅ | [ ] |
+| DhcpEnable / DhcpDisable | Virtual DHCP 個別有効化/無効化 | ✅ | [x] |
 | DhcpGet | DHCP 配布設定取得 | ✅ | [x] |
 | DhcpSet | DHCP 配布設定変更 | ✅ | [x] |
 | RadiusServerGet | RADIUS サーバー設定取得 | ✅ | [x] |
