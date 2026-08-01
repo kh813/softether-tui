@@ -391,16 +391,7 @@ func (d hubDetailState) renderSecureNATFields(b *strings.Builder) {
 	b.WriteString(headerStyle.Render(tr("Virtual host settings (仮想ホスト・DHCP設定)")) + "\n")
 
 	// Render SecureNAT enabled status as a selectable field
-	snEnabled := false
-	for _, k := range []string{"SecureNAT Functionality State", "SecureNAT Status", "Status", "SecureNAT"} {
-		if v, ok := d.secureNatStatus[k]; ok {
-			vLower := strings.ToLower(v)
-			if strings.Contains(vLower, "enable") || strings.Contains(vLower, "active") || strings.Contains(vLower, "running") || strings.Contains(vLower, "yes") {
-				snEnabled = true
-				break
-			}
-		}
-	}
+	snEnabled := d.secureNatErr == nil && len(d.secureNatStatus) > 0
 	snStatus := tr("disabled (無効)")
 	snStyle := dimStyle
 	if snEnabled {

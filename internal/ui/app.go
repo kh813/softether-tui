@@ -1299,16 +1299,7 @@ func (m Model) applyConfirm(kind confirmKind, target string) (tea.Model, tea.Cmd
 
 	case confirmToggleSecureNAT:
 		d := &m.hubDetail
-		snEnabled := false
-		for _, k := range []string{"SecureNAT Functionality State", "SecureNAT Status", "Status", "SecureNAT"} {
-			if v, ok := d.secureNatStatus[k]; ok {
-				vLower := strings.ToLower(v)
-				if strings.Contains(vLower, "enable") || strings.Contains(vLower, "active") || strings.Contains(vLower, "running") || strings.Contains(vLower, "yes") {
-					snEnabled = true
-					break
-				}
-			}
-		}
+		snEnabled := d.secureNatErr == nil && len(d.secureNatStatus) > 0
 		actionLabel := tr("有効化")
 		if snEnabled {
 			actionLabel = tr("無効化")
@@ -1989,16 +1980,7 @@ func (m Model) handleHubSecureNATKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "enter":
 		if d.secureNatCursor == fieldSecureNAT {
-			snEnabled := false
-			for _, k := range []string{"SecureNAT Functionality State", "SecureNAT Status", "Status", "SecureNAT"} {
-				if v, ok := d.secureNatStatus[k]; ok {
-					vLower := strings.ToLower(v)
-					if strings.Contains(vLower, "enable") || strings.Contains(vLower, "active") || strings.Contains(vLower, "running") || strings.Contains(vLower, "yes") {
-						snEnabled = true
-						break
-					}
-				}
-			}
+			snEnabled := d.secureNatErr == nil && len(d.secureNatStatus) > 0
 			actionLabel := tr("有効化")
 			if snEnabled {
 				actionLabel = tr("無効化")
