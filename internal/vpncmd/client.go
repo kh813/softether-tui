@@ -151,6 +151,22 @@ func ParseCSV(output string) (KeyValue, error) {
 	return kv, nil
 }
 
+// ParseFormattedKV parses vpncmd non-CSV formatted key-value tables (e.g. StatusGet output: "Item |Value\n---+---\nKey |Val").
+func ParseFormattedKV(output string) KeyValue {
+	kv := make(KeyValue)
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		if idx := strings.Index(line, "|"); idx != -1 {
+			k := strings.TrimSpace(line[:idx])
+			v := strings.TrimSpace(line[idx+1:])
+			if k != "" && k != "Item" && !strings.HasPrefix(k, "-") {
+				kv[k] = v
+			}
+		}
+	}
+	return kv
+}
+
 // ServerInfo runs ServerInfoGet and returns its fields.
 func (c *Client) ServerInfo(ctx context.Context, t Target) (KeyValue, error) {
 	out, err := c.Run(ctx, t, "ServerInfoGet")
@@ -717,7 +733,7 @@ func (c *Client) StatusGet(ctx context.Context, t Target) (KeyValue, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ParseCSV(out)
+	return ParseFormattedKV(out), nil
 }
 
 type SecureNatHostOptions struct {
