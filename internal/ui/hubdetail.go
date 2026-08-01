@@ -18,25 +18,22 @@ type hubTab int
 
 const (
 	hubTabOverview hubTab = iota
-	hubTabUsers
-	hubTabGroups
 	hubTabSessions
-	hubTabLog
+	hubTabUsersAndGroups
 	hubTabSecureNAT
 	hubTabACL
 	hubTabCascade
+	hubTabLog
 	hubTabCount
 )
 
 func hubTabLabels() [hubTabCount]string {
 	return [hubTabCount]string{
-		tr("概要"), tr("ユーザー"), tr("グループ"), tr("セッション"), tr("セキュリティログ"), "SecureNAT", "ACL", tr("カスケード"),
+		tr("概要"), tr("セッション"), tr("Users & Group"), "SecureNAT", "ACL", tr("カスケード"), tr("セキュリティログ"),
 	}
 }
 
-// hubDetailState is the Hub detail screen (app_specs.md 8.2 ③). Overview,
-// Users and Groups tabs have real data wired up (M2/M3); the rest are
-// placeholders for M4-M6 to fill in.
+// hubDetailState is the Hub detail screen.
 type hubDetailState struct {
 	profile config.Profile
 	hubName string
@@ -46,14 +43,15 @@ type hubDetailState struct {
 	loading bool
 	err     error
 
-	users        vpncmd.Table
-	usersLoaded  bool
-	usersLoading bool
-	usersErr     error
-	userCursor   int
-	userFilter   string
-	filtering    bool
-	filterInput  textinput.Model
+	users             vpncmd.Table
+	usersLoaded       bool
+	usersLoading      bool
+	usersErr          error
+	userCursor        int
+	userFilter        string
+	filtering         bool
+	filterInput       textinput.Model
+	activeUserSection bool // false = Users section, true = Groups section
 
 	groups        vpncmd.Table
 	groupsLoaded  bool
@@ -164,20 +162,18 @@ func (d hubDetailState) View() string {
 	switch d.tab {
 	case hubTabOverview:
 		d.viewOverview(&b)
-	case hubTabUsers:
-		d.viewUsers(&b)
-	case hubTabGroups:
-		d.viewGroups(&b)
 	case hubTabSessions:
 		d.viewSessions(&b)
-	case hubTabLog:
-		d.viewLog(&b)
+	case hubTabUsersAndGroups:
+		d.viewUsersAndGroups(&b)
 	case hubTabSecureNAT:
 		d.viewSecureNAT(&b)
 	case hubTabACL:
 		d.viewAccessList(&b)
 	case hubTabCascade:
 		d.viewCascade(&b)
+	case hubTabLog:
+		d.viewLog(&b)
 	default:
 		b.WriteString(dimStyle.Render(tr("この画面は今後のマイルストーンで実装予定です。")) + "\n")
 		b.WriteString("\n" + dimStyle.Render(tr("Tab/Shift+Tab:タブ切替  Esc:戻る  q:終了")))
@@ -207,13 +203,15 @@ func (d hubDetailState) viewOverview(b *strings.Builder) {
 	))
 }
 
-func (d hubDetailState) viewUsers(b *strings.Builder) {
+func (d hubDetailState) viewUsersAndGroups(b *strings.Builder) {
 	if d.filtering {
 		fmt.Fprintf(b, tr("検索: %s\n\n"), d.filterInput.View())
 	} else if d.userFilter != "" {
 		fmt.Fprintf(b, tr("検索: %s\n\n"), d.userFilter)
 	}
 
+	// Users Section
+	b.WriteString(headerStyle.Render(tr("Users (ユーザー一覧)")) + "\n")
 	switch {
 	case d.usersLoading:
 		b.WriteString(tr("読み込み中...") + "\n")
@@ -221,42 +219,53 @@ func (d hubDetailState) viewUsers(b *strings.Builder) {
 		b.WriteString(errorStyle.Render(tr("エラー: ")+d.usersErr.Error()) + "\n")
 	default:
 		rows := d.filteredUsers()
-		b.WriteString(renderTable(vpncmd.Table{Headers: d.users.Headers, Rows: rows}, d.userCursor))
+		userCur := -1
+		if !d.activeUserSection {
+			userCur = d.userCursor
+		}
+		b.WriteString(renderTable(vpncmd.Table{Headers: d.users.Headers, Rows: rows}, userCur))
 		fmt.Fprintf(b, tr("%d件 / 全%d件\n"), len(rows), len(d.users.Rows))
 	}
 
-	b.WriteString("\n" + renderHelp(
-		"↑/↓", tr("選択"),
-		"Enter", tr("詳細"),
-		"/", tr("検索"),
-		"n", tr("作成"),
-		"d", tr("削除"),
-		"p", tr("パスワード再設定"),
-		"e", tr("有効期限設定"),
-	))
-	b.WriteString("\n" + renderHelp(
-		"←/→/Tab", tr("タブ切替"),
-		"r", tr("更新"),
-		"Esc", tr("戻る"),
-		"q", tr("終了"),
-	))
-}
+	b.WriteString("\n")
 
-func (d hubDetailState) viewGroups(b *strings.Builder) {
+	// Groups Section
+	b.WriteString(headerStyle.Render(tr("Groups (グループ一覧)")) + "\n")
 	switch {
 	case d.groupsLoading:
 		b.WriteString(tr("読み込み中...") + "\n")
 	case d.groupsErr != nil:
 		b.WriteString(errorStyle.Render(tr("エラー: ")+d.groupsErr.Error()) + "\n")
 	default:
-		b.WriteString(renderTable(d.groups, d.groupCursor))
+		groupCur := -1
+		if d.activeUserSection {
+			groupCur = d.groupCursor
+		}
+		b.WriteString(renderTable(d.groups, groupCur))
+		fmt.Fprintf(b, tr("%d件 / 全%d件\n"), len(d.groups.Rows), len(d.groups.Rows))
 	}
-	b.WriteString("\n" + renderHelp(
-		"↑/↓", tr("選択"),
-		"Enter", tr("詳細"),
-		"n", tr("作成"),
-		"d", tr("削除"),
-	))
+
+	b.WriteString("\n")
+	if !d.activeUserSection {
+		b.WriteString(renderHelp(
+			"↑/↓", tr("選択"),
+			"Enter", tr("詳細"),
+			"/", tr("検索"),
+			"n", tr("作成"),
+			"d", tr("削除"),
+			"p", tr("パスワード再設定"),
+			"e", tr("有効期限設定"),
+			"u/g", tr("Users/Groups切替"),
+		))
+	} else {
+		b.WriteString(renderHelp(
+			"↑/↓", tr("選択"),
+			"Enter", tr("詳細"),
+			"n", tr("作成"),
+			"d", tr("削除"),
+			"u/g", tr("Users/Groups切替"),
+		))
+	}
 	b.WriteString("\n" + renderHelp(
 		"←/→/Tab", tr("タブ切替"),
 		"r", tr("更新"),

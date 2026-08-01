@@ -421,6 +421,9 @@ const (
 	UserAuthPassword UserAuthType = iota
 	UserAuthAnonymous
 	UserAuthRadius
+	UserAuthCert
+	UserAuthSignedCert
+	UserAuthNTLM
 )
 
 // UserCreateOptions holds the optional fields UserCreate accepts.
@@ -447,8 +450,7 @@ func (c *Client) UserGet(ctx context.Context, t Target, name string) (KeyValue, 
 }
 
 // UserCreate creates a user entry. The entry has no working authentication
-// method until a matching UserXxxSet call configures one (UserPasswordSet,
-// UserAnonymousSet, UserRadiusSet).
+// method until a matching UserXxxSet call configures one.
 func (c *Client) UserCreate(ctx context.Context, t Target, name string, opts UserCreateOptions) error {
 	group := opts.Group
 	if group == "" {
@@ -488,8 +490,35 @@ func (c *Client) UserAnonymousSet(ctx context.Context, t Target, name string) er
 	return err
 }
 
-func (c *Client) UserRadiusSet(ctx context.Context, t Target, name string) error {
-	_, err := c.Run(ctx, t, "UserRadiusSet", name)
+func (c *Client) UserRadiusSet(ctx context.Context, t Target, name, alias string) error {
+	if alias == "" {
+		alias = "none"
+	}
+	_, err := c.Run(ctx, t, "UserRadiusSet", name, "/ALIAS:"+alias)
+	return err
+}
+
+func (c *Client) UserCertSet(ctx context.Context, t Target, name, certPath string) error {
+	_, err := c.Run(ctx, t, "UserCertSet", name, "/LOADCERT:"+certPath)
+	return err
+}
+
+func (c *Client) UserSignedSet(ctx context.Context, t Target, name, cn, serial string) error {
+	if cn == "" {
+		cn = "none"
+	}
+	if serial == "" {
+		serial = "none"
+	}
+	_, err := c.Run(ctx, t, "UserSignedSet", name, "/CN:"+cn, "/SERIAL:"+serial)
+	return err
+}
+
+func (c *Client) UserNTLMSet(ctx context.Context, t Target, name, alias string) error {
+	if alias == "" {
+		alias = "none"
+	}
+	_, err := c.Run(ctx, t, "UserNTLMSet", name, "/ALIAS:"+alias)
 	return err
 }
 
@@ -560,12 +589,39 @@ func (c *Client) GroupList(ctx context.Context, t Target) (Table, error) {
 	return ParseCSVTable(out)
 }
 
-func (c *Client) GroupGet(ctx context.Context, t Target, name string) (KeyValue, error) {
+type GroupGetResult struct {
+	Info    KeyValue
+	Members []string
+}
+
+func (c *Client) GroupGet(ctx context.Context, t Target, name string) (GroupGetResult, error) {
 	out, err := c.Run(ctx, t, "GroupGet", name)
 	if err != nil {
-		return nil, err
+		return GroupGetResult{}, err
 	}
-	return ParseCSV(out)
+	info, _ := ParseCSV(out)
+
+	var members []string
+	lines := strings.Split(out, "\n")
+	inMembersSection := false
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.Contains(line, "assigned to this group") || strings.Contains(line, "所属するユーザー") {
+			inMembersSection = true
+			continue
+		}
+		if inMembersSection && trimmed != "" {
+			if strings.HasPrefix(trimmed, "Item") || strings.HasPrefix(trimmed, "---") || strings.Contains(trimmed, "completed successfully") {
+				continue
+			}
+			// Skip CSV key-value lines
+			if strings.Contains(line, ",") && (strings.HasPrefix(line, "Group Name,") || strings.HasPrefix(line, "Full Name,") || strings.HasPrefix(line, "Description,")) {
+				continue
+			}
+			members = append(members, trimmed)
+		}
+	}
+	return GroupGetResult{Info: info, Members: members}, nil
 }
 
 func (c *Client) GroupCreate(ctx context.Context, t Target, name string, opts GroupCreateOptions) error {

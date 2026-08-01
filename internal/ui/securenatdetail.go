@@ -189,8 +189,12 @@ func (m Model) handleSecureNATDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	switch msg.String() {
 	case "q":
-		m.quitting = true
-		return m, tea.Quit
+		if d.dirty {
+			m.confirm.Show(confirmQuitUnsaved, "", tr("未保存の変更があります。変更を破棄して終了しますか?"))
+			return m, nil
+		}
+		m.confirm.Show(confirmQuitApp, "", tr("アプリケーションを終了しますか?"))
+		return m, nil
 
 	case "esc", "backspace", "c", "C":
 		if d.dirty && (msg.String() == "c" || msg.String() == "C") {

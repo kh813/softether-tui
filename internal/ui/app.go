@@ -381,7 +381,7 @@ func (m Model) fetchGroups(p config.Profile, hub string) tea.Cmd {
 	}
 }
 
-func (m Model) createUser(p config.Profile, hub, name string, opts vpncmd.UserCreateOptions, authType vpncmd.UserAuthType, password string) tea.Cmd {
+func (m Model) createUser(p config.Profile, hub, name string, opts vpncmd.UserCreateOptions, authType vpncmd.UserAuthType, param1, param2, expires string) tea.Cmd {
 	client := m.client
 	target := m.targetFromProfile(p).WithHub(hub)
 	return func() tea.Msg {
@@ -393,13 +393,63 @@ func (m Model) createUser(p config.Profile, hub, name string, opts vpncmd.UserCr
 		var err error
 		switch authType {
 		case vpncmd.UserAuthPassword:
-			err = client.UserPasswordSet(ctx, target, name, password)
+			err = client.UserPasswordSet(ctx, target, name, param1)
 		case vpncmd.UserAuthAnonymous:
 			err = client.UserAnonymousSet(ctx, target, name)
 		case vpncmd.UserAuthRadius:
-			err = client.UserRadiusSet(ctx, target, name)
+			err = client.UserRadiusSet(ctx, target, name, param1)
+		case vpncmd.UserAuthCert:
+			err = client.UserCertSet(ctx, target, name, param1)
+		case vpncmd.UserAuthSignedCert:
+			err = client.UserSignedSet(ctx, target, name, param1, param2)
+		case vpncmd.UserAuthNTLM:
+			err = client.UserNTLMSet(ctx, target, name, param1)
 		}
-		return userCreateResultMsg{name: name, err: err}
+		if err != nil {
+			return userCreateResultMsg{name: name, err: err}
+		}
+
+		if expires != "" {
+			if t, parseErr := time.Parse("2006/01/02", expires); parseErr == nil {
+				_ = client.UserExpiresSet(ctx, target, name, t)
+			}
+		}
+		return userCreateResultMsg{name: name, err: nil}
+	}
+}
+
+func (m Model) removeSelectedGroupMembers() (tea.Model, tea.Cmd) {
+	d := &m.groupDetail
+	p := d.profile
+	hub := d.hubName
+	groupName := d.groupName
+
+	var toRemove []string
+	for member, sel := range d.selectedMembers {
+		if sel {
+			toRemove = append(toRemove, member)
+		}
+	}
+	if len(toRemove) == 0 {
+		return m, nil
+	}
+
+	d.selectedMembers = make(map[string]bool)
+	m.status = fmt.Sprintf(tr("選択した %d 名のユーザーをグループ %q から解除しています..."), len(toRemove), groupName)
+	m.statusErr = false
+
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return m, func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		var lastErr error
+		for _, username := range toRemove {
+			if err := client.UserSetGroup(ctx, target, username, ""); err != nil {
+				lastErr = err
+			}
+		}
+		return groupActionResultMsg{action: tr("ユーザーグループ解除"), name: groupName, err: lastErr}
 	}
 }
 
@@ -1024,6 +1074,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.groupDetail.loading = false
 		m.groupDetail.err = msg.err
 		m.groupDetail.info = msg.info
+		m.groupDetail.members = msg.members
 		return m, nil
 
 	case secureNatDetailLoadedMsg:
@@ -1126,9 +1177,10 @@ func (m Model) submitPrompt() (tea.Model, tea.Cmd) {
 		return m, m.setUserGroup(profile, hub, target, value)
 
 	case promptUserExpires:
-		expires, err := time.Parse("2006/01/02", strings.TrimSpace(value))
-		if err != nil {
-			m.status = tr("有効期限は YYYY/MM/DD 形式で入力してください")
+		formatted := normalizeAndFormatDate(strings.TrimSpace(value))
+		expires, err := time.Parse("2006/01/02", formatted)
+		if formatted == "" || err != nil {
+			m.status = tr("有効期限は YYYY/MM/DD 形式（数字8桁等）で入力してください")
 			m.statusErr = true
 			return m, nil
 		}
@@ -1267,6 +1319,13 @@ func (m Model) applyConfirm(kind confirmKind, target string) (tea.Model, tea.Cmd
 		m.status = fmt.Sprintf(tr("グループ %q を削除しています..."), target)
 		m.statusErr = false
 		return m, m.deleteGroup(m.hubDetail.profile, m.hubDetail.hubName, target)
+
+	case confirmRemoveGroupMembers:
+		return m.removeSelectedGroupMembers()
+
+	case confirmQuitUnsaved, confirmQuitApp:
+		m.quitting = true
+		return m, tea.Quit
 
 	case confirmDisconnectSession:
 		m.status = fmt.Sprintf(tr("セッション %q を切断しています..."), target)
@@ -1544,20 +1603,18 @@ func (m Model) handleHubDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch m.hubDetail.tab {
 	case hubTabOverview:
 		return m.handleHubOverviewKey(msg)
-	case hubTabUsers:
-		return m.handleHubUsersKey(msg)
-	case hubTabGroups:
-		return m.handleHubGroupsKey(msg)
 	case hubTabSessions:
 		return m.handleHubSessionsKey(msg)
-	case hubTabLog:
-		return m.handleHubLogKey(msg)
+	case hubTabUsersAndGroups:
+		return m.handleHubUsersAndGroupsKey(msg)
 	case hubTabSecureNAT:
 		return m.handleHubSecureNATKey(msg)
 	case hubTabACL:
 		return m.handleHubACLKey(msg)
 	case hubTabCascade:
 		return m.handleHubCascadeKey(msg)
+	case hubTabLog:
+		return m.handleHubLogKey(msg)
 	}
 	return m, nil
 }
@@ -1568,15 +1625,18 @@ func (m Model) handleHubDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // auto-refresh, since that is the point of the tab.
 func (m Model) loadHubTabIfNeeded() (tea.Model, tea.Cmd) {
 	switch m.hubDetail.tab {
-	case hubTabUsers:
+	case hubTabUsersAndGroups:
+		var cmds []tea.Cmd
 		if !m.hubDetail.usersLoaded && !m.hubDetail.usersLoading {
 			m.hubDetail.usersLoading = true
-			return m, m.fetchUsers(m.hubDetail.profile, m.hubDetail.hubName)
+			cmds = append(cmds, m.fetchUsers(m.hubDetail.profile, m.hubDetail.hubName))
 		}
-	case hubTabGroups:
 		if !m.hubDetail.groupsLoaded && !m.hubDetail.groupsLoading {
 			m.hubDetail.groupsLoading = true
-			return m, m.fetchGroups(m.hubDetail.profile, m.hubDetail.hubName)
+			cmds = append(cmds, m.fetchGroups(m.hubDetail.profile, m.hubDetail.hubName))
+		}
+		if len(cmds) > 0 {
+			return m, tea.Batch(cmds...)
 		}
 	case hubTabSessions:
 		return m.startSessionAutoRefresh()
@@ -1609,12 +1669,13 @@ func (m Model) refreshCurrentHubTab() (tea.Model, tea.Cmd) {
 	case hubTabOverview:
 		m.hubDetail.loading = true
 		return m, m.fetchHubDetail(m.hubDetail.profile, m.hubDetail.hubName)
-	case hubTabUsers:
+	case hubTabUsersAndGroups:
 		m.hubDetail.usersLoading = true
-		return m, m.fetchUsers(m.hubDetail.profile, m.hubDetail.hubName)
-	case hubTabGroups:
 		m.hubDetail.groupsLoading = true
-		return m, m.fetchGroups(m.hubDetail.profile, m.hubDetail.hubName)
+		return m, tea.Batch(
+			m.fetchUsers(m.hubDetail.profile, m.hubDetail.hubName),
+			m.fetchGroups(m.hubDetail.profile, m.hubDetail.hubName),
+		)
 	case hubTabSessions:
 		return m.startSessionAutoRefresh()
 	case hubTabLog:
@@ -1686,63 +1747,116 @@ func (m Model) handleHubOverviewKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleHubUsersKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) handleHubUsersAndGroupsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	d := &m.hubDetail
+	userRows := d.filteredUsers()
+	groupRows := d.groups.Rows
+
 	switch msg.String() {
+	case "u":
+		d.activeUserSection = false
+		return m, nil
+	case "g":
+		d.activeUserSection = true
+		return m, nil
+
 	case "up", "k":
-		if m.hubDetail.userCursor > 0 {
-			m.hubDetail.userCursor--
+		if !d.activeUserSection {
+			if d.userCursor > 0 {
+				d.userCursor--
+			}
+		} else {
+			if d.groupCursor > 0 {
+				d.groupCursor--
+			} else {
+				d.activeUserSection = false
+				if len(userRows) > 0 {
+					d.userCursor = len(userRows) - 1
+				}
+			}
 		}
 
 	case "down", "j":
-		if m.hubDetail.userCursor < len(m.hubDetail.filteredUsers())-1 {
-			m.hubDetail.userCursor++
+		if !d.activeUserSection {
+			if d.userCursor < len(userRows)-1 {
+				d.userCursor++
+			} else if len(groupRows) > 0 {
+				d.activeUserSection = true
+				d.groupCursor = 0
+			}
+		} else {
+			if d.groupCursor < len(groupRows)-1 {
+				d.groupCursor++
+			}
 		}
 
 	case "/":
-		m.hubDetail.filtering = true
-		ti := textinput.New()
-		ti.SetValue(m.hubDetail.userFilter)
-		ti.Focus()
-		m.hubDetail.filterInput = ti
+		if !d.activeUserSection {
+			d.filtering = true
+			ti := textinput.New()
+			ti.SetValue(d.userFilter)
+			ti.Focus()
+			d.filterInput = ti
+		}
 
 	case "enter":
-		if name, ok := m.hubDetail.currentUserName(); ok {
-			m.userDetail = userDetailState{profile: m.hubDetail.profile, hubName: m.hubDetail.hubName, userName: name, loading: true}
-			m.screen = screenUserDetail
-			m.status = ""
-			return m, m.fetchUserDetail(m.hubDetail.profile, m.hubDetail.hubName, name)
+		if !d.activeUserSection {
+			if name, ok := d.currentUserName(); ok {
+				m.userDetail = userDetailState{profile: d.profile, hubName: d.hubName, userName: name, loading: true}
+				m.screen = screenUserDetail
+				m.status = ""
+				return m, m.fetchUserDetail(d.profile, d.hubName, name)
+			}
+		} else {
+			if name, ok := d.currentGroupName(); ok {
+				m.groupDetail = groupDetailState{profile: d.profile, hubName: d.hubName, groupName: name, loading: true}
+				m.screen = screenGroupDetail
+				m.status = ""
+				return m, m.fetchGroupDetail(d.profile, d.hubName, name)
+			}
 		}
 
 	case "n":
-		m.userForm.Reset()
-		var groupNames []string
-		for _, row := range m.hubDetail.groups.Rows {
-			if gName := m.hubDetail.groups.NameOf(row); gName != "" {
-				groupNames = append(groupNames, gName)
+		if !d.activeUserSection {
+			m.userForm.Reset()
+			var groupNames []string
+			for _, row := range d.groups.Rows {
+				if gName := d.groups.NameOf(row); gName != "" {
+					groupNames = append(groupNames, gName)
+				}
 			}
+			m.userForm.SetGroups(groupNames)
+			m.screen = screenUserForm
+			m.status = ""
+		} else {
+			m.groupForm.Reset()
+			m.screen = screenGroupForm
+			m.status = ""
 		}
-		m.userForm.SetGroups(groupNames)
-		m.screen = screenUserForm
-		m.status = ""
 
 	case "d":
-		if name, ok := m.hubDetail.currentUserName(); ok {
-			m.confirm.Show(confirmDeleteUser, name, fmt.Sprintf(tr("ユーザー %q を削除しますか?"), name))
+		if !d.activeUserSection {
+			if name, ok := d.currentUserName(); ok {
+				m.confirm.Show(confirmDeleteUser, name, fmt.Sprintf(tr("ユーザー %q を削除しますか?"), name))
+			}
+		} else {
+			if name, ok := d.currentGroupName(); ok {
+				m.confirm.Show(confirmDeleteGroup, name, fmt.Sprintf(tr("グループ %q を削除しますか?"), name))
+			}
 		}
 
 	case "p":
-		if name, ok := m.hubDetail.currentUserName(); ok {
-			m.prompt.Show(promptUserPassword, name, fmt.Sprintf(tr("ユーザー %q の新しいパスワード"), name), tr("新しいパスワード"), true)
-		}
-
-	case "g":
-		if name, ok := m.hubDetail.currentUserName(); ok {
-			m.prompt.Show(promptUserGroup, name, fmt.Sprintf(tr("ユーザー %q のグループ"), name), tr("グループ名 (空でグループ解除)"), false)
+		if !d.activeUserSection {
+			if name, ok := d.currentUserName(); ok {
+				m.prompt.Show(promptUserPassword, name, fmt.Sprintf(tr("ユーザー %q の新しいパスワード"), name), tr("新しいパスワード"), true)
+			}
 		}
 
 	case "e":
-		if name, ok := m.hubDetail.currentUserName(); ok {
-			m.prompt.Show(promptUserExpires, name, fmt.Sprintf(tr("ユーザー %q の有効期限"), name), "YYYY/MM/DD", false)
+		if !d.activeUserSection {
+			if name, ok := d.currentUserName(); ok {
+				m.prompt.Show(promptUserExpires, name, fmt.Sprintf(tr("ユーザー %q の有効期限"), name), "YYYY/MM/DD", false)
+			}
 		}
 	}
 	return m, nil
@@ -1762,39 +1876,6 @@ func (m Model) handleHubUserFilterKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.hubDetail.filterInput, cmd = m.hubDetail.filterInput.Update(msg)
 	return m, cmd
-}
-
-func (m Model) handleHubGroupsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "up", "k":
-		if m.hubDetail.groupCursor > 0 {
-			m.hubDetail.groupCursor--
-		}
-
-	case "down", "j":
-		if m.hubDetail.groupCursor < len(m.hubDetail.groups.Rows)-1 {
-			m.hubDetail.groupCursor++
-		}
-
-	case "enter":
-		if name, ok := m.hubDetail.currentGroupName(); ok {
-			m.groupDetail = groupDetailState{profile: m.hubDetail.profile, hubName: m.hubDetail.hubName, groupName: name, loading: true}
-			m.screen = screenGroupDetail
-			m.status = ""
-			return m, m.fetchGroupDetail(m.hubDetail.profile, m.hubDetail.hubName, name)
-		}
-
-	case "n":
-		m.groupForm.Reset()
-		m.screen = screenGroupForm
-		m.status = ""
-
-	case "d":
-		if name, ok := m.hubDetail.currentGroupName(); ok {
-			m.confirm.Show(confirmDeleteGroup, name, fmt.Sprintf(tr("グループ %q を削除しますか?"), name))
-		}
-	}
-	return m, nil
 }
 
 func (m Model) handleHubLogKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -2130,13 +2211,24 @@ func (m Model) saveHubSecureNATChanges() (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleUserFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.userForm.dropdownActive {
+		cmd := m.userForm.Update(msg)
+		return m, cmd
+	}
+
 	switch msg.String() {
 	case "esc":
 		m.screen = screenHubDetail
 		return m, nil
 
 	case "enter":
-		name, opts, authType, password, err := m.userForm.Build()
+		// Handle Group or AuthType selection opening dropdown via Update first
+		if m.userForm.focus == userFieldGroup || m.userForm.focus == userFieldAuthType {
+			cmd := m.userForm.Update(msg)
+			return m, cmd
+		}
+
+		name, opts, authType, param1, param2, expires, err := m.userForm.Build()
 		if err != nil {
 			m.status = err.Error()
 			m.statusErr = true
@@ -2144,7 +2236,7 @@ func (m Model) handleUserFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		m.status = fmt.Sprintf(tr("ユーザー %q を作成しています..."), name)
 		m.statusErr = false
-		return m, m.createUser(m.hubDetail.profile, m.hubDetail.hubName, name, opts, authType, password)
+		return m, m.createUser(m.hubDetail.profile, m.hubDetail.hubName, name, opts, authType, param1, param2, expires)
 	}
 
 	cmd := m.userForm.Update(msg)

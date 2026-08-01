@@ -21,6 +21,9 @@ const (
 	confirmToggleDHCP
 	confirmEnableListener
 	confirmDisableListener
+	confirmRemoveGroupMembers
+	confirmQuitUnsaved
+	confirmQuitApp
 )
 
 // confirmDialog is a modal yes/no prompt for destructive actions. It stores

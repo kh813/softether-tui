@@ -85,17 +85,27 @@
 
 - リスナー (ポート) の一覧・作成・削除・有効/無効切替 (`ListenerList`, `ListenerCreate`, `ListenerDelete`, `ListenerEnable`, `ListenerDisable`)。
 
-### 5.5 ユーザー / グループ管理 (重点機能)
+### 5.5 ユーザー / グループ統合管理 (重点機能)
 
-- ユーザー一覧表示: 選択中 Hub 内のユーザーを一覧し、認証方式・所属グループ・有効期限・最終ログインなどをテーブル表示、名前/グループでの絞り込み検索 (`UserList`)。
-- ユーザー詳細閲覧・編集フォーム (`UserGet`, `UserSet` による氏名 `/REALNAME:`・備考 `/NOTE:` の編集、`/GROUP:` による所属グループ変更)。
-- ユーザー作成 (認証方式: パスワード認証 / 証明書認証 / Radius / NTLM など主要なものを選択可能) (`UserCreate`)。
-- パスワード再設定 (`UserPasswordSet`)。
-- 有効期限設定 (`UserExpiresSet`)。
-- ユーザー削除 (確認ダイアログ必須) (`UserDelete`)。
-- グループ一覧・作成・削除・編集 (`GroupList`, `GroupCreate`, `GroupSet`, `GroupDelete`)。
-- ユーザーのグループ割当変更 (`UserSet` の Group パラメータ)。
-- 一括操作 (複数ユーザー選択してのグループ一括割当・削除) は MVP ではベストエフォート (時間があれば対応、なければ将来対応)。
+- **統合画面構成**: Hub詳細画面で `Users & Group` を単一の統合タブとして提供。上部に Users (ユーザー一覧)、下部に Groups (グループ一覧) を配置し、シームレスな上下スクロールおよび `u`/`g` ショートカットキーで即時切替可能。
+- **ユーザー一覧表示**: 認証方式 (Password/Anonymous/Radius/Cert/SignedCert/NTLM)・ログイン回数・最終ログイン・有効期限・所属グループをテーブル表示し、`/` キーによる即時絞り込み検索に対応 (`UserList`)。
+- **直感的な TUI フォーム UI**: Group 選択や Auth method 選択フィールドで `Enter` キーを押すことで、TUI 上に動的なプルダウン選択メニュー（オーバーレイ）が表示され、`↑/↓`・`Enter` で快適に選択可能。
+- **アクセシビリティ・高コントラスト配色**: ダークモード環境において、`Save` や決定操作バッジに全盲・ロービジョンに配慮した高輝度エメラルド背景＋黒文字 (`Bold`) を採用。
+- **ユーザー作成 & 認証方式拡充 (`UserCreate`)**:
+  - パスワード認証 (`UserPasswordSet`)
+  - 匿名認証 (`UserAnonymousSet`)
+  - RADIUS 認証 + RADIUSエイリアス設定 (`UserRadiusSet /ALIAS`) ※RADIUSサーバー本体の設定は Hub 全体の `RadiusServerSet` で動作
+  - 個別 X.509 証明書認証 (`UserCertSet /LOADCERT`)
+  - 署名付き CA 証明書認証 (`UserSignedSet /CN /SERIAL`)
+  - NT ドメイン / Active Directory 認証 (`UserNTLMSet /ALIAS`) ※認証先の AD / ドメインコントローラーは VPN Server が所属する Windows / AD ドメインに依存
+- **ユーザー詳細閲覧・インライン編集** (`UserGet`, `UserSet` による氏名 `/REALNAME:`・備考 `/NOTE:`・グループ `/GROUP:` の変更)。
+- **パスワード再設定** (`UserPasswordSet`)。
+- **アカウント有効期限設定** (`UserExpiresSet`): `2026/01/01` 形式に加え、`20261101` などの数字8桁省略入力を自動フォーマット。
+- **ユーザー削除** (確認ダイアログ必須) (`UserDelete`)。
+- **グループ一覧・作成・削除・編集・メンバー管理** (`GroupList`, `GroupCreate`, `GroupGet`, `GroupSet`, `GroupDelete`, `UserSet`):
+  - **グループ詳細 (`GroupGet`)**: グループ属性 (Full Name / Description) の表示・編集に加え、所属ユーザー一覧 (Members) をインタラクティブ表示。
+  - **直感的なメンバー解除 UI**: 各メンバー行に `[ ]` / `[x]` チェックボックスを配し、`Space` キーでトグル選択。1つ以上選択すると動的に `[ Remove ... ]` ボタンおよび `[ Clear Selection ]` ボタンが出現し、`←/→` や `↑/↓` でフォーカスを移動可能。フォーカス中のボタンのみに高輝度ハイライト（エメラルドグリーン背景＋黒文字）が動的に適用され、`Enter` で決定または選択解除が実行できる。
+- **階層に応じた安全な終了保護 (Quit Confirm)**: Hub 概要・ダッシュボード画面では `q` キーで即時終了可能。一方、詳細サブ画面 (グループ詳細・ユーザー詳細・SecureNAT詳細など) では誤操作防止のため `q` キー押下時に終了確認ダイアログを表示（未保存変更がある場合は「未保存の変更を破棄して終了しますか?」、未保存変更がない場合も「アプリケーションを終了しますか?」を表示）。
 
 ### 5.6 セッション / ログ / SecureNAT 設定・監視 (重点機能)
 

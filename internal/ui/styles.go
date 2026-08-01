@@ -24,7 +24,7 @@ var (
 
 	// Key binding styles
 	keyStyle     = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("213"))
-	saveKeyStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("230")).Background(lipgloss.Color("28")).Padding(0, 1)
+	saveKeyStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("16")).Background(lipgloss.Color("46")).Padding(0, 1)
 	descStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
 )
 
