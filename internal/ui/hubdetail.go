@@ -388,7 +388,10 @@ func (d hubDetailState) renderSecureNATFields(b *strings.Builder) {
 	b.WriteString(headerStyle.Render(tr("Virtual host settings (仮想ホスト・DHCP設定)")) + "\n")
 
 	// Render SecureNAT enabled status as a selectable field
-	snEnabled := d.secureNatErr == nil && len(d.secureNatStatus) > 0
+	snEnabled := false
+	if d.secureNatErr == nil && len(d.secureNatStatus) > 0 {
+		snEnabled = true
+	}
 	snStr := ""
 	if snEnabled {
 		snStr = selectedStyle.Render("[enabled]") + "  " + dimStyle.Render("disabled")
@@ -574,6 +577,9 @@ func (m Model) fetchSecureNAT(p config.Profile, hub string) tea.Cmd {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 		status, statusErr := client.SecureNatStatusGet(ctx, target)
+		if statusErr != nil {
+			status = nil
+		}
 		host, _ := client.SecureNatHostGet(ctx, target)
 		dhcp, _ := client.DhcpGet(ctx, target)
 		return secureNatLoadedMsg{hubName: hub, status: status, host: host, dhcp: dhcp, err: statusErr}
