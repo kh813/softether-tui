@@ -712,6 +712,14 @@ func (c *Client) SecureNatHostGet(ctx context.Context, t Target) (KeyValue, erro
 	return ParseCSV(out)
 }
 
+func (c *Client) StatusGet(ctx context.Context, t Target) (KeyValue, error) {
+	out, err := c.Run(ctx, t, "StatusGet")
+	if err != nil {
+		return nil, err
+	}
+	return ParseCSV(out)
+}
+
 type SecureNatHostOptions struct {
 	MAC  string
 	IP   string

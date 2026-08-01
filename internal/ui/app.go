@@ -877,6 +877,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.hubDetail.secureNatLoading = false
 			m.hubDetail.secureNatLoaded = true
 			m.hubDetail.secureNatStatus = msg.status
+			m.hubDetail.secureNatHubStatus = msg.hubStatus
 			m.hubDetail.secureNatHost = msg.host
 			m.hubDetail.secureNatDhcp = msg.dhcp
 			m.hubDetail.secureNatErr = msg.err
@@ -1299,7 +1300,12 @@ func (m Model) applyConfirm(kind confirmKind, target string) (tea.Model, tea.Cmd
 
 	case confirmToggleSecureNAT:
 		d := &m.hubDetail
-		snEnabled := d.secureNatErr == nil && len(d.secureNatStatus) > 0
+		snEnabled := false
+		if v, ok := d.secureNatHubStatus["SecureNAT"]; ok && strings.EqualFold(strings.TrimSpace(v), "Enabled") {
+			snEnabled = true
+		} else if d.secureNatErr == nil && len(d.secureNatStatus) > 0 {
+			snEnabled = true
+		}
 		actionLabel := tr("有効化")
 		if snEnabled {
 			actionLabel = tr("無効化")
@@ -1980,7 +1986,12 @@ func (m Model) handleHubSecureNATKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "enter":
 		if d.secureNatCursor == fieldSecureNAT {
-			snEnabled := d.secureNatErr == nil && len(d.secureNatStatus) > 0
+			snEnabled := false
+			if v, ok := d.secureNatHubStatus["SecureNAT"]; ok && strings.EqualFold(strings.TrimSpace(v), "Enabled") {
+				snEnabled = true
+			} else if d.secureNatErr == nil && len(d.secureNatStatus) > 0 {
+				snEnabled = true
+			}
 			actionLabel := tr("有効化")
 			if snEnabled {
 				actionLabel = tr("無効化")

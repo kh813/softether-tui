@@ -77,6 +77,7 @@ type hubDetailState struct {
 	logCursor  int
 
 	secureNatStatus        vpncmd.KeyValue
+	secureNatHubStatus     vpncmd.KeyValue
 	secureNatHost          vpncmd.KeyValue
 	secureNatDhcp          vpncmd.KeyValue
 	secureNatLoaded        bool
@@ -389,7 +390,9 @@ func (d hubDetailState) renderSecureNATFields(b *strings.Builder) {
 
 	// Render SecureNAT enabled status as a selectable field
 	snEnabled := false
-	if d.secureNatErr == nil && len(d.secureNatStatus) > 0 {
+	if v, ok := d.secureNatHubStatus["SecureNAT"]; ok && strings.EqualFold(strings.TrimSpace(v), "Enabled") {
+		snEnabled = true
+	} else if d.secureNatErr == nil && len(d.secureNatStatus) > 0 {
 		snEnabled = true
 	}
 	snStr := ""
@@ -544,11 +547,12 @@ func (d hubDetailState) viewAccessList(b *strings.Builder) {
 // --- messages ---
 
 type secureNatLoadedMsg struct {
-	hubName string
-	status  vpncmd.KeyValue
-	host    vpncmd.KeyValue
-	dhcp    vpncmd.KeyValue
-	err     error
+	hubName   string
+	status    vpncmd.KeyValue
+	hubStatus vpncmd.KeyValue
+	host      vpncmd.KeyValue
+	dhcp      vpncmd.KeyValue
+	err       error
 }
 
 type secureNatActionResultMsg struct {
@@ -580,9 +584,10 @@ func (m Model) fetchSecureNAT(p config.Profile, hub string) tea.Cmd {
 		if statusErr != nil {
 			status = nil
 		}
+		hubStatus, _ := client.StatusGet(ctx, target)
 		host, _ := client.SecureNatHostGet(ctx, target)
 		dhcp, _ := client.DhcpGet(ctx, target)
-		return secureNatLoadedMsg{hubName: hub, status: status, host: host, dhcp: dhcp, err: statusErr}
+		return secureNatLoadedMsg{hubName: hub, status: status, hubStatus: hubStatus, host: host, dhcp: dhcp, err: statusErr}
 	}
 }
 
