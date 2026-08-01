@@ -390,10 +390,10 @@ func (d hubDetailState) renderSecureNATFields(b *strings.Builder) {
 
 	// Render SecureNAT enabled status as a selectable field
 	snEnabled := false
-	if v, ok := d.secureNatHubStatus["SecureNAT"]; ok && strings.EqualFold(strings.TrimSpace(v), "Enabled") {
-		snEnabled = true
-	} else if d.secureNatErr == nil && len(d.secureNatStatus) > 0 {
-		snEnabled = true
+	if v, ok := d.secureNatHubStatus["SecureNAT"]; ok {
+		snEnabled = strings.EqualFold(strings.TrimSpace(v), "Enabled")
+	} else {
+		snEnabled = d.secureNatErr == nil && len(d.secureNatStatus) > 0
 	}
 	snStr := ""
 	if snEnabled {
