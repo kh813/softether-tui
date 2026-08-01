@@ -167,16 +167,12 @@ func (m Model) handleListenerKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case "o":
 		if port, ok := m.listener.currentPort(); ok {
-			m.status = fmt.Sprintf(tr("リスナー %q を有効化しています..."), port)
-			m.statusErr = false
-			return m, m.setListenerEnabled(m.listener.profile, port, true)
+			m.confirm.Show(confirmEnableListener, port, fmt.Sprintf(tr("ポート %q のリスナーを有効化しますか?"), port))
 		}
 
 	case "f":
 		if port, ok := m.listener.currentPort(); ok {
-			m.status = fmt.Sprintf(tr("リスナー %q を無効化しています..."), port)
-			m.statusErr = false
-			return m, m.setListenerEnabled(m.listener.profile, port, false)
+			m.confirm.Show(confirmDisableListener, port, fmt.Sprintf(tr("ポート %q のリスナーを無効化しますか?"), port))
 		}
 	}
 	return m, nil

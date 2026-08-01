@@ -9,6 +9,10 @@ var enCatalog = map[string]string{
 	// (TestEnCatalogCoversAllSourceStrings) caught entries missed by the
 	// earlier ad-hoc edits that predated the generator script.
 	"管理者パスワードを入力してください (%s)": "Please enter administrator password (%s)",
+	"Hub %q の SecureNAT を%sしますか?": "Are you sure you want to %s SecureNAT for Hub %q?",
+	"Hub %q の Virtual DHCP を%sしますか?": "Are you sure you want to %s Virtual DHCP for Hub %q?",
+	"ポート %q のリスナーを有効化しますか?": "Are you sure you want to enable listener on port %q?",
+	"ポート %q のリスナーを無効化しますか?": "Are you sure you want to disable listener on port %q?",
 	"Hub %q の SecureNAT を%sしています...": "Toggling SecureNAT (%s) for Hub %q...",
 	"Hub %q の Virtual DHCP を%sしています...": "Toggling Virtual DHCP (%s) for Hub %q...",
 	"値の変更/切替": "edit value / toggle",

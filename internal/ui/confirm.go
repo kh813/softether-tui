@@ -17,6 +17,10 @@ const (
 	confirmDeleteCascade
 	confirmDeleteBridge
 	confirmDeleteAccount
+	confirmToggleSecureNAT
+	confirmToggleDHCP
+	confirmEnableListener
+	confirmDisableListener
 )
 
 // confirmDialog is a modal yes/no prompt for destructive actions. It stores

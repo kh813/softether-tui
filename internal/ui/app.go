@@ -1296,6 +1296,56 @@ func (m Model) applyConfirm(kind confirmKind, target string) (tea.Model, tea.Cmd
 		m.status = fmt.Sprintf(tr("接続 %q を削除しています..."), target)
 		m.statusErr = false
 		return m, m.deleteAccount(m.clientDashboard.profile, target)
+
+	case confirmToggleSecureNAT:
+		d := &m.hubDetail
+		snEnabled := false
+		for _, k := range []string{"SecureNAT Functionality State", "SecureNAT Status", "Status", "SecureNAT"} {
+			if v, ok := d.secureNatStatus[k]; ok {
+				vLower := strings.ToLower(v)
+				if strings.Contains(vLower, "enable") || strings.Contains(vLower, "active") || strings.Contains(vLower, "running") || strings.Contains(vLower, "yes") {
+					snEnabled = true
+					break
+				}
+			}
+		}
+		actionLabel := tr("有効化")
+		if snEnabled {
+			actionLabel = tr("無効化")
+		}
+		m.status = fmt.Sprintf(tr("Hub %q の SecureNAT を%sしています..."), target, actionLabel)
+		m.statusErr = false
+		return m, m.setSecureNatEnabled(d.profile, target, !snEnabled)
+
+	case confirmToggleDHCP:
+		d := &m.hubDetail
+		dhcpEnabled := false
+		for _, k := range []string{"Use Virtual DHCP Server", "Virtual DHCP Server", "Use DHCP", "DHCP Server", "Status"} {
+			if v, ok := d.secureNatDhcp[k]; ok {
+				vLower := strings.ToLower(v)
+				if strings.Contains(vLower, "yes") || strings.Contains(vLower, "enable") || strings.Contains(vLower, "active") || strings.Contains(vLower, "true") {
+					dhcpEnabled = true
+					break
+				}
+			}
+		}
+		actionLabel := tr("有効化")
+		if dhcpEnabled {
+			actionLabel = tr("無効化")
+		}
+		m.status = fmt.Sprintf(tr("Hub %q の Virtual DHCP を%sしています..."), target, actionLabel)
+		m.statusErr = false
+		return m, m.setDhcpEnabled(d.profile, target, !dhcpEnabled)
+
+	case confirmEnableListener:
+		m.status = fmt.Sprintf(tr("リスナー %q を有効化しています..."), target)
+		m.statusErr = false
+		return m, m.setListenerEnabled(m.listener.profile, target, true)
+
+	case confirmDisableListener:
+		m.status = fmt.Sprintf(tr("リスナー %q を無効化しています..."), target)
+		m.statusErr = false
+		return m, m.setListenerEnabled(m.listener.profile, target, false)
 	}
 	return m, nil
 }
@@ -1953,9 +2003,8 @@ func (m Model) handleHubSecureNATKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if snEnabled {
 				actionLabel = tr("無効化")
 			}
-			m.status = fmt.Sprintf(tr("Hub %q の SecureNAT を%sしています..."), m.hubDetail.hubName, actionLabel)
-			m.statusErr = false
-			return m, m.setSecureNatEnabled(m.hubDetail.profile, m.hubDetail.hubName, !snEnabled)
+			m.confirm.Show(confirmToggleSecureNAT, m.hubDetail.hubName, fmt.Sprintf(tr("Hub %q の SecureNAT を%sしますか?"), m.hubDetail.hubName, actionLabel))
+			return m, nil
 		}
 		if d.secureNatCursor == fieldDHCP {
 			dhcpEnabled := false
@@ -1972,9 +2021,8 @@ func (m Model) handleHubSecureNATKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if dhcpEnabled {
 				actionLabel = tr("無効化")
 			}
-			m.status = fmt.Sprintf(tr("Hub %q の Virtual DHCP を%sしています..."), m.hubDetail.hubName, actionLabel)
-			m.statusErr = false
-			return m, m.setDhcpEnabled(m.hubDetail.profile, m.hubDetail.hubName, !dhcpEnabled)
+			m.confirm.Show(confirmToggleDHCP, m.hubDetail.hubName, fmt.Sprintf(tr("Hub %q の Virtual DHCP を%sしますか?"), m.hubDetail.hubName, actionLabel))
+			return m, nil
 		}
 
 		d.secureNatEditing = true
