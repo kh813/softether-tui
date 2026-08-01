@@ -360,12 +360,9 @@ func (d hubDetailState) getLogKV(key string) string {
 }
 
 func (d hubDetailState) viewSecureNAT(b *strings.Builder) {
-	switch {
-	case d.secureNatLoading:
+	if d.secureNatLoading {
 		b.WriteString(tr("読み込み中...") + "\n")
-	case d.secureNatErr != nil:
-		b.WriteString(errorStyle.Render(tr("エラー: ")+d.secureNatErr.Error()) + "\n")
-	default:
+	} else {
 		d.renderSecureNATFields(b)
 	}
 
@@ -576,16 +573,10 @@ func (m Model) fetchSecureNAT(p config.Profile, hub string) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
-		status, err := client.SecureNatStatusGet(ctx, target)
-		if err != nil {
-			return secureNatLoadedMsg{hubName: hub, err: err}
-		}
-		host, err := client.SecureNatHostGet(ctx, target)
-		if err != nil {
-			return secureNatLoadedMsg{hubName: hub, err: err}
-		}
+		status, statusErr := client.SecureNatStatusGet(ctx, target)
+		host, _ := client.SecureNatHostGet(ctx, target)
 		dhcp, _ := client.DhcpGet(ctx, target)
-		return secureNatLoadedMsg{hubName: hub, status: status, host: host, dhcp: dhcp}
+		return secureNatLoadedMsg{hubName: hub, status: status, host: host, dhcp: dhcp, err: statusErr}
 	}
 }
 
