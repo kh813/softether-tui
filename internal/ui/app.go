@@ -1940,10 +1940,14 @@ func (m Model) handleHubSecureNATKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		if d.secureNatCursor == fieldSecureNAT {
 			snEnabled := false
-			if v, ok := d.secureNatStatus["SecureNAT Functionality State"]; ok && strings.Contains(strings.ToLower(v), "enabled") {
-				snEnabled = true
-			} else if v, ok := d.secureNatStatus["SecureNAT Status"]; ok && strings.Contains(strings.ToLower(v), "enabled") {
-				snEnabled = true
+			for _, k := range []string{"SecureNAT Functionality State", "SecureNAT Status", "Status", "SecureNAT"} {
+				if v, ok := d.secureNatStatus[k]; ok {
+					vLower := strings.ToLower(v)
+					if strings.Contains(vLower, "enable") || strings.Contains(vLower, "active") || strings.Contains(vLower, "running") || strings.Contains(vLower, "yes") {
+						snEnabled = true
+						break
+					}
+				}
 			}
 			actionLabel := tr("有効化")
 			if snEnabled {
@@ -1955,10 +1959,14 @@ func (m Model) handleHubSecureNATKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		if d.secureNatCursor == fieldDHCP {
 			dhcpEnabled := false
-			if v, ok := d.secureNatDhcp["Use Virtual DHCP Server"]; ok && strings.Contains(strings.ToLower(v), "yes") {
-				dhcpEnabled = true
-			} else if v, ok := d.secureNatDhcp["Virtual DHCP Server"]; ok && strings.Contains(strings.ToLower(v), "yes") {
-				dhcpEnabled = true
+			for _, k := range []string{"Use Virtual DHCP Server", "Virtual DHCP Server", "Use DHCP", "DHCP Server", "Status"} {
+				if v, ok := d.secureNatDhcp[k]; ok {
+					vLower := strings.ToLower(v)
+					if strings.Contains(vLower, "yes") || strings.Contains(vLower, "enable") || strings.Contains(vLower, "active") || strings.Contains(vLower, "true") {
+						dhcpEnabled = true
+						break
+					}
+				}
 			}
 			actionLabel := tr("有効化")
 			if dhcpEnabled {
