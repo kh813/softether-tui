@@ -392,17 +392,17 @@ func (d hubDetailState) renderSecureNATFields(b *strings.Builder) {
 
 	// Render SecureNAT enabled status as a selectable field
 	snEnabled := d.secureNatErr == nil && len(d.secureNatStatus) > 0
-	snStatus := tr("disabled (無効)")
-	snStyle := dimStyle
+	snStr := ""
 	if snEnabled {
-		snStatus = tr("[enabled] / disabled (有効)")
-		snStyle = selectedStyle
+		snStr = selectedStyle.Render("[enabled]") + "  " + dimStyle.Render("disabled")
+	} else {
+		snStr = dimStyle.Render("enabled") + "  " + selectedStyle.Render("[disabled]")
 	}
 	marker := "  "
 	if d.secureNatCursor == fieldSecureNAT {
 		marker = "> "
 	}
-	fmt.Fprintf(b, "%s%-32s %s\n", marker, tr("SecureNAT")+":", snStyle.Render(snStatus))
+	fmt.Fprintf(b, "%s%-32s %s\n", marker, tr("SecureNAT")+":", snStr)
 
 	d.renderEditableNatField(b, fieldNatIP, "IP Address", d.getNatHostKV("IP Address", "IP"))
 	d.renderEditableNatField(b, fieldNatMask, "Subnet Mask", d.getNatHostKV("Subnet Mask", "Mask"))
@@ -411,7 +411,7 @@ func (d hubDetailState) renderSecureNATFields(b *strings.Builder) {
 
 	// Render DHCP enabled status as a selectable field
 	dhcpEnabled := false
-	for _, k := range []string{"Use Virtual DHCP Server", "Virtual DHCP Server", "Use DHCP", "DHCP Server", "Status"} {
+	for _, k := range []string{"Use Virtual DHCP Function", "Use Virtual DHCP Server", "Virtual DHCP Server", "Use DHCP", "DHCP Server", "Status"} {
 		if v, ok := d.secureNatDhcp[k]; ok {
 			vLower := strings.ToLower(v)
 			if strings.Contains(vLower, "yes") || strings.Contains(vLower, "enable") || strings.Contains(vLower, "active") || strings.Contains(vLower, "true") {
@@ -420,17 +420,17 @@ func (d hubDetailState) renderSecureNATFields(b *strings.Builder) {
 			}
 		}
 	}
-	dhcpStatus := tr("disabled (無効)")
-	dhcpStyle := dimStyle
+	dhcpStr := ""
 	if dhcpEnabled {
-		dhcpStatus = tr("[enabled] / disabled (有効)")
-		dhcpStyle = selectedStyle
+		dhcpStr = selectedStyle.Render("[enabled]") + "  " + dimStyle.Render("disabled")
+	} else {
+		dhcpStr = dimStyle.Render("enabled") + "  " + selectedStyle.Render("[disabled]")
 	}
 	marker = "  "
 	if d.secureNatCursor == fieldDHCP {
 		marker = "> "
 	}
-	fmt.Fprintf(b, "%s%-32s %s\n", marker, tr("DHCP")+":", dhcpStyle.Render(dhcpStatus))
+	fmt.Fprintf(b, "%s%-32s %s\n", marker, tr("DHCP")+":", dhcpStr)
 
 	startIp := d.getNatDhcpKV("Start Distribution Address Band", "Start")
 	endIp := d.getNatDhcpKV("End Distribution Address Band", "End")

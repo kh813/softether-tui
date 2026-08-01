@@ -1311,7 +1311,7 @@ func (m Model) applyConfirm(kind confirmKind, target string) (tea.Model, tea.Cmd
 	case confirmToggleDHCP:
 		d := &m.hubDetail
 		dhcpEnabled := false
-		for _, k := range []string{"Use Virtual DHCP Server", "Virtual DHCP Server", "Use DHCP", "DHCP Server", "Status"} {
+		for _, k := range []string{"Use Virtual DHCP Function", "Use Virtual DHCP Server", "Virtual DHCP Server", "Use DHCP", "DHCP Server", "Status"} {
 			if v, ok := d.secureNatDhcp[k]; ok {
 				vLower := strings.ToLower(v)
 				if strings.Contains(vLower, "yes") || strings.Contains(vLower, "enable") || strings.Contains(vLower, "active") || strings.Contains(vLower, "true") {
@@ -1990,7 +1990,7 @@ func (m Model) handleHubSecureNATKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		if d.secureNatCursor == fieldDHCP {
 			dhcpEnabled := false
-			for _, k := range []string{"Use Virtual DHCP Server", "Virtual DHCP Server", "Use DHCP", "DHCP Server", "Status"} {
+			for _, k := range []string{"Use Virtual DHCP Function", "Use Virtual DHCP Server", "Virtual DHCP Server", "Use DHCP", "DHCP Server", "Status"} {
 				if v, ok := d.secureNatDhcp[k]; ok {
 					vLower := strings.ToLower(v)
 					if strings.Contains(vLower, "yes") || strings.Contains(vLower, "enable") || strings.Contains(vLower, "active") || strings.Contains(vLower, "true") {
