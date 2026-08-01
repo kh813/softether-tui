@@ -372,13 +372,11 @@ func (d hubDetailState) viewSecureNAT(b *strings.Builder) {
 	if d.secureNatEditing {
 		b.WriteString("\n" + renderHelp("Enter", tr("決定"), "Esc", tr("キャンセル")))
 	} else if d.secureNatDirty {
-		b.WriteString("\n" + renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更"), "s", tr("保存 (Save)"), "c", tr("変更を破棄 (Cancel)")))
+		b.WriteString("\n" + renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更/切替"), "s", tr("保存 (Save)"), "c", tr("変更を破棄 (Cancel)")))
 	} else {
 		b.WriteString("\n" + renderHelp(
 			"↑/↓", tr("項目選択"),
-			"Enter", tr("値の変更"),
-			"o/f", tr("SecureNAT有効/無効"),
-			"h/H", tr("DHCP有効/無効"),
+			"Enter", tr("有効/無効切替・値変更"),
 		))
 		b.WriteString("\n" + renderHelp(
 			"←/→/Tab", tr("タブ切替"),
@@ -392,28 +390,48 @@ func (d hubDetailState) viewSecureNAT(b *strings.Builder) {
 func (d hubDetailState) renderSecureNATFields(b *strings.Builder) {
 	b.WriteString(headerStyle.Render(tr("Virtual host settings (仮想ホスト・DHCP設定)")) + "\n")
 
-	// Render SecureNAT enabled status
-	snStatus := tr("無効")
+	// Render SecureNAT enabled status as a selectable field
+	snEnabled := false
 	if v, ok := d.secureNatStatus["SecureNAT Functionality State"]; ok && strings.Contains(strings.ToLower(v), "enabled") {
-		snStatus = tr("[有効] / 無効")
+		snEnabled = true
 	} else if v, ok := d.secureNatStatus["SecureNAT Status"]; ok && strings.Contains(strings.ToLower(v), "enabled") {
-		snStatus = tr("[有効] / 無効")
+		snEnabled = true
 	}
-	fmt.Fprintf(b, "  %-32s %s\n", tr("SecureNAT")+":", statusBarStyle.Render(snStatus))
+	snStatus := tr("disabled (無効)")
+	snStyle := dimStyle
+	if snEnabled {
+		snStatus = tr("[enabled] / disabled (有効)")
+		snStyle = selectedStyle
+	}
+	marker := "  "
+	if d.secureNatCursor == fieldSecureNAT {
+		marker = "> "
+	}
+	fmt.Fprintf(b, "%s%-32s %s\n", marker, tr("SecureNAT")+":", snStyle.Render(snStatus))
 
 	d.renderEditableNatField(b, fieldNatIP, "IP Address", d.getNatHostKV("IP Address", "IP"))
 	d.renderEditableNatField(b, fieldNatMask, "Subnet Mask", d.getNatHostKV("Subnet Mask", "Mask"))
 	d.renderEditableNatField(b, fieldNatMAC, "MAC Address", d.getNatHostKV("MAC Address", "MAC"))
 	d.renderEditableNatField(b, fieldNatMTU, "MTU", d.getNatHostKV("MTU", "Mtu"))
 
-	// Render DHCP enabled status
-	dhcpStatus := tr("無効")
+	// Render DHCP enabled status as a selectable field
+	dhcpEnabled := false
 	if v, ok := d.secureNatDhcp["Use Virtual DHCP Server"]; ok && strings.Contains(strings.ToLower(v), "yes") {
-		dhcpStatus = tr("[有効] / 無効")
+		dhcpEnabled = true
 	} else if v, ok := d.secureNatDhcp["Virtual DHCP Server"]; ok && strings.Contains(strings.ToLower(v), "yes") {
-		dhcpStatus = tr("[有効] / 無効")
+		dhcpEnabled = true
 	}
-	fmt.Fprintf(b, "  %-32s %s\n", tr("DHCP")+":", statusBarStyle.Render(dhcpStatus))
+	dhcpStatus := tr("disabled (無効)")
+	dhcpStyle := dimStyle
+	if dhcpEnabled {
+		dhcpStatus = tr("[enabled] / disabled (有効)")
+		dhcpStyle = selectedStyle
+	}
+	marker = "  "
+	if d.secureNatCursor == fieldDHCP {
+		marker = "> "
+	}
+	fmt.Fprintf(b, "%s%-32s %s\n", marker, tr("DHCP")+":", dhcpStyle.Render(dhcpStatus))
 
 	startIp := d.getNatDhcpKV("Start Distribution Address Band", "Start")
 	endIp := d.getNatDhcpKV("End Distribution Address Band", "End")

@@ -16,10 +16,12 @@ import (
 type editableSecureNATField int
 
 const (
-	fieldNatIP editableSecureNATField = iota
+	fieldSecureNAT editableSecureNATField = iota
+	fieldNatIP
 	fieldNatMask
 	fieldNatMAC
 	fieldNatMTU
+	fieldDHCP
 	fieldDhcpRange
 	fieldDhcpLease
 	fieldDhcpGW

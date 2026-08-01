@@ -1938,6 +1938,37 @@ func (m Model) handleHubSecureNATKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "enter":
+		if d.secureNatCursor == fieldSecureNAT {
+			snEnabled := false
+			if v, ok := d.secureNatStatus["SecureNAT Functionality State"]; ok && strings.Contains(strings.ToLower(v), "enabled") {
+				snEnabled = true
+			} else if v, ok := d.secureNatStatus["SecureNAT Status"]; ok && strings.Contains(strings.ToLower(v), "enabled") {
+				snEnabled = true
+			}
+			actionLabel := tr("有効化")
+			if snEnabled {
+				actionLabel = tr("無効化")
+			}
+			m.status = fmt.Sprintf(tr("Hub %q の SecureNAT を%sしています..."), m.hubDetail.hubName, actionLabel)
+			m.statusErr = false
+			return m, m.setSecureNatEnabled(m.hubDetail.profile, m.hubDetail.hubName, !snEnabled)
+		}
+		if d.secureNatCursor == fieldDHCP {
+			dhcpEnabled := false
+			if v, ok := d.secureNatDhcp["Use Virtual DHCP Server"]; ok && strings.Contains(strings.ToLower(v), "yes") {
+				dhcpEnabled = true
+			} else if v, ok := d.secureNatDhcp["Virtual DHCP Server"]; ok && strings.Contains(strings.ToLower(v), "yes") {
+				dhcpEnabled = true
+			}
+			actionLabel := tr("有効化")
+			if dhcpEnabled {
+				actionLabel = tr("無効化")
+			}
+			m.status = fmt.Sprintf(tr("Hub %q の Virtual DHCP を%sしています..."), m.hubDetail.hubName, actionLabel)
+			m.statusErr = false
+			return m, m.setDhcpEnabled(m.hubDetail.profile, m.hubDetail.hubName, !dhcpEnabled)
+		}
+
 		d.secureNatEditing = true
 		d.secureNatEditingField = d.secureNatCursor
 		ti := textinput.New()
@@ -1967,36 +1998,6 @@ func (m Model) handleHubSecureNATKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.statusErr = false
 			return m, nil
 		}
-
-	case "o":
-		m.status = fmt.Sprintf(tr("Hub %q の SecureNAT を有効化しています..."), m.hubDetail.hubName)
-		m.statusErr = false
-		return m, m.setSecureNatEnabled(m.hubDetail.profile, m.hubDetail.hubName, true)
-
-	case "f":
-		m.status = fmt.Sprintf(tr("Hub %q の SecureNAT を無効化しています..."), m.hubDetail.hubName)
-		m.statusErr = false
-		return m, m.setSecureNatEnabled(m.hubDetail.profile, m.hubDetail.hubName, false)
-
-	case "n":
-		m.status = fmt.Sprintf(tr("Hub %q の Virtual NAT を有効化しています..."), m.hubDetail.hubName)
-		m.statusErr = false
-		return m, m.setNatEnabled(m.hubDetail.profile, m.hubDetail.hubName, true)
-
-	case "N":
-		m.status = fmt.Sprintf(tr("Hub %q の Virtual NAT を無効化しています..."), m.hubDetail.hubName)
-		m.statusErr = false
-		return m, m.setNatEnabled(m.hubDetail.profile, m.hubDetail.hubName, false)
-
-	case "h":
-		m.status = fmt.Sprintf(tr("Hub %q の Virtual DHCP を有効化しています..."), m.hubDetail.hubName)
-		m.statusErr = false
-		return m, m.setDhcpEnabled(m.hubDetail.profile, m.hubDetail.hubName, true)
-
-	case "H":
-		m.status = fmt.Sprintf(tr("Hub %q の Virtual DHCP を無効化しています..."), m.hubDetail.hubName)
-		m.statusErr = false
-		return m, m.setDhcpEnabled(m.hubDetail.profile, m.hubDetail.hubName, false)
 	}
 	return m, nil
 }

@@ -9,6 +9,12 @@ var enCatalog = map[string]string{
 	// (TestEnCatalogCoversAllSourceStrings) caught entries missed by the
 	// earlier ad-hoc edits that predated the generator script.
 	"管理者パスワードを入力してください (%s)": "Please enter administrator password (%s)",
+	"Hub %q の SecureNAT を%sしています...": "Toggling SecureNAT (%s) for Hub %q...",
+	"Hub %q の Virtual DHCP を%sしています...": "Toggling Virtual DHCP (%s) for Hub %q...",
+	"値の変更/切替": "edit value / toggle",
+	"有効/無効切替・値変更": "toggle enable/disable or edit value",
+	"disabled (無効)": "disabled",
+	"[enabled] / disabled (有効)": "[enabled] / disabled",
 	"有効期限は YYYY/MM/DD 形式（数字8桁等）で入力してください": "Please enter expiry date as YYYY/MM/DD (e.g. 8 digits 20261101)",
 	"[有効] / 無効": "[enabled] / disabled",
 	"SecureNAT": "SecureNAT",
