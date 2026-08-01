@@ -733,7 +733,7 @@ func (c *Client) StatusGet(ctx context.Context, t Target) (KeyValue, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ParseFormattedKV(out), nil
+	return ParseCSV(out)
 }
 
 type SecureNatHostOptions struct {

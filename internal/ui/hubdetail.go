@@ -385,21 +385,36 @@ func (d hubDetailState) viewSecureNAT(b *strings.Builder) {
 	}
 }
 
+func (d hubDetailState) isSecureNatEnabled() bool {
+	if v, ok := d.secureNatHubStatus["SecureNAT"]; ok {
+		vLower := strings.ToLower(strings.TrimSpace(v))
+		return strings.Contains(vLower, "enabled") || strings.Contains(vLower, "active") || strings.Contains(vLower, "yes") || strings.Contains(vLower, "true") || strings.Contains(vLower, "有効")
+	}
+	if d.secureNatErr != nil || len(d.secureNatStatus) == 0 {
+		return false
+	}
+	for k, v := range d.secureNatStatus {
+		kLower := strings.ToLower(k)
+		vLower := strings.ToLower(v)
+		if strings.Contains(kLower, "status") || strings.Contains(kLower, "active") || strings.Contains(kLower, "state") {
+			if strings.Contains(vLower, "disabled") || strings.Contains(vLower, "stopped") || strings.Contains(vLower, "no") || strings.Contains(vLower, "false") || strings.Contains(vLower, "無効") {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func (d hubDetailState) renderSecureNATFields(b *strings.Builder) {
 	b.WriteString(headerStyle.Render(tr("Virtual host settings (仮想ホスト・DHCP設定)")) + "\n")
 
 	// Render SecureNAT enabled status as a selectable field
-	snEnabled := false
-	if v, ok := d.secureNatHubStatus["SecureNAT"]; ok {
-		snEnabled = strings.EqualFold(strings.TrimSpace(v), "Enabled")
-	} else {
-		snEnabled = d.secureNatErr == nil && len(d.secureNatStatus) > 0
-	}
+	snEnabled := d.isSecureNatEnabled()
 	snStr := ""
 	if snEnabled {
-		snStr = selectedStyle.Render("[enabled]") + "  " + dimStyle.Render("disabled")
+		snStr = selectedStyle.Render("[enabled]")
 	} else {
-		snStr = dimStyle.Render("enabled") + "  " + selectedStyle.Render("[disabled]")
+		snStr = selectedStyle.Render("[disabled]")
 	}
 	marker := "  "
 	if d.secureNatCursor == fieldSecureNAT {
@@ -425,9 +440,9 @@ func (d hubDetailState) renderSecureNATFields(b *strings.Builder) {
 	}
 	dhcpStr := ""
 	if dhcpEnabled {
-		dhcpStr = selectedStyle.Render("[enabled]") + "  " + dimStyle.Render("disabled")
+		dhcpStr = selectedStyle.Render("[enabled]")
 	} else {
-		dhcpStr = dimStyle.Render("enabled") + "  " + selectedStyle.Render("[disabled]")
+		dhcpStr = selectedStyle.Render("[disabled]")
 	}
 	marker = "  "
 	if d.secureNatCursor == fieldDHCP {
@@ -580,6 +595,7 @@ func (m Model) fetchSecureNAT(p config.Profile, hub string) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
+		time.Sleep(300 * time.Millisecond)
 		status, statusErr := client.SecureNatStatusGet(ctx, target)
 		if statusErr != nil {
 			status = nil
@@ -594,9 +610,9 @@ func (m Model) fetchSecureNAT(p config.Profile, hub string) tea.Cmd {
 func (m Model) setSecureNatEnabled(p config.Profile, hub string, enabled bool) tea.Cmd {
 	client := m.client
 	target := m.targetFromProfile(p).WithHub(hub)
-	action := tr("無効化")
+	action := tr("SecureNAT disabled")
 	if enabled {
-		action = tr("有効化")
+		action = tr("SecureNAT enabled")
 	}
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
