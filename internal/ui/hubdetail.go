@@ -765,8 +765,18 @@ func (m Model) handleHubACLKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.hubDetail.accessCursor++
 		}
 	case "c", "C", "a", "A":
-		m.prompt.Show(promptAccessAddMemo, "", tr("ルール説明 (Memo) を入力してください:"), "Allow-All", false)
+		m.aclForm.Reset()
+		m.screen = screenACLForm
+		m.status = ""
 		return m, nil
+	case "e", "E", "enter":
+		if id, ok := m.hubDetail.currentAccessID(); ok && m.hubDetail.accessCursor < len(m.hubDetail.access.Rows) {
+			row := m.hubDetail.access.Rows[m.hubDetail.accessCursor]
+			m.aclForm.LoadRule(id, row)
+			m.screen = screenACLForm
+			m.status = ""
+			return m, nil
+		}
 	case "d":
 		if id, ok := m.hubDetail.currentAccessID(); ok {
 			m.confirm.Show(confirmDeleteAccessRule, id, fmt.Sprintf(tr("アクセスリストルール %q を削除しますか?"), id))

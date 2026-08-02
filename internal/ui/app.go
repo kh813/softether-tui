@@ -36,6 +36,7 @@ const (
 	screenClientDashboard
 	screenAccountForm
 	screenCascadeForm
+	screenACLForm
 )
 
 // Model is the root Bubble Tea model: it routes key input and messages to
@@ -62,6 +63,7 @@ type Model struct {
 	bridgeForm  *bridgeForm
 	accountForm *accountForm
 	cascadeForm *cascadeForm
+	aclForm     *aclForm
 
 	dashboard       dashboardState
 	hubDetail       hubDetailState
@@ -96,6 +98,7 @@ func New(store *config.Store, client *vpncmd.Client, version string) Model {
 		bridgeForm:              newBridgeForm(),
 		accountForm:             newAccountForm(),
 		cascadeForm:             newCascadeForm(),
+		aclForm:                 newACLForm(),
 		testResults:             map[string]error{},
 		sessionPasswords:        map[string]string{},
 		initialPasswordPrompted: map[string]bool{},
@@ -1258,6 +1261,8 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleAccountFormKey(msg)
 	case screenCascadeForm:
 		return m.handleCascadeFormKey(msg)
+	case screenACLForm:
+		return m.handleACLFormKey(msg)
 	}
 	return m, nil
 }
@@ -2570,6 +2575,52 @@ func (m Model) createCascade(p config.Profile, hub, name string, opts vpncmd.Cas
 	}
 }
 
+func (m Model) handleACLFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc":
+		if m.aclForm.IsDirty() {
+			m.confirm.Show(confirmDiscardChanges, "", tr("未保存の変更があります。変更を破棄して戻りますか?"))
+			return m, nil
+		}
+		m.screen = screenHubDetail
+		return m, nil
+
+	case "enter":
+		opts, err := m.aclForm.Build()
+		if err != nil {
+			m.status = err.Error()
+			m.statusErr = true
+			return m, nil
+		}
+		action := tr("追加")
+		if m.aclForm.editing {
+			action = tr("更新")
+		}
+		m.status = fmt.Sprintf(tr("アクセスリストルールを%sしています..."), action)
+		m.statusErr = false
+		m.screen = screenHubDetail
+		return m, m.saveACLRule(m.hubDetail.profile, m.hubDetail.hubName, opts, m.aclForm.editing, m.aclForm.targetID)
+	}
+
+	cmd := m.aclForm.Update(msg)
+	return m, cmd
+}
+
+func (m Model) saveACLRule(p config.Profile, hub string, opts vpncmd.AccessAddOptions, isEdit bool, oldID string) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+
+		if isEdit && oldID != "" {
+			_ = client.AccessDelete(ctx, target, oldID)
+		}
+		err := client.AccessAdd(ctx, target, opts)
+		return accessActionResultMsg{action: tr("保存"), id: opts.Memo, err: err}
+	}
+}
+
 func (m Model) handleHubFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
@@ -2639,6 +2690,8 @@ func (m Model) View() string {
 		body = m.accountForm.View()
 	case screenCascadeForm:
 		body = m.cascadeForm.View()
+	case screenACLForm:
+		body = m.aclForm.View()
 	}
 
 	if m.status != "" {

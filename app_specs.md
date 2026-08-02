@@ -125,6 +125,28 @@
 - セキュリティログ / パケットログの保存設定閲覧・変更 (`LogGet`, `LogEnable`, `LogPacketSaveType`, `LogSwitchType`)。
 - 直近のログファイル内容をその場で閲覧 (tail 的なビュー、キーワードフィルタ)。ログ本体はサーバーのファイルシステム上にあるため、ローカル接続時はファイル直接参照、リモート接続時は `vpncmd` 経由で取得可能な範囲に限定することを明記する (完全なログ転送機能は非スコープ)。
 
+### 5.6.1 ACL / パケットフィルター管理 (`AccessList`, `AccessAdd`, `AccessDelete`, `AccessEnable`, `AccessDisable`)
+
+- **マルチカラム一覧 ＆ 選択中詳細表示**: ルール ID, アクション (Pass/Discard), ステータス (Enable/Disable), 優先度, メモ, 内容 (`Contents`), Unique ID をマルチカラムテーブルと下部詳細パネルで可視化。
+- **フルセット TUI フォーム UI によるルール作成 ＆ 編集 (`aclForm`)**:
+  - `c` (Create) キーで新規ルール作成フォーム、選択中アイテムで `e` または `Enter` キーで既存ルール編集フォームを起動。
+  - **入力・選択パラメータ**:
+    1. アクション (`Pass` / `Discard`)
+    2. ステータス (`Enable` / `Disable`)
+    3. 優先度 (`Priority`, 既定 `100`)
+    4. メモ・ルール説明 (`Memo`)
+    5. プロトコル (`Protocol`: `ALL (0)`, `ICMPv4 (1)`, `TCP (6)`, `UDP (17)`, `ICMPv6 (58)`)
+    6. 送信元 IP / サブネット (`Src IP`, 既定 `0.0.0.0/0`)
+    7. 送信先 IP / サブネット (`Dst IP`, 既定 `0.0.0.0/0`)
+    8. 送信元 ポート (`Src Port`, 既定 `0`)
+    9. 送信先 ポート (`Dst Port`, 既定 `0`)
+    10. TCP 接続状態 (`TcpState`: `All`, `Established`, `Unestablished`)
+    11. 送信元 ユーザー名 / MAC (`Src User`, `Src MAC`)
+    12. 送信先 ユーザー名 / MAC (`Dst User`, `Dst MAC`)
+  - **編集時のアトミック書き換え (`AccessDelete` ➔ `AccessAdd`)**: 編集保存時、旧ルール ID を `AccessDelete` 削除した上で更新後のパラメーターで `AccessAdd` を実行。
+  - **未保存データ破棄保護 (`confirmDiscardChanges`)**: 入力変更が存在する状態で `Esc` キーを押した際、即時離脱を防ぎ確認モーダルを表示。
+- **有効化/無効化切替 (`o` / `f` キー)** および **削除 (確認ダイアログ必須) (`d` キー)**。
+
 ### 5.7 カスケード接続管理 (Bridge 向け)
 
 - **マルチカラム一覧 ＆ 選択中詳細表示**: `Setting Name`, `Status`, `Destination VPN Server`, `Virtual Hub`, `Established at` のマルチカラム表示および下部選択中詳細パネル (`CascadeGet` 由来) による情報可視化。

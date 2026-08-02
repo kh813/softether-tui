@@ -190,3 +190,39 @@ func TestCascadeFormEscProtectionAndButtonFocus(t *testing.T) {
 		t.Fatalf("expected focus cascadeFieldTest, got %v", m.cascadeForm.focus)
 	}
 }
+
+func TestACLFormProtocolSelectionAndEscProtection(t *testing.T) {
+	m := setupTestModel(t)
+	m.screen = screenACLForm
+	m.aclForm.Reset()
+
+	// Initial protocol should be ALL (0)
+	if aclProtocolOrder[m.aclForm.protocolIdx].Val != "0" {
+		t.Fatalf("expected default protocol '0', got %v", aclProtocolOrder[m.aclForm.protocolIdx].Val)
+	}
+
+	// Move focus to Protocol (4 down keypresses)
+	for i := 0; i < 4; i++ {
+		m = sendKey(m, "down")
+	}
+	if m.aclForm.focus != aclFieldProtocol {
+		t.Fatalf("expected focus aclFieldProtocol, got %v", m.aclForm.focus)
+	}
+
+	// Press right arrow to switch protocol to ICMPv4 (1)
+	m = sendKey(m, "right")
+	if aclProtocolOrder[m.aclForm.protocolIdx].Val != "1" {
+		t.Fatalf("expected protocol ICMPv4 ('1'), got %v", aclProtocolOrder[m.aclForm.protocolIdx].Val)
+	}
+
+	// Verify dirty state flag is set by selection change
+	if !m.aclForm.IsDirty() {
+		t.Fatalf("expected aclForm to be dirty after protocol selection change")
+	}
+
+	// Press Esc -> confirmDiscardChanges modal must pop up
+	m = sendKey(m, "esc")
+	if !m.confirm.active || m.confirm.kind != confirmDiscardChanges {
+		t.Fatalf("expected confirmDiscardChanges modal on Esc when aclForm is dirty")
+	}
+}
