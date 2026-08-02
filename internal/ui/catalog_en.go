@@ -30,7 +30,7 @@ var enCatalog = map[string]string{
 	"未保存の変更があります。変更を破棄して終了しますか?": "Unsaved changes exist. Discard changes and quit?",
 	"未保存の変更があります。変更を破棄して戻りますか?": "Unsaved changes exist. Discard changes and return?",
 	"アプリケーションを終了しますか?": "Are you sure you want to quit the application?",
-	" [ y: 実行する ] ": " [ y: Confirm ] ",
+	" [ y: OK ] ": " [ y: OK ] ",
 	" [ n: キャンセル ] ": " [ n: Cancel ] ",
 	" Enter: 保存 ": " Enter: Save ",
 	"モード選択": "select mode",

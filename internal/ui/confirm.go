@@ -72,7 +72,7 @@ func (c *confirmDialog) View() string {
 		noMarker = "> "
 	}
 
-	yesBtn := yesMarker + yesStyle.Render(tr(" [ y: 実行する ] "))
+	yesBtn := yesMarker + yesStyle.Render(tr(" [ y: OK ] "))
 	noBtn := noMarker + noStyle.Render(tr(" [ n: キャンセル ] "))
 
 	content := tr("確認") + "\n\n" + c.message + "\n\n" + yesBtn + "   " + noBtn
