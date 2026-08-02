@@ -186,6 +186,16 @@ type userActionResultMsg struct {
 	err    error
 }
 
+type cascadeActionResultMsg struct {
+	action string
+	name   string
+	err    error
+}
+
+type cascadeTestResultMsg struct {
+	err error
+}
+
 type groupCreateResultMsg struct {
 	name string
 	err  error
@@ -995,6 +1005,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.hubDetail.cascadeCursor < 0 {
 				m.hubDetail.cascadeCursor = 0
 			}
+		}
+		return m, nil
+
+	case cascadeTestResultMsg:
+		if msg.err != nil {
+			m.cascadeForm.testResult = fmt.Sprintf(tr("✕ テスト失敗: %s"), msg.err.Error())
+			m.cascadeForm.testErr = true
+		} else {
+			m.cascadeForm.testResult = tr("● 接続テスト成功")
+			m.cascadeForm.testErr = false
 		}
 		return m, nil
 
@@ -2441,10 +2461,21 @@ func (m Model) handleBridgeFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) handleCascadeFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
+		if m.cascadeForm.IsDirty() {
+			m.confirm.Show(confirmDiscardChanges, "", tr("未保存の変更があります。変更を破棄して戻りますか?"))
+			return m, nil
+		}
 		m.screen = screenHubDetail
 		return m, nil
 
+	case "t", "T":
+		return m.runCascadeTestConnection()
+
 	case "enter":
+		if m.cascadeForm.focus == cascadeFieldTest {
+			return m.runCascadeTestConnection()
+		}
+
 		name, opts, password, err := m.cascadeForm.Build()
 		if err != nil {
 			m.status = err.Error()
@@ -2463,6 +2494,34 @@ func (m Model) handleCascadeFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	cmd := m.cascadeForm.Update(msg)
 	return m, cmd
+}
+
+func (m Model) runCascadeTestConnection() (tea.Model, tea.Cmd) {
+	_, opts, _, err := m.cascadeForm.Build()
+	if err != nil {
+		m.cascadeForm.testResult = fmt.Sprintf(tr("✕ テスト失敗: %s"), err.Error())
+		m.cascadeForm.testErr = true
+		return m, nil
+	}
+	testProfile := config.Profile{
+		Name: "test-cascade",
+		Host: opts.ServerHost,
+		Port: opts.ServerPort,
+		Mode: config.ModeServer,
+	}
+	m.cascadeForm.testResult = tr("接続テスト実行中...")
+	m.cascadeForm.testErr = false
+	return m, m.testCascadeConnection(testProfile)
+}
+
+func (m Model) testCascadeConnection(p config.Profile) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		target := m.targetFromProfile(p)
+		_, err := m.client.ServerInfo(ctx, target)
+		return cascadeTestResultMsg{err: err}
+	}
 }
 
 func (m Model) createCascade(p config.Profile, hub, name string, opts vpncmd.CascadeCreateOptions, password string, isEdit bool) tea.Cmd {

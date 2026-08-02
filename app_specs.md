@@ -131,7 +131,9 @@
 - **フルセット TUI フォーム UI によるカスケード作成 (`CascadeCreate` + `CascadePasswordSet`)**:
   - `c` (Create) キーで起動する専用フォーム (`cascadeForm`)。
   - 入力項目: カスケード接続名 (`Setting Name`), 接続先サーバー (`Host:Port`), 接続先 Hub (`Target Hub`), 認証ユーザー名 (`User Name`), パスワード (`Password`)。
-  - 共通 UI ルールに準拠し、`Tab`/`↓` キーで `[ Save ]` ボタンへフォーカス移動し `Enter` キーで `CascadeCreate` および `CascadePasswordSet` を一括適用・保存。
+  - **接続テスト (`[ Test Connection ]` ボタン / `t` キー)**: 入力された接続先ホスト・ポートへの疎通・接続テストを実行し、テスト結果をリアルタイム表示。
+  - **未保存データ破棄保護 (`confirmDiscardChanges`)**: 入力変更が存在する状態で `Esc` キーを押した際、即時離脱を防ぎ確認モーダルを表示。
+  - 共通 UI ルールに準拠し、`Tab`/`↓` キーで `[ Save ]` および `[ Test Connection ]` ボタンへフォーカス移動し `Enter` キーで保存またはテストを実行。
 - **カスケード接続設定の閲覧・変更 (`CascadeGet`, `CascadeSet`, `CascadePasswordSet`)**:
   - 選択中の接続に対して `Enter` または `e` キーで詳細・編集フォームを呼び出し、接続先ホスト・ポート・接続先Hub・認証情報（ユーザー名/パスワード）を再設定・更新可能。
 - **オンライン/オフライン切替 (`CascadeOnline`, `CascadeOffline`)** および **削除 (確認ダイアログ必須) (`CascadeDelete`)**。

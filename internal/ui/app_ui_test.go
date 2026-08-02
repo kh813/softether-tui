@@ -55,6 +55,27 @@ func TestUINavigationAndCreationKeyC(t *testing.T) {
 	}
 }
 
+func TestProfileFormSaveButtonFocus(t *testing.T) {
+	m := setupTestModel(t)
+	m = sendKey(m, "c")
+
+	// Initially focused on field 0 (fieldName)
+	if m.form.focus != fieldName {
+		t.Fatalf("expected focus fieldName, got %v", m.form.focus)
+	}
+
+	// Press Down 4 times to navigate fieldName -> fieldHost -> fieldPort -> fieldHub -> fieldMode -> fieldSave
+	m = sendKey(m, "down") // fieldHost
+	m = sendKey(m, "down") // fieldPort
+	m = sendKey(m, "down") // fieldHub
+	m = sendKey(m, "down") // fieldMode
+	m = sendKey(m, "down") // fieldSave
+
+	if m.form.focus != fieldSave {
+		t.Fatalf("expected focus fieldSave after pressing Down from fieldMode, got %v", m.form.focus)
+	}
+}
+
 func TestFullwidthIMEKeyNormalization(t *testing.T) {
 	m := setupTestModel(t)
 
@@ -127,5 +148,36 @@ func TestUnsavedChangesModalGuard(t *testing.T) {
 	}
 	if m.screen != screenUserDetail {
 		t.Fatalf("expected screen to remain screenUserDetail after cancelling discard, got %v", m.screen)
+	}
+}
+
+func TestCascadeFormEscProtectionAndButtonFocus(t *testing.T) {
+	m := setupTestModel(t)
+	m.screen = screenCascadeForm
+	m.cascadeForm.Reset()
+
+	// Type something in Setting Name
+	m = sendRuneKey(m, 'X')
+
+	// Pressing Esc with inputs should trigger confirmDiscardChanges modal
+	m = sendKey(m, "esc")
+	if !m.confirm.active || m.confirm.kind != confirmDiscardChanges {
+		t.Fatalf("expected confirmDiscardChanges modal on Esc when cascadeForm is dirty, active: %v, kind: %v", m.confirm.active, m.confirm.kind)
+	}
+
+	// Cancel modal
+	m = sendKey(m, "n")
+
+	// Verify focus navigation reaches fieldSave then fieldTest
+	for i := 0; i < 6; i++ {
+		m = sendKey(m, "down")
+	}
+	if m.cascadeForm.focus != cascadeFieldSave {
+		t.Fatalf("expected focus cascadeFieldSave, got %v", m.cascadeForm.focus)
+	}
+
+	m = sendKey(m, "down")
+	if m.cascadeForm.focus != cascadeFieldTest {
+		t.Fatalf("expected focus cascadeFieldTest, got %v", m.cascadeForm.focus)
 	}
 }

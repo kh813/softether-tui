@@ -21,16 +21,20 @@ const (
 	cascadeFieldUser
 	cascadeFieldPassword
 	cascadeFieldSave
+	cascadeFieldTest
 	cascadeFieldCount
 )
 
 var cascadeInputCount = int(cascadeFieldSave)
 
 type cascadeForm struct {
-	inputs   [6]textinput.Model // name, host, port, hub, user, password
-	focus    cascadeFormField
-	editing  bool
-	original string
+	inputs     [6]textinput.Model // name, host, port, hub, user, password
+	focus      cascadeFormField
+	editing    bool
+	original   string
+	testResult string
+	testErr    bool
+	dirty      bool
 }
 
 func newCascadeForm() *cascadeForm {
@@ -61,6 +65,9 @@ func newCascadeForm() *cascadeForm {
 func (f *cascadeForm) Reset() {
 	f.editing = false
 	f.original = ""
+	f.testResult = ""
+	f.testErr = false
+	f.dirty = false
 	for i := range f.inputs {
 		f.inputs[i].SetValue("")
 	}
@@ -71,6 +78,9 @@ func (f *cascadeForm) Reset() {
 func (f *cascadeForm) LoadCascade(name, host string, port int, hub, user string) {
 	f.editing = true
 	f.original = name
+	f.testResult = ""
+	f.testErr = false
+	f.dirty = false
 	f.inputs[0].SetValue(name)
 	f.inputs[1].SetValue(host)
 	f.inputs[2].SetValue(fmt.Sprintf("%d", port))
@@ -128,6 +138,20 @@ func (f *cascadeForm) Build() (name string, opts vpncmd.CascadeCreateOptions, pa
 	return
 }
 
+func (f *cascadeForm) IsDirty() bool {
+	if f.dirty {
+		return true
+	}
+	if !f.editing {
+		return strings.TrimSpace(f.inputs[0].Value()) != "" ||
+			strings.TrimSpace(f.inputs[1].Value()) != "" ||
+			strings.TrimSpace(f.inputs[3].Value()) != "" ||
+			strings.TrimSpace(f.inputs[4].Value()) != "" ||
+			f.inputs[5].Value() != ""
+	}
+	return false
+}
+
 func (f *cascadeForm) Update(msg tea.KeyMsg) tea.Cmd {
 	switch msg.String() {
 	case "tab", "down":
@@ -139,8 +163,12 @@ func (f *cascadeForm) Update(msg tea.KeyMsg) tea.Cmd {
 	}
 
 	if int(f.focus) < cascadeInputCount {
+		prev := f.inputs[f.focus].Value()
 		var cmd tea.Cmd
 		f.inputs[f.focus], cmd = f.inputs[f.focus].Update(msg)
+		if f.inputs[f.focus].Value() != prev {
+			f.dirty = true
+		}
 		return cmd
 	}
 	return nil
@@ -187,20 +215,41 @@ func (f *cascadeForm) View() string {
 	canSave := nameValid && hostValid && portValid && hubValid && userValid
 
 	b.WriteString("\n")
+
 	saveMarker := "  "
 	if f.focus == cascadeFieldSave {
 		saveMarker = "> "
 	}
+	testMarker := "  "
+	if f.focus == cascadeFieldTest {
+		testMarker = "> "
+	}
 
 	if canSave {
+		saveBtn := inactiveTabStyle.Render(" [ Save ] ")
 		if f.focus == cascadeFieldSave {
-			b.WriteString(saveMarker + saveKeyStyle.Render(" [ Save ] ") + "\n")
-		} else {
-			b.WriteString(saveMarker + inactiveTabStyle.Render(" [ Save ] ") + "\n")
+			saveBtn = saveKeyStyle.Render(" [ Save ] ")
 		}
+
+		testBtn := inactiveTabStyle.Render(" [ Test Connection (t) ] ")
+		if f.focus == cascadeFieldTest {
+			testBtn = activeTabStyle.Render(" [ Test Connection (t) ] ")
+		}
+
+		b.WriteString(saveMarker + saveBtn + "    " + testMarker + testBtn + "\n")
+
+		if f.testResult != "" {
+			style := statusBarStyle
+			if f.testErr {
+				style = errorStyle
+			}
+			b.WriteString("\n" + style.Render("  "+f.testResult) + "\n")
+		}
+
 		b.WriteString("\n" + renderHelp(
 			"Tab/↑↓", tr("項目移動"),
-			"Enter", tr("保存 (Save)"),
+			"Enter", tr("決定/実行"),
+			"t", tr("接続テスト"),
 			"Esc", tr("キャンセル"),
 		))
 	} else {

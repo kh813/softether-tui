@@ -795,11 +795,7 @@ type cascadeLoadedMsg struct {
 	err     error
 }
 
-type cascadeActionResultMsg struct {
-	action string
-	name   string
-	err    error
-}
+
 
 func (m Model) addAccessRule(p config.Profile, hub string, opts vpncmd.AccessAddOptions) tea.Cmd {
 	client := m.client
