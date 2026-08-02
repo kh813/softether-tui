@@ -29,11 +29,13 @@ var profileModeOrder = []config.Mode{config.ModeServer, config.ModeBridge, confi
 
 // profileForm is the add/edit screen for a connection profile.
 type profileForm struct {
-	inputs   [4]textinput.Model // name, host, port, hub
-	mode     config.Mode
-	focus    formField
-	editing  bool   // true when editing an existing profile
-	original string // original name, to detect renames on save
+	inputs         [4]textinput.Model // name, host, port, hub
+	mode           config.Mode
+	focus          formField
+	editing        bool   // true when editing an existing profile
+	original       string // original name, to detect renames on save
+	dropdownActive bool
+	dropdownCursor int
 }
 
 func newProfileForm() *profileForm {
@@ -112,6 +114,29 @@ func (f *profileForm) Build() (config.Profile, error) {
 }
 
 func (f *profileForm) Update(msg tea.KeyMsg) tea.Cmd {
+	if f.dropdownActive {
+		switch msg.String() {
+		case "up", "k":
+			if f.dropdownCursor > 0 {
+				f.dropdownCursor--
+			}
+			return nil
+		case "down", "j":
+			if f.dropdownCursor < len(profileModeOrder)-1 {
+				f.dropdownCursor++
+			}
+			return nil
+		case "enter":
+			f.mode = profileModeOrder[f.dropdownCursor]
+			f.dropdownActive = false
+			return nil
+		case "esc":
+			f.dropdownActive = false
+			return nil
+		}
+		return nil
+	}
+
 	switch msg.String() {
 	case "tab", "down":
 		f.setFocus((f.focus + 1) % fieldCount)
@@ -124,6 +149,17 @@ func (f *profileForm) Update(msg tea.KeyMsg) tea.Cmd {
 			f.cycleMode(msg.String() == "right")
 		}
 		return nil
+	case "enter":
+		if f.focus == fieldMode {
+			f.dropdownActive = true
+			for i, m := range profileModeOrder {
+				if m == f.mode {
+					f.dropdownCursor = i
+					break
+				}
+			}
+			return nil
+		}
 	}
 
 	if int(f.focus) < formInputCount {
@@ -179,16 +215,53 @@ func (f *profileForm) View() string {
 	}
 
 	modeMarker := "  "
+	modeStyle := statusBarStyle
 	if f.focus == fieldMode {
 		modeMarker = "> "
+		modeStyle = selectedStyle
 	}
-	fmt.Fprintf(&b, "%s%-*s < %s >\n", modeMarker, maxLen, modeLabelStr+":", modeLabel(f.mode))
+	fmt.Fprintf(&b, "%s%-*s < %s >\n", modeMarker, maxLen, modeLabelStr+":", modeStyle.Render(modeLabel(f.mode)))
 
-	b.WriteString("\n" + renderHelp(
-		"Tab/↑↓", tr("項目移動"),
-		"←/→", tr("モード切替"),
-		"Enter", tr("保存"),
-		"Esc", tr("キャンセル"),
-	))
+	if f.dropdownActive {
+		b.WriteString("\n" + f.renderModeDropdown())
+	} else {
+		nameValid := strings.TrimSpace(f.inputs[fieldName].Value()) != ""
+		hostValid := strings.TrimSpace(f.inputs[fieldHost].Value()) != ""
+		portValid := strings.TrimSpace(f.inputs[fieldPort].Value()) != ""
+		canSave := nameValid && hostValid && portValid
+
+		b.WriteString("\n")
+		if canSave {
+			b.WriteString(saveKeyStyle.Render(" [ Save ] ") + "\n")
+			b.WriteString("\n" + renderHelp(
+				"Tab/↑↓", tr("項目移動"),
+				"Enter", tr("保存"),
+				"←/→", tr("モード切替"),
+				"Esc", tr("キャンセル"),
+			))
+		} else {
+			b.WriteString(dimStyle.Render("  [ Save - Please fill required fields ]") + "\n")
+			b.WriteString("\n" + renderHelp(
+				"Tab/↑↓", tr("項目移動"),
+				"←/→", tr("モード切替"),
+				"Esc", tr("キャンセル"),
+			))
+		}
+	}
+	return b.String()
+}
+
+func (f *profileForm) renderModeDropdown() string {
+	var b strings.Builder
+	b.WriteString(headerStyle.Render(tr("--- モード選択 (↑/↓:移動 Enter:決定 Esc:閉じる) ---")) + "\n")
+	for i, m := range profileModeOrder {
+		marker := "  "
+		style := statusBarStyle
+		if f.dropdownCursor == i {
+			marker = "> "
+			style = selectedStyle
+		}
+		fmt.Fprintf(&b, "%s%s\n", marker, style.Render(modeLabel(m)))
+	}
 	return b.String()
 }

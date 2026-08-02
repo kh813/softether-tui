@@ -46,7 +46,7 @@ func (d clientDashboardState) View() string {
 
 	b.WriteString("\n" + renderHelp(
 		"↑/↓", tr("選択"),
-		"n", tr("作成"),
+		"c", tr("作成"),
 		"d", tr("削除"),
 		"o", tr("接続"),
 		"f", tr("切断"),
@@ -180,7 +180,7 @@ func (m Model) handleClientDashboardKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.quitting = true
 		return m, tea.Quit
 
-	case "esc", "backspace":
+	case "esc":
 		m.screen = screenProfileList
 
 	case "r":
@@ -197,7 +197,7 @@ func (m Model) handleClientDashboardKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.clientDashboard.cursor++
 		}
 
-	case "n":
+	case "c", "C", "a", "A":
 		m.accountForm.Reset()
 		m.screen = screenAccountForm
 		m.status = ""

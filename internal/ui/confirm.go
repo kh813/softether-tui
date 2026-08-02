@@ -24,6 +24,7 @@ const (
 	confirmRemoveGroupMembers
 	confirmQuitUnsaved
 	confirmQuitApp
+	confirmDiscardChanges
 )
 
 // confirmDialog is a modal yes/no prompt for destructive actions. It stores

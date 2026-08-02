@@ -196,16 +196,22 @@ func (m Model) handleSecureNATDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.confirm.Show(confirmQuitApp, "", tr("アプリケーションを終了しますか?"))
 		return m, nil
 
-	case "esc", "backspace", "c", "C":
-		if d.dirty && (msg.String() == "c" || msg.String() == "C") {
+	case "esc":
+		if d.dirty {
+			m.confirm.Show(confirmDiscardChanges, "", tr("未保存の変更があります。変更を破棄して戻りますか?"))
+			return m, nil
+		}
+		m.screen = screenHubDetail
+		return m, nil
+
+	case "c", "C":
+		if d.dirty {
 			d.editedValues = make(map[editableSecureNATField]string)
 			d.dirty = false
 			m.status = tr("変更を破棄しました")
 			m.statusErr = false
 			return m, nil
 		}
-		m.screen = screenHubDetail
-		return m, nil
 
 	case "up", "k":
 		if d.cursor > 0 {

@@ -1091,6 +1091,46 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func normalizeKeyMsg(msg tea.KeyMsg) tea.KeyMsg {
+	keyStr := msg.String()
+	fullwidthMap := map[string]string{
+		"ｑ": "q", "Ｑ": "q", "た": "q",
+		"ｓ": "s", "Ｓ": "s", "と": "s",
+		"ｄ": "d", "Ｄ": "d", "し": "d",
+		"ｒ": "r", "Ｒ": "r", "す": "r",
+		"ｃ": "c", "Ｃ": "c", "そ": "c",
+		"ｙ": "y", "Ｙ": "y", "ん": "y",
+		"ｎ": "n", "Ｎ": "n", "み": "n",
+		"ｕ": "u", "Ｕ": "u", "な": "u",
+		"ｇ": "g", "Ｇ": "g", "き": "g",
+		"ｏ": "o", "Ｏ": "o", "ら": "o",
+		"ｆ": "f", "Ｆ": "f", "は": "f",
+		"ｋ": "k", "Ｋ": "k", "の": "k",
+		"ｊ": "j", "Ｊ": "j", "ま": "j",
+		"ｈ": "h", "Ｈ": "h", "く": "h",
+		"ｌ": "l", "Ｌ": "l", "り": "l",
+		"ａ": "a", "Ａ": "a", "ち": "a",
+		"ｅ": "e", "Ｅ": "e", "い": "e",
+		"ｐ": "p", "Ｐ": "p", "せ": "p",
+		"１": "1", "２": "2", "３": "3", "４": "4", "５": "5",
+		"６": "6", "７": "7", "８": "8", "９": "9", "０": "0",
+		"。": ".", "．": ".",
+		"・": "/", "／": "/",
+	}
+
+	if normalized, ok := fullwidthMap[keyStr]; ok {
+		msg.Runes = []rune(normalized)
+	} else if len(msg.Runes) == 1 {
+		r := msg.Runes[0]
+		// Handle Fullwidth ASCII Range U+FF01 to U+FF5E
+		if r >= 0xFF01 && r <= 0xFF5E {
+			half := rune(r - 0xfee0)
+			msg.Runes = []rune{half}
+		}
+	}
+	return msg
+}
+
 func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if msg.String() == "ctrl+c" {
 		m.quitting = true
@@ -1110,6 +1150,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.confirm.active {
+		msg = normalizeKeyMsg(msg)
 		switch msg.String() {
 		case "left", "right", "tab", "h", "l":
 			if m.confirm.focus == confirmBtnYes {
@@ -1136,37 +1177,49 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
+	// Normalize fullwidth Japanese IME keys for non-text input screens or when not editing
+	normMsg := normalizeKeyMsg(msg)
+
 	switch m.screen {
 	case screenProfileList:
-		return m.handleProfileListKey(msg)
+		return m.handleProfileListKey(normMsg)
 	case screenProfileForm:
 		return m.handleFormKey(msg)
 	case screenDashboard:
-		return m.handleDashboardKey(msg)
+		return m.handleDashboardKey(normMsg)
 	case screenHubDetail:
-		return m.handleHubDetailKey(msg)
+		return m.handleHubDetailKey(normMsg)
 	case screenHubForm:
 		return m.handleHubFormKey(msg)
 	case screenUserForm:
 		return m.handleUserFormKey(msg)
 	case screenUserDetail:
-		return m.handleUserDetailKey(msg)
+		if m.userDetail.editing {
+			return m.handleUserDetailKey(msg)
+		}
+		return m.handleUserDetailKey(normMsg)
 	case screenGroupForm:
 		return m.handleGroupFormKey(msg)
 	case screenRadiusForm:
 		return m.handleRadiusFormKey(msg)
 	case screenGroupDetail:
-		return m.handleGroupDetailKey(msg)
+		if m.groupDetail.editing {
+			return m.handleGroupDetailKey(msg)
+		}
+		return m.handleGroupDetailKey(normMsg)
 	case screenSecureNATDetail:
-		return m.handleSecureNATDetailKey(msg)
+		if m.secureNatDetail.editing {
+			return m.handleSecureNATDetailKey(msg)
+		}
+		return m.handleSecureNATDetailKey(normMsg)
 	case screenListener:
-		return m.handleListenerKey(msg)
+		return m.handleListenerKey(normMsg)
 	case screenBridge:
-		return m.handleBridgeKey(msg)
+		return m.handleBridgeKey(normMsg)
 	case screenBridgeForm:
 		return m.handleBridgeFormKey(msg)
 	case screenClientDashboard:
-		return m.handleClientDashboardKey(msg)
+		return m.handleClientDashboardKey(normMsg)
 	case screenAccountForm:
 		return m.handleAccountFormKey(msg)
 	}
@@ -1342,6 +1395,23 @@ func (m Model) applyConfirm(kind confirmKind, target string) (tea.Model, tea.Cmd
 		m.quitting = true
 		return m, tea.Quit
 
+	case confirmDiscardChanges:
+		if m.screen == screenUserDetail {
+			m.userDetail.editedValues = make(map[editableUserField]string)
+			m.userDetail.dirty = false
+			m.userDetail.authType = vpncmd.UserAuthNone
+		} else if m.screen == screenGroupDetail {
+			m.groupDetail.editedValues = make(map[editableGroupField]string)
+			m.groupDetail.dirty = false
+		} else if m.screen == screenHubDetail && m.hubDetail.tab == hubTabSecureNAT {
+			m.hubDetail.secureNatEditedValues = make(map[editableSecureNATField]string)
+			m.hubDetail.secureNatDirty = false
+		}
+		m.screen = screenHubDetail
+		m.status = tr("変更を破棄しました")
+		m.statusErr = false
+		return m, nil
+
 	case confirmDisconnectSession:
 		m.status = fmt.Sprintf(tr("セッション %q を切断しています..."), target)
 		m.statusErr = false
@@ -1439,7 +1509,7 @@ func (m Model) handleProfileListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.cursor++
 		}
 
-	case "n":
+	case "c", "C":
 		m.form.Reset()
 		m.screen = screenProfileForm
 		m.status = ""
@@ -1480,12 +1550,21 @@ func (m Model) handleProfileListKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) handleFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.form.dropdownActive {
+		cmd := m.form.Update(msg)
+		return m, cmd
+	}
+
 	switch msg.String() {
 	case "esc":
 		m.screen = screenProfileList
 		return m, nil
 
 	case "enter":
+		if m.form.focus == fieldMode {
+			cmd := m.form.Update(msg)
+			return m, cmd
+		}
 		p, err := m.form.Build()
 		if err != nil {
 			m.status = err.Error()
@@ -1513,7 +1592,7 @@ func (m Model) handleDashboardKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.quitting = true
 		return m, tea.Quit
 
-	case "esc", "backspace":
+	case "esc":
 		m.screen = screenProfileList
 
 	case "r":
@@ -1530,7 +1609,7 @@ func (m Model) handleDashboardKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.dashboard.hubCursor++
 		}
 
-	case "n":
+	case "c", "C":
 		m.hubForm.Reset()
 		m.screen = screenHubForm
 		m.status = ""
@@ -1586,7 +1665,11 @@ func (m Model) handleHubDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.quitting = true
 		return m, tea.Quit
 
-	case "esc", "backspace":
+	case "esc":
+		if m.hubDetail.tab == hubTabSecureNAT && m.hubDetail.secureNatDirty {
+			m.confirm.Show(confirmDiscardChanges, "", tr("未保存の変更があります。変更を破棄して戻りますか?"))
+			return m, nil
+		}
 		m.screen = screenDashboard
 		return m, nil
 
@@ -1831,7 +1914,7 @@ func (m Model) handleHubUsersAndGroupsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-	case "n":
+	case "c", "C", "a", "A":
 		if !d.activeUserSection {
 			m.userForm.Reset()
 			var groupNames []string
@@ -2511,7 +2594,7 @@ func (m Model) viewProfileList() string {
 	b.WriteString("\n" + renderHelp(
 		"↑/↓ j/k", tr("選択"),
 		"Enter", tr("接続"),
-		"n", tr("新規追加"),
+		"c", tr("新規追加"),
 		"e", tr("編集"),
 		"d", tr("削除"),
 		"t", tr("接続テスト"),

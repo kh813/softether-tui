@@ -49,7 +49,7 @@ func (d bridgeState) View() string {
 
 	b.WriteString("\n" + renderHelp(
 		"↑/↓", tr("選択"),
-		"n", tr("作成"),
+		"c", tr("作成"),
 		"d", tr("削除"),
 		"r", tr("更新"),
 		"Esc", tr("戻る"),
@@ -122,7 +122,7 @@ func (m Model) handleBridgeKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.quitting = true
 		return m, tea.Quit
 
-	case "esc", "backspace":
+	case "esc":
 		m.screen = screenDashboard
 
 	case "r":
@@ -139,7 +139,7 @@ func (m Model) handleBridgeKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.bridge.cursor++
 		}
 
-	case "n":
+	case "c", "C", "a", "A":
 		m.bridgeForm.Reset()
 		m.screen = screenBridgeForm
 		m.status = ""

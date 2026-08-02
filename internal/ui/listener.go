@@ -46,7 +46,7 @@ func (d listenerState) View() string {
 
 	b.WriteString("\n" + renderHelp(
 		"↑/↓", tr("選択"),
-		"n", tr("作成"),
+		"c", tr("作成"),
 		"d", tr("削除"),
 		"o", tr("有効化"),
 		"f", tr("無効化"),
@@ -140,7 +140,7 @@ func (m Model) handleListenerKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.quitting = true
 		return m, tea.Quit
 
-	case "esc", "backspace":
+	case "esc":
 		m.screen = screenDashboard
 
 	case "r":
@@ -157,7 +157,7 @@ func (m Model) handleListenerKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.listener.cursor++
 		}
 
-	case "n":
+	case "c", "C", "a", "A":
 		m.prompt.Show(promptListenerCreate, "", tr("作成するポート番号"), tr("例: 1194"), false)
 
 	case "d":
