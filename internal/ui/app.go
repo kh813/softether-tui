@@ -1112,6 +1112,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.groupDetail.err = msg.err
 		m.groupDetail.info = msg.info
 		m.groupDetail.members = msg.members
+		m.groupDetail.allUsers = msg.allUsers
 		return m, nil
 
 	case secureNatDetailLoadedMsg:

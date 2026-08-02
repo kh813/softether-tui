@@ -27,11 +27,12 @@ type groupDetailState struct {
 	groupName       string
 	info            vpncmd.KeyValue
 	members         []string
+	allUsers        []string
 	selectedMembers map[string]bool
 	loading         bool
 	err             error
 
-	cursor       int // 0..1 for editable fields, 2..2+len(members)-1 for member rows, or 2+len(members) for remove button
+	cursor       int // 0..2 for metadata, 3.. for user rows
 	editing      bool
 	editingField editableGroupField
 	input        textinput.Model
@@ -43,6 +44,7 @@ type groupDetailLoadedMsg struct {
 	groupName string
 	info      vpncmd.KeyValue
 	members   []string
+	allUsers  []string
 	err       error
 }
 
@@ -53,7 +55,15 @@ func (m Model) fetchGroupDetail(p config.Profile, hub, name string) tea.Cmd {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 		res, err := client.GroupGet(ctx, target, name)
-		return groupDetailLoadedMsg{groupName: name, info: res.Info, members: res.Members, err: err}
+		var userNames []string
+		if uTable, uErr := client.UserList(ctx, target); uErr == nil {
+			for _, r := range uTable.Rows {
+				if uname := uTable.NameOf(r); uname != "" {
+					userNames = append(userNames, uname)
+				}
+			}
+		}
+		return groupDetailLoadedMsg{groupName: name, info: res.Info, members: res.Members, allUsers: userNames, err: err}
 	}
 }
 
@@ -71,15 +81,12 @@ func (d groupDetailState) View() string {
 		d.renderSections(&b)
 	}
 
-	selectedCount := d.selectedCount()
 	if d.editing {
 		b.WriteString("\n" + renderHelp("Enter", tr("決定"), "Esc", tr("キャンセル")))
 	} else if d.dirty {
 		b.WriteString("\n" + renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更"), "s", tr("保存 (Save)"), "c", tr("変更を破棄 (Cancel)")))
-	} else if selectedCount > 0 {
-		b.WriteString("\n" + renderHelp("↑/↓", tr("移動"), "Space", tr("選択解除/トグル"), "r", tr("選択ユーザーをグループ解除"), "Esc", tr("戻る")))
 	} else {
-		b.WriteString("\n" + renderHelp("↑/↓", tr("移動"), "a", tr("ユーザー追加"), "Space", tr("ユーザー選択"), "Enter", tr("値の変更"), "d", tr("削除"), "Esc", tr("戻る"), "q", tr("終了")))
+		b.WriteString("\n" + renderHelp("↑/↓", tr("移動"), "Space/Enter", tr("所属切り替え(トグル)"), "a", tr("手動ユーザー追加"), "d", tr("削除"), "Esc", tr("戻る"), "q", tr("終了")))
 	}
 	return b.String()
 }
@@ -94,6 +101,22 @@ func (d groupDetailState) selectedCount() int {
 	return c
 }
 
+func (d groupDetailState) isMember(user string) bool {
+	for _, m := range d.members {
+		if m == user {
+			return true
+		}
+	}
+	return false
+}
+
+func (d groupDetailState) displayUsers() []string {
+	if len(d.allUsers) > 0 {
+		return d.allUsers
+	}
+	return d.members
+}
+
 func (d groupDetailState) renderSections(b *strings.Builder) {
 	// Section 1: Editable metadata
 	d.renderFieldLine(b, "Group Name", d.getKV("Group Name", "Name"), 0)
@@ -102,12 +125,13 @@ func (d groupDetailState) renderSections(b *strings.Builder) {
 
 	b.WriteString("\n")
 
-	// Section 2: Members (Assigned users with checkboxes)
-	b.WriteString(headerStyle.Render(fmt.Sprintf(tr("Members (所属ユーザー: %d名)"), len(d.members))) + "\n")
-	if len(d.members) == 0 {
-		b.WriteString(dimStyle.Render(tr("  (所属しているユーザーはいません)")) + "\n")
+	// Section 2: Hub Users (Assigned members marked [x], others marked [ ])
+	users := d.displayUsers()
+	b.WriteString(headerStyle.Render(fmt.Sprintf(tr("Group Members (%d assigned / %d total users)"), len(d.members), len(users))) + "\n")
+	if len(users) == 0 {
+		b.WriteString(dimStyle.Render(tr("  (ユーザーが登録されていません)")) + "\n")
 	} else {
-		for i, member := range d.members {
+		for i, user := range users {
 			rowIdx := 3 + i
 			marker := "  "
 			style := statusBarStyle
@@ -117,34 +141,12 @@ func (d groupDetailState) renderSections(b *strings.Builder) {
 			}
 
 			box := "[ ]"
-			if d.selectedMembers != nil && d.selectedMembers[member] {
+			if d.isMember(user) {
 				box = "[x]"
 			}
 
-			fmt.Fprintf(b, "%s%s %s\n", marker, box, style.Render(member))
+			fmt.Fprintf(b, "%s%s %s\n", marker, box, style.Render(user))
 		}
-	}
-
-	selectedCount := d.selectedCount()
-	if selectedCount > 0 {
-		b.WriteString("\n")
-		remMarker := "  "
-		remStyle := inactiveTabStyle
-		if d.cursor == 3+len(d.members) {
-			remMarker = "> "
-			remStyle = saveKeyStyle
-		}
-		remText := fmt.Sprintf(tr(" [ 選択した %d 名のユーザーをグループから解除 (Remove) ] "), selectedCount)
-
-		cancelMarker := "  "
-		cancelStyle := inactiveTabStyle
-		if d.cursor == 4+len(d.members) {
-			cancelMarker = "> "
-			cancelStyle = saveKeyStyle
-		}
-		cancelText := tr(" [ 選択解除 (Cancel) ] ")
-
-		b.WriteString(remMarker + remStyle.Render(remText) + "  " + cancelMarker + cancelStyle.Render(cancelText) + "\n")
 	}
 }
 
@@ -215,10 +217,8 @@ func (m Model) handleGroupDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
-	maxCursor := 2 + len(d.members)
-	if d.selectedCount() > 0 {
-		maxCursor = 4 + len(d.members)
-	}
+	users := d.displayUsers()
+	maxCursor := 2 + len(users)
 
 	switch msg.String() {
 	case "q":
@@ -238,10 +238,6 @@ func (m Model) handleGroupDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "a", "A", "c", "C":
-		if d.selectedCount() > 0 {
-			d.selectedMembers = make(map[string]bool)
-			return m, nil
-		}
 		if d.dirty {
 			d.editedValues = make(map[editableGroupField]string)
 			d.dirty = false
@@ -262,47 +258,24 @@ func (m Model) handleGroupDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			d.cursor++
 		}
 
-	case "left", "right":
-		if d.selectedCount() > 0 && d.cursor >= 3+len(d.members) {
-			if d.cursor == 3+len(d.members) {
-				d.cursor = 4 + len(d.members)
-			} else {
-				d.cursor = 3 + len(d.members)
+	case " ", "enter":
+		// Toggle group membership if cursor is on a user row (cursor >= 3)
+		if d.cursor >= 3 && d.cursor < 3+len(users) {
+			userIdx := d.cursor - 3
+			userName := users[userIdx]
+			isMem := d.isMember(userName)
+			targetGroup := d.groupName
+			action := tr("追加")
+			if isMem {
+				targetGroup = "" // unassign
+				action = tr("解除")
 			}
-			return m, nil
+			m.status = fmt.Sprintf(tr("ユーザー %q をグループ %q から%sしています..."), userName, d.groupName, action)
+			m.statusErr = false
+			return m, m.toggleUserGroupAndRefresh(d.profile, d.hubName, userName, targetGroup, d.groupName)
 		}
 
-	case " ":
-		// Toggle checkbox if on a member row (cursors 3 .. 3+len(members)-1)
-		if d.cursor >= 3 && d.cursor < 3+len(d.members) {
-			memberIdx := d.cursor - 3
-			memberName := d.members[memberIdx]
-			if d.selectedMembers == nil {
-				d.selectedMembers = make(map[string]bool)
-			}
-			d.selectedMembers[memberName] = !d.selectedMembers[memberName]
-			return m, nil
-		}
-
-	case "r", "R":
-		if d.selectedCount() > 0 {
-			m.confirm.Show(confirmRemoveGroupMembers, d.groupName, fmt.Sprintf(tr("選択した %d 名のユーザーをグループ %q から解除しますか?"), d.selectedCount(), d.groupName))
-			return m, nil
-		}
-
-	case "enter":
-		if d.selectedCount() > 0 {
-			if d.cursor == 4+len(d.members) {
-				d.selectedMembers = make(map[string]bool)
-				d.cursor = 3
-				return m, nil
-			}
-			if d.cursor >= 3 {
-				m.confirm.Show(confirmRemoveGroupMembers, d.groupName, fmt.Sprintf(tr("選択した %d 名のユーザーをグループ %q から解除しますか?"), d.selectedCount(), d.groupName))
-				return m, nil
-			}
-		}
-		if d.cursor == 1 || d.cursor == 2 {
+		if msg.String() == "enter" && (d.cursor == 1 || d.cursor == 2) {
 			d.editing = true
 			if d.cursor == 1 {
 				d.editingField = fieldGroupRealName
@@ -333,6 +306,26 @@ func (m Model) handleGroupDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.confirm.Show(confirmDeleteGroup, d.groupName, fmt.Sprintf(tr("グループ %q を削除しますか?"), d.groupName))
 	}
 	return m, nil
+}
+
+func (m Model) toggleUserGroupAndRefresh(p config.Profile, hub, user, group, groupName string) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		_ = client.UserSet(ctx, target, user, vpncmd.UserSetOptions{Group: group})
+		res, err := client.GroupGet(ctx, target, groupName)
+		var userNames []string
+		if uTable, uErr := client.UserList(ctx, target); uErr == nil {
+			for _, r := range uTable.Rows {
+				if uname := uTable.NameOf(r); uname != "" {
+					userNames = append(userNames, uname)
+				}
+			}
+		}
+		return groupDetailLoadedMsg{groupName: groupName, info: res.Info, members: res.Members, allUsers: userNames, err: err}
+	}
 }
 
 func (d groupDetailState) getFieldValue(field editableGroupField) string {
