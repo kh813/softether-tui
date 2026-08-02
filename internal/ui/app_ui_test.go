@@ -128,6 +128,15 @@ func TestTwoPhaseSecureNATEscEditing(t *testing.T) {
 	if !m.confirm.active || m.confirm.kind != confirmDiscardChanges {
 		t.Fatalf("expected confirmDiscardChanges modal on Esc when dirty, active: %v, kind: %v", m.confirm.active, m.confirm.kind)
 	}
+
+	// Cancel modal
+	m = sendKey(m, "n")
+
+	// Tab key when dirty should ALSO trigger confirmDiscardChanges modal
+	m = sendKey(m, "tab")
+	if !m.confirm.active || m.confirm.kind != confirmDiscardChanges {
+		t.Fatalf("expected confirmDiscardChanges modal on Tab key when dirty")
+	}
 }
 
 func TestUnsavedChangesModalGuard(t *testing.T) {

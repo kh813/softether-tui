@@ -1716,6 +1716,10 @@ func (m Model) handleHubDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.hubDetail.tab == hubTabSecureNAT && m.hubDetail.secureNatEditing {
 			return m.handleHubSecureNATKey(msg)
 		}
+		if m.hubDetail.tab == hubTabSecureNAT && m.hubDetail.secureNatDirty {
+			m.confirm.Show(confirmDiscardChanges, "", tr("未保存の変更があります。変更を破棄して移動しますか?"))
+			return m, nil
+		}
 		m.status = ""
 		m.statusErr = false
 		m.hubDetail.tab = (m.hubDetail.tab + 1) % hubTabCount
@@ -1724,6 +1728,10 @@ func (m Model) handleHubDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "shift+tab", "left":
 		if m.hubDetail.tab == hubTabSecureNAT && m.hubDetail.secureNatEditing {
 			return m.handleHubSecureNATKey(msg)
+		}
+		if m.hubDetail.tab == hubTabSecureNAT && m.hubDetail.secureNatDirty {
+			m.confirm.Show(confirmDiscardChanges, "", tr("未保存の変更があります。変更を破棄して移動しますか?"))
+			return m, nil
 		}
 		m.status = ""
 		m.statusErr = false

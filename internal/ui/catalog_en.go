@@ -227,6 +227,7 @@ var enCatalog = map[string]string{
 	"決定/実行":                            "Submit/Run",
 	"ローカルブリッジ一覧 (物理NIC/tap)":         "Local Bridges (Physical NIC / tap)",
 	"  (ローカルブリッジが設定されていません)":       "  (No local bridges configured)",
+	"未保存の変更があります。変更を破棄して移動しますか?": "You have unsaved changes. Discard changes and switch tab?",
 	"カスケード接続 %q を削除しますか?":        "Delete cascade connection %q?",
 	"グループ": "Group",
 	"グループ %q の作成に失敗しました: %s":        "Failed to create group %q: %s",
