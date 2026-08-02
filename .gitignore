@@ -2,3 +2,5 @@
 /softether-tui
 *.test
 .claude/settings.local.json
+softether-vpnclient.tar.gz
+vpnclient/

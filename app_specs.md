@@ -415,6 +415,9 @@ Client モードのプロファイルは Hub の概念を持たないため、�
 - `curl | sh` パターンはスクリプト内容を事前に確認せず実行するリスクがあるため、README にスクリプトの中身を確認する手順 (`curl -fsSL .../install.sh -o install.sh && less install.sh` 等) も併記し、利用者が内容を確認してから実行できるようにする。
 - 単一バイナリを直接 `curl` で取得して実行するショートカット (アーカイブ展開不要) も、既知の固定 URL パターン (例: `.../releases/latest/download/softether-tui_<os>_<arch>`) で提供し、`install.sh` を介さない最小限の利用方法としても案内する。
 
+### 11.4 VPN Client 統合テスト仕様書
+- VPN Client (`softether-vpnclient`) との検証手順および再現手順は [`vpnclient_testing.md`](file:///Users/hiroshi/dev/softether-tui/vpnclient_testing.md) に記録。
+
 ## 12. 未決事項 (Open Questions)
 
 - アプリ名称は仮称なし。正式名称を別途決定する (リポジトリ名 `softether-tui` を仮のバイナリ名・リリース成果物名とする)。
