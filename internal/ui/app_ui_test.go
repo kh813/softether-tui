@@ -263,11 +263,32 @@ func TestGroupDetailAddMemberPrompt(t *testing.T) {
 	m.groupDetail = groupDetailState{
 		groupName: "Group1",
 		members:   []string{"User03"},
+		allUsers:  []string{"User01", "User02", "User03"},
 	}
 
-	// Pressing 'a' on Group Detail should trigger promptAddGroupMember
+	// Pressing 'a' on Group Detail when not dirty should trigger promptAddGroupMember
 	m = sendKey(m, "a")
 	if !m.prompt.active || m.prompt.kind != promptAddGroupMember {
 		t.Fatalf("expected promptAddGroupMember on 'a' key in Group Detail")
+	}
+	m.prompt.Hide()
+
+	// Move focus to User01 row (cursor = 3) and press Space -> stages change, sets dirty = true
+	m.groupDetail.cursor = 3
+	m = sendKey(m, " ")
+	if !m.groupDetail.dirty {
+		t.Fatalf("expected groupDetail to be dirty after Space key on user row")
+	}
+	if !m.groupDetail.isMember("User01") {
+		t.Fatalf("expected User01 to be staged as member")
+	}
+
+	// Pressing 'c' discards pending edits
+	m = sendKey(m, "c")
+	if m.groupDetail.dirty {
+		t.Fatalf("expected groupDetail dirty to be false after 'c' key discard")
+	}
+	if m.groupDetail.isMember("User01") {
+		t.Fatalf("expected User01 staged edit to be cleared on discard")
 	}
 }

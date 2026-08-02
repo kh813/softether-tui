@@ -444,41 +444,6 @@ func (m Model) createUser(p config.Profile, hub, name string, opts vpncmd.UserCr
 	}
 }
 
-func (m Model) removeSelectedGroupMembers() (tea.Model, tea.Cmd) {
-	d := &m.groupDetail
-	p := d.profile
-	hub := d.hubName
-	groupName := d.groupName
-
-	var toRemove []string
-	for member, sel := range d.selectedMembers {
-		if sel {
-			toRemove = append(toRemove, member)
-		}
-	}
-	if len(toRemove) == 0 {
-		return m, nil
-	}
-
-	d.selectedMembers = make(map[string]bool)
-	m.status = fmt.Sprintf(tr("選択した %d 名のユーザーをグループ %q から解除しています..."), len(toRemove), groupName)
-	m.statusErr = false
-
-	client := m.client
-	target := m.targetFromProfile(p).WithHub(hub)
-	return m, func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-		defer cancel()
-		var lastErr error
-		for _, username := range toRemove {
-			if err := client.UserSetGroup(ctx, target, username, ""); err != nil {
-				lastErr = err
-			}
-		}
-		return groupActionResultMsg{action: tr("ユーザーグループ解除"), name: groupName, err: lastErr}
-	}
-}
-
 func (m Model) deleteUser(p config.Profile, hub, name string) tea.Cmd {
 	client := m.client
 	target := m.targetFromProfile(p).WithHub(hub)
@@ -1438,9 +1403,6 @@ func (m Model) applyConfirm(kind confirmKind, target string) (tea.Model, tea.Cmd
 		m.statusErr = false
 		return m, m.deleteGroup(m.hubDetail.profile, m.hubDetail.hubName, target)
 
-	case confirmRemoveGroupMembers:
-		return m.removeSelectedGroupMembers()
-
 	case confirmQuitUnsaved, confirmQuitApp:
 		m.quitting = true
 		return m, tea.Quit
@@ -1452,6 +1414,7 @@ func (m Model) applyConfirm(kind confirmKind, target string) (tea.Model, tea.Cmd
 			m.userDetail.authType = vpncmd.UserAuthNone
 		} else if m.screen == screenGroupDetail {
 			m.groupDetail.editedValues = make(map[editableGroupField]string)
+			m.groupDetail.pendingMemberEdits = make(map[string]bool)
 			m.groupDetail.dirty = false
 		} else if m.screen == screenHubDetail && m.hubDetail.tab == hubTabSecureNAT {
 			m.hubDetail.secureNatEditedValues = make(map[editableSecureNATField]string)
