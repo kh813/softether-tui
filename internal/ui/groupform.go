@@ -45,6 +45,12 @@ func (f *groupForm) Reset() {
 	f.setFocus(groupFieldName)
 }
 
+func (f *groupForm) IsDirty() bool {
+	return strings.TrimSpace(f.inputs[0].Value()) != "" ||
+		strings.TrimSpace(f.inputs[1].Value()) != "" ||
+		strings.TrimSpace(f.inputs[2].Value()) != ""
+}
+
 func (f *groupForm) setFocus(field groupFormField) {
 	for i := range f.inputs {
 		f.inputs[i].Blur()

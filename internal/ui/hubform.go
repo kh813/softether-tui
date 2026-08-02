@@ -45,6 +45,11 @@ func (f *hubForm) Reset() {
 	f.setFocus(hubFieldName)
 }
 
+func (f *hubForm) IsDirty() bool {
+	return strings.TrimSpace(f.inputs[0].Value()) != "" ||
+		strings.TrimSpace(f.inputs[1].Value()) != ""
+}
+
 func (f *hubForm) setFocus(field hubFormField) {
 	for i := range f.inputs {
 		f.inputs[i].Blur()

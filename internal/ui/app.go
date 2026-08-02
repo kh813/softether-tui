@@ -1593,6 +1593,10 @@ func (m Model) handleFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	switch msg.String() {
 	case "esc":
+		if m.form.IsDirty() {
+			m.confirm.Show(confirmDiscardChanges, "", tr("未保存の変更があります。変更を破棄して戻りますか?"))
+			return m, nil
+		}
 		m.screen = screenProfileList
 		return m, nil
 
@@ -2363,6 +2367,10 @@ func (m Model) handleUserFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	switch msg.String() {
 	case "esc":
+		if m.userForm.IsDirty() {
+			m.confirm.Show(confirmDiscardChanges, "", tr("未保存の変更があります。変更を破棄して戻りますか?"))
+			return m, nil
+		}
 		m.screen = screenHubDetail
 		return m, nil
 
@@ -2391,6 +2399,10 @@ func (m Model) handleUserFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) handleGroupFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
+		if m.groupForm.IsDirty() {
+			m.confirm.Show(confirmDiscardChanges, "", tr("未保存の変更があります。変更を破棄して戻りますか?"))
+			return m, nil
+		}
 		m.screen = screenHubDetail
 		return m, nil
 
@@ -2447,6 +2459,10 @@ func (m Model) setRadiusServer(p config.Profile, hub, serverPort string, opts vp
 func (m Model) handleBridgeFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
+		if m.bridgeForm.IsDirty() {
+			m.confirm.Show(confirmDiscardChanges, "", tr("未保存の変更があります。変更を破棄して戻りますか?"))
+			return m, nil
+		}
 		m.screen = screenBridge
 		return m, nil
 
@@ -2557,6 +2573,10 @@ func (m Model) createCascade(p config.Profile, hub, name string, opts vpncmd.Cas
 func (m Model) handleHubFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
+		if m.hubForm.IsDirty() {
+			m.confirm.Show(confirmDiscardChanges, "", tr("未保存の変更があります。変更を破棄して戻りますか?"))
+			return m, nil
+		}
 		m.screen = screenDashboard
 		return m, nil
 

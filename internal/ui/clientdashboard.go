@@ -237,6 +237,10 @@ func (m Model) handleClientDashboardKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) handleAccountFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
+		if m.accountForm.IsDirty() {
+			m.confirm.Show(confirmDiscardChanges, "", tr("未保存の変更があります。変更を破棄して戻りますか?"))
+			return m, nil
+		}
 		m.screen = screenClientDashboard
 		return m, nil
 

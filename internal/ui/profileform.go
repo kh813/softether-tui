@@ -20,10 +20,11 @@ const (
 	fieldPort
 	fieldHub
 	fieldMode
+	fieldSave
 	fieldCount
 )
 
-var formInputCount = int(fieldMode) // number of textinput.Model fields (excludes fieldMode)
+var formInputCount = int(fieldMode) // number of textinput.Model fields (excludes fieldMode and fieldSave)
 
 var profileModeOrder = []config.Mode{config.ModeServer, config.ModeBridge, config.ModeClient}
 
@@ -74,6 +75,15 @@ func (f *profileForm) Reset() {
 	f.editing = false
 	f.original = ""
 	f.setFocus(fieldName)
+}
+
+func (f *profileForm) IsDirty() bool {
+	if !f.editing {
+		return strings.TrimSpace(f.inputs[0].Value()) != "" ||
+			strings.TrimSpace(f.inputs[1].Value()) != "" ||
+			strings.TrimSpace(f.inputs[3].Value()) != ""
+	}
+	return false
 }
 
 func (f *profileForm) setFocus(field formField) {
@@ -231,16 +241,25 @@ func (f *profileForm) View() string {
 		canSave := nameValid && hostValid && portValid
 
 		b.WriteString("\n")
+		saveMarker := "  "
+		if f.focus == fieldSave {
+			saveMarker = "> "
+		}
+
 		if canSave {
-			b.WriteString(saveKeyStyle.Render(" [ Save ] ") + "\n")
+			if f.focus == fieldSave {
+				b.WriteString(saveMarker + saveKeyStyle.Render(" [ Save ] ") + "\n")
+			} else {
+				b.WriteString(saveMarker + inactiveTabStyle.Render(" [ Save ] ") + "\n")
+			}
 			b.WriteString("\n" + renderHelp(
 				"Tab/↑↓", tr("項目移動"),
-				"Enter", tr("保存"),
+				"Enter", tr("保存 (Save)"),
 				"←/→", tr("モード切替"),
 				"Esc", tr("キャンセル"),
 			))
 		} else {
-			b.WriteString(dimStyle.Render("  [ Save - Please fill required fields ]") + "\n")
+			b.WriteString(saveMarker + dimStyle.Render("[ Save - Please fill required fields ]") + "\n")
 			b.WriteString("\n" + renderHelp(
 				"Tab/↑↓", tr("項目移動"),
 				"←/→", tr("モード切替"),

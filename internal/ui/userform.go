@@ -110,6 +110,14 @@ func (f *userForm) setFocus(field userFormField) {
 	}
 }
 
+func (f *userForm) IsDirty() bool {
+	return strings.TrimSpace(f.inputs[userFieldName].Value()) != "" ||
+		strings.TrimSpace(f.inputs[userFieldRealName].Value()) != "" ||
+		strings.TrimSpace(f.inputs[userFieldNote].Value()) != "" ||
+		strings.TrimSpace(f.authParam1.Value()) != "" ||
+		strings.TrimSpace(f.authParam2.Value()) != ""
+}
+
 func (f *userForm) fieldCount() userFormField {
 	switch f.authType {
 	case vpncmd.UserAuthPassword, vpncmd.UserAuthCert, vpncmd.UserAuthNTLM, vpncmd.UserAuthRadius:

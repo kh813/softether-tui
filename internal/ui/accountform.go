@@ -73,6 +73,13 @@ func (f *accountForm) Reset() {
 	f.setFocus(accountFieldName)
 }
 
+func (f *accountForm) IsDirty() bool {
+	return strings.TrimSpace(f.inputs[0].Value()) != "" ||
+		strings.TrimSpace(f.inputs[1].Value()) != "" ||
+		strings.TrimSpace(f.inputs[3].Value()) != "" ||
+		strings.TrimSpace(f.password.Value()) != ""
+}
+
 func (f *accountForm) setFocus(field accountFormField) {
 	for i := range f.inputs {
 		f.inputs[i].Blur()

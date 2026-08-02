@@ -47,6 +47,12 @@ func (f *bridgeForm) Reset() {
 	f.setFocus(bridgeFieldHub)
 }
 
+func (f *bridgeForm) IsDirty() bool {
+	return strings.TrimSpace(f.inputs[0].Value()) != "" ||
+		strings.TrimSpace(f.inputs[1].Value()) != "" ||
+		f.tap
+}
+
 func (f *bridgeForm) setFocus(field bridgeFormField) {
 	for i := range f.inputs {
 		f.inputs[i].Blur()
