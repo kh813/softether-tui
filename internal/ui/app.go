@@ -35,6 +35,7 @@ const (
 	screenBridgeForm
 	screenClientDashboard
 	screenAccountForm
+	screenCascadeForm
 )
 
 // Model is the root Bubble Tea model: it routes key input and messages to
@@ -60,6 +61,7 @@ type Model struct {
 	radiusForm  *radiusForm
 	bridgeForm  *bridgeForm
 	accountForm *accountForm
+	cascadeForm *cascadeForm
 
 	dashboard       dashboardState
 	hubDetail       hubDetailState
@@ -93,6 +95,7 @@ func New(store *config.Store, client *vpncmd.Client, version string) Model {
 		radiusForm:              newRadiusForm(),
 		bridgeForm:              newBridgeForm(),
 		accountForm:             newAccountForm(),
+		cascadeForm:             newCascadeForm(),
 		testResults:             map[string]error{},
 		sessionPasswords:        map[string]string{},
 		initialPasswordPrompted: map[string]bool{},
@@ -122,6 +125,7 @@ type serverInfoMsg struct {
 	info        vpncmd.KeyValue
 	status      vpncmd.KeyValue
 	hubs        vpncmd.Table
+	bridges     vpncmd.Table
 	err         error
 }
 
@@ -260,15 +264,17 @@ func (m Model) fetchServerInfo(p config.Profile) tea.Cmd {
 		defer cancel()
 
 		type resStruct struct {
-			info   vpncmd.KeyValue
-			status vpncmd.KeyValue
-			hubs   vpncmd.Table
-			err    error
+			info    vpncmd.KeyValue
+			status  vpncmd.KeyValue
+			hubs    vpncmd.Table
+			bridges vpncmd.Table
+			err     error
 		}
 
 		infoChan := make(chan resStruct, 1)
 		statusChan := make(chan resStruct, 1)
 		hubsChan := make(chan resStruct, 1)
+		bridgesChan := make(chan resStruct, 1)
 
 		go func() {
 			info, err := client.ServerInfo(ctx, target)
@@ -283,6 +289,11 @@ func (m Model) fetchServerInfo(p config.Profile) tea.Cmd {
 		go func() {
 			hubs, err := client.HubList(ctx, target)
 			hubsChan <- resStruct{hubs: hubs, err: err}
+		}()
+
+		go func() {
+			bridges, _ := client.BridgeList(ctx, target)
+			bridgesChan <- resStruct{bridges: bridges}
 		}()
 
 		r1 := <-infoChan
@@ -300,7 +311,9 @@ func (m Model) fetchServerInfo(p config.Profile) tea.Cmd {
 			return serverInfoMsg{profileName: name, err: r3.err}
 		}
 
-		return serverInfoMsg{profileName: name, info: r1.info, status: r2.status, hubs: r3.hubs}
+		r4 := <-bridgesChan
+
+		return serverInfoMsg{profileName: name, info: r1.info, status: r2.status, hubs: r3.hubs, bridges: r4.bridges}
 	}
 }
 
@@ -685,6 +698,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.dashboard.info = msg.info
 		m.dashboard.status = msg.status
 		m.dashboard.hubs = msg.hubs
+		m.dashboard.bridges = msg.bridges
 		if m.dashboard.hubCursor >= len(msg.hubs.Rows) {
 			m.dashboard.hubCursor = len(msg.hubs.Rows) - 1
 		}
@@ -1222,6 +1236,8 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleClientDashboardKey(normMsg)
 	case screenAccountForm:
 		return m.handleAccountFormKey(msg)
+	case screenCascadeForm:
+		return m.handleCascadeFormKey(msg)
 	}
 	return m, nil
 }
@@ -1347,7 +1363,7 @@ func (m Model) submitPrompt() (tea.Model, tea.Cmd) {
 				Hub:        hub,
 				User:       "cascade",
 			}
-			return m, m.createCascade(profile, hub, opts)
+			return m, m.createCascade(profile, hub, name, opts, "", false)
 		}
 
 	case promptHubPassword:
@@ -1666,6 +1682,9 @@ func (m Model) handleHubDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 
 	case "esc":
+		if m.hubDetail.tab == hubTabSecureNAT && m.hubDetail.secureNatEditing {
+			return m.handleHubSecureNATKey(msg)
+		}
 		if m.hubDetail.tab == hubTabSecureNAT && m.hubDetail.secureNatDirty {
 			m.confirm.Show(confirmDiscardChanges, "", tr("未保存の変更があります。変更を破棄して戻りますか?"))
 			return m, nil
@@ -2419,6 +2438,55 @@ func (m Model) handleBridgeFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m Model) handleCascadeFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc":
+		m.screen = screenHubDetail
+		return m, nil
+
+	case "enter":
+		name, opts, password, err := m.cascadeForm.Build()
+		if err != nil {
+			m.status = err.Error()
+			m.statusErr = true
+			return m, nil
+		}
+		action := tr("作成")
+		if m.cascadeForm.editing {
+			action = tr("更新")
+		}
+		m.status = fmt.Sprintf(tr("カスケード接続 %q を%sしています..."), name, action)
+		m.statusErr = false
+		m.screen = screenHubDetail
+		return m, m.createCascade(m.hubDetail.profile, m.hubDetail.hubName, name, opts, password, m.cascadeForm.editing)
+	}
+
+	cmd := m.cascadeForm.Update(msg)
+	return m, cmd
+}
+
+func (m Model) createCascade(p config.Profile, hub, name string, opts vpncmd.CascadeCreateOptions, password string, isEdit bool) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		var err error
+		if isEdit {
+			err = client.CascadeSet(ctx, target, name, opts.ServerHost, opts.ServerPort, opts.Hub, opts.User)
+		} else {
+			err = client.CascadeCreate(ctx, target, name, opts)
+		}
+		if err != nil {
+			return cascadeActionResultMsg{action: tr("作成/変更"), name: name, err: err}
+		}
+		if password != "" {
+			_ = client.CascadePasswordSet(ctx, target, name, password, "standard")
+		}
+		return cascadeActionResultMsg{action: tr("作成/変更"), name: name, err: nil}
+	}
+}
+
 func (m Model) handleHubFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "esc":
@@ -2482,6 +2550,8 @@ func (m Model) View() string {
 		body = m.clientDashboard.View()
 	case screenAccountForm:
 		body = m.accountForm.View()
+	case screenCascadeForm:
+		body = m.cascadeForm.View()
 	}
 
 	if m.status != "" {

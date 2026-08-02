@@ -72,7 +72,8 @@
 ### 5.2 サーバーダッシュボード
 
 - 接続後のトップ画面。サーバー種別・バージョン・稼働時間・Hub 数・総セッション数などのサマリを表示 (`ServerInfoGet`, `ServerStatusGet`)。
-- Hub 一覧への導線、リスナー一覧への導線。
+- **Hub 一覧 ＆ ローカルブリッジ統合表示**: 画面上部に Hub 一覧 (`HubList`)、画面下部に**コンパクトなローカルブリッジ一覧セクション (`BridgeList`: Hub名, 物理NIC/tapデバイス名, 状態)** を配置。一画面でサーバー全体の主要コンポーネントを監視可能。
+- Hub 一覧への導線、リスナー一覧への導線、ローカルブリッジ管理への導線。
 
 ### 5.3 HUB 管理
 
@@ -80,7 +81,7 @@
 - Hub 作成・削除・有効化/無効化 (`HubCreate`, `HubDelete`)。
 - Hub 詳細設定の閲覧・編集 (`HubGet`, `HubSet`): 最大セッション数, オンライン/オフライン切替, パスワードポリシー既定値など。
 - SecureNAT 設定の有効化/無効化と状態確認、DHCP 配布設定 (`SecureNatEnable`, `SecureNatDisable`, `SecureNatStatusGet`, `SecureNatHostGet/Set`)。
-- アクセスリスト (パケットフィルタ) の一覧・追加・削除・有効/無効切替 (`AccessList`, `AccessAdd`, `AccessDelete`, `AccessEnable`, `AccessDisable`)。
+- アクセスリスト (パケットフィルタ) の一覧・追加・削除・編集・有効/無効切替 (`AccessList`, `AccessAdd`, `AccessDelete`, `AccessEnable`, `AccessDisable`)。
 
 ### 5.4 リスナー管理
 
@@ -126,13 +127,18 @@
 
 ### 5.7 カスケード接続管理 (Bridge 向け)
 
-- カスケード接続 (拠点間 Hub-to-Hub 接続) の一覧・作成・削除 (`CascadeList`, `CascadeCreate`, `CascadeDelete`)。
-- 接続状態確認・詳細表示 (`CascadeStatusGet`, `CascadeDetailGet`)。
-- オンライン/オフライン切替 (`CascadeOnline`, `CascadeOffline`)。
+- **マルチカラム一覧 ＆ 選択中詳細表示**: `Setting Name`, `Status`, `Destination VPN Server`, `Virtual Hub`, `Established at` のマルチカラム表示および下部選択中詳細パネル (`CascadeGet` 由来) による情報可視化。
+- **フルセット TUI フォーム UI によるカスケード作成 (`CascadeCreate` + `CascadePasswordSet`)**:
+  - `c` (Create) キーで起動する専用フォーム (`cascadeForm`)。
+  - 入力項目: カスケード接続名 (`Setting Name`), 接続先サーバー (`Host:Port`), 接続先 Hub (`Target Hub`), 認証ユーザー名 (`User Name`), パスワード (`Password`)。
+  - 共通 UI ルールに準拠し、`Tab`/`↓` キーで `[ Save ]` ボタンへフォーカス移動し `Enter` キーで `CascadeCreate` および `CascadePasswordSet` を一括適用・保存。
+- **カスケード接続設定の閲覧・変更 (`CascadeGet`, `CascadeSet`, `CascadePasswordSet`)**:
+  - 選択中の接続に対して `Enter` または `e` キーで詳細・編集フォームを呼び出し、接続先ホスト・ポート・接続先Hub・認証情報（ユーザー名/パスワード）を再設定・更新可能。
+- **オンライン/オフライン切替 (`CascadeOnline`, `CascadeOffline`)** および **削除 (確認ダイアログ必須) (`CascadeDelete`)**。
 
 ### 5.8 ローカルブリッジ管理
 
-- 物理 NIC / tap デバイスとのブリッジ設定一覧・作成・削除 (`BridgeList`, `BridgeCreate`, `BridgeDelete`)。
+- **ダッシュボード統合表示 ＆ 専用管理画面**: サーバーダッシュボード画面下部に一覧をコンパクト表示し、独立画面 (`screenBridge`) では詳細一覧・作成・削除 (`BridgeList`, `BridgeCreate`, `BridgeDelete`) を提供。
 
 ### 5.9 証明書管理 (簡易)
 

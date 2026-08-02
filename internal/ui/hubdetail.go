@@ -550,8 +550,20 @@ func (d hubDetailState) viewAccessList(b *strings.Builder) {
 		b.WriteString(tr("読み込み中...") + "\n")
 	case d.accessErr != nil:
 		b.WriteString(errorStyle.Render(tr("エラー: ")+d.accessErr.Error()) + "\n")
+	case len(d.access.Rows) == 0:
+		b.WriteString(dimStyle.Render(tr("(アクセスリストルールがありません)")) + "\n")
 	default:
-		b.WriteString(renderTable(d.access, d.accessCursor))
+		b.WriteString(renderMultiColumnTable(d.access, d.accessCursor))
+		if d.accessCursor >= 0 && d.accessCursor < len(d.access.Rows) {
+			row := d.access.Rows[d.accessCursor]
+			b.WriteString("\n" + headerStyle.Render(tr("選択中のルール詳細")) + "\n")
+			keys := []string{"ID", "Action", "Status", "Priority", "Memo", "Contents", "Unique ID"}
+			for _, k := range keys {
+				if v, ok := row[k]; ok && v != "" {
+					fmt.Fprintf(b, "  %-12s %s\n", k+":", v)
+				}
+			}
+		}
 	}
 	b.WriteString("\n" + renderHelp(
 		"↑/↓", tr("選択"),
@@ -800,16 +812,7 @@ func (m Model) addAccessRule(p config.Profile, hub string, opts vpncmd.AccessAdd
 	}
 }
 
-func (m Model) createCascade(p config.Profile, hub string, opts vpncmd.CascadeCreateOptions) tea.Cmd {
-	client := m.client
-	target := m.targetFromProfile(p).WithHub(hub)
-	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		defer cancel()
-		err := client.CascadeCreate(ctx, target, opts)
-		return cascadeActionResultMsg{action: tr("作成"), name: opts.Name, err: err}
-	}
-}
+
 
 func (m Model) fetchCascade(p config.Profile, hub string) tea.Cmd {
 	client := m.client
@@ -859,8 +862,27 @@ func (m Model) handleHubCascadeKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.hubDetail.cascadeCursor++
 		}
 	case "c", "C", "a", "A":
-		m.prompt.Show(promptCascadeCreateName, "", tr("カスケード接続名を入力してください:"), "to-branch-hub", false)
+		m.cascadeForm.Reset()
+		m.screen = screenCascadeForm
+		m.status = ""
 		return m, nil
+	case "e", "E", "enter":
+		if name, ok := m.hubDetail.currentCascadeName(); ok && m.hubDetail.cascadeCursor < len(m.hubDetail.cascade.Rows) {
+			row := m.hubDetail.cascade.Rows[m.hubDetail.cascadeCursor]
+			hostPort := row["Destination VPN Server"]
+			host := hostPort
+			port := 443
+			if parts := strings.Split(hostPort, ":"); len(parts) == 2 {
+				host = parts[0]
+				fmt.Sscanf(parts[1], "%d", &port)
+			}
+			targetHub := row["Virtual Hub"]
+			user := row["User Name"]
+			m.cascadeForm.LoadCascade(name, host, port, targetHub, user)
+			m.screen = screenCascadeForm
+			m.status = ""
+			return m, nil
+		}
 	case "d":
 		if name, ok := m.hubDetail.currentCascadeName(); ok {
 			m.confirm.Show(confirmDeleteCascade, name, fmt.Sprintf(tr("カスケード接続 %q を削除しますか?"), name))
@@ -887,8 +909,20 @@ func (d hubDetailState) viewCascade(b *strings.Builder) {
 		b.WriteString(tr("読み込み中...") + "\n")
 	case d.cascadeErr != nil:
 		b.WriteString(errorStyle.Render(tr("エラー: ")+d.cascadeErr.Error()) + "\n")
+	case len(d.cascade.Rows) == 0:
+		b.WriteString(dimStyle.Render(tr("(カスケード接続がありません)")) + "\n")
 	default:
-		b.WriteString(renderTable(d.cascade, d.cascadeCursor))
+		b.WriteString(renderMultiColumnTable(d.cascade, d.cascadeCursor))
+		if d.cascadeCursor >= 0 && d.cascadeCursor < len(d.cascade.Rows) {
+			row := d.cascade.Rows[d.cascadeCursor]
+			b.WriteString("\n" + headerStyle.Render(tr("選択中のカスケード詳細")) + "\n")
+			keys := []string{"Setting Name", "Status", "Destination VPN Server", "Virtual Hub", "Established at"}
+			for _, k := range keys {
+				if v, ok := row[k]; ok && v != "" {
+					fmt.Fprintf(b, "  %-24s %s\n", k+":", v)
+				}
+			}
+		}
 	}
 	b.WriteString("\n" + renderHelp(
 		"↑/↓", tr("選択"),

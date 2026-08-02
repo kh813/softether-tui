@@ -1040,19 +1040,46 @@ type CascadeCreateOptions struct {
 	User       string
 }
 
-func (c *Client) CascadeCreate(ctx context.Context, t Target, opts CascadeCreateOptions) error {
+func (c *Client) CascadeCreate(ctx context.Context, t Target, name string, opts CascadeCreateOptions) error {
 	port := opts.ServerPort
 	if port <= 0 {
 		port = 443
 	}
 	serverAddr := fmt.Sprintf("%s:%d", opts.ServerHost, port)
-	stdinLines := []string{
-		opts.Name,
-		serverAddr,
-		opts.Hub,
-		opts.User,
+	args := []string{
+		name,
+		"/SERVER:" + serverAddr,
+		"/HUB:" + opts.Hub,
+		"/USERNAME:" + opts.User,
 	}
-	_, err := c.RunWithInput(ctx, t, "CascadeCreate", nil, stdinLines)
+	_, err := c.Run(ctx, t, "CascadeCreate", args...)
+	return err
+}
+
+func (c *Client) CascadeSet(ctx context.Context, t Target, name, host string, port int, hub, username string) error {
+	if port <= 0 {
+		port = 443
+	}
+	serverAddr := fmt.Sprintf("%s:%d", host, port)
+	args := []string{
+		name,
+		"/SERVER:" + serverAddr,
+		"/HUB:" + hub,
+	}
+	_, err := c.Run(ctx, t, "CascadeSet", args...)
+	return err
+}
+
+func (c *Client) CascadePasswordSet(ctx context.Context, t Target, name, password, authType string) error {
+	if authType == "" {
+		authType = "standard"
+	}
+	args := []string{
+		name,
+		"/PASSWORD:" + password,
+		"/TYPE:" + authType,
+	}
+	_, err := c.Run(ctx, t, "CascadePasswordSet", args...)
 	return err
 }
 
