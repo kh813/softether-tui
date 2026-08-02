@@ -296,6 +296,27 @@ func (f *aclForm) Update(msg tea.KeyMsg) tea.Cmd {
 	case "shift+tab", "up":
 		f.setFocus((f.focus - 1 + aclFieldCount) % aclFieldCount)
 		return nil
+	case "enter", "space":
+		if f.focus == aclFieldPass {
+			f.pass = !f.pass
+			f.dirty = true
+			return nil
+		}
+		if f.focus == aclFieldEnable {
+			f.enable = !f.enable
+			f.dirty = true
+			return nil
+		}
+		if f.focus == aclFieldProtocol {
+			f.protocolIdx = (f.protocolIdx + 1) % len(aclProtocolOrder)
+			f.dirty = true
+			return nil
+		}
+		if f.focus == aclFieldTcpState {
+			f.tcpStateIdx = (f.tcpStateIdx + 1) % len(aclTcpStateOrder)
+			f.dirty = true
+			return nil
+		}
 	case "left", "h":
 		if f.focus == aclFieldPass {
 			f.pass = !f.pass

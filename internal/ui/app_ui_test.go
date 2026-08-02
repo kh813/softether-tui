@@ -226,3 +226,33 @@ func TestACLFormProtocolSelectionAndEscProtection(t *testing.T) {
 		t.Fatalf("expected confirmDiscardChanges modal on Esc when aclForm is dirty")
 	}
 }
+
+func TestACLFormEnterKeySelectFieldsToggling(t *testing.T) {
+	m := setupTestModel(t)
+	m.screen = screenACLForm
+	m.aclForm.Reset()
+
+	// Initial focus on Action (aclFieldPass), pass = true
+	if !m.aclForm.pass {
+		t.Fatalf("expected initial pass = true")
+	}
+	// Pressing Enter on Action toggles pass -> false (Discard)
+	m = sendKey(m, "enter")
+	if m.aclForm.pass {
+		t.Fatalf("expected pass = false after pressing Enter on Action field")
+	}
+
+	// Move focus to Status (aclFieldEnable)
+	m = sendKey(m, "down")
+	if m.aclForm.focus != aclFieldEnable {
+		t.Fatalf("expected focus aclFieldEnable, got %v", m.aclForm.focus)
+	}
+	if !m.aclForm.enable {
+		t.Fatalf("expected initial enable = true")
+	}
+	// Pressing Enter on Status toggles enable -> false (Disable)
+	m = sendKey(m, "enter")
+	if m.aclForm.enable {
+		t.Fatalf("expected enable = false after pressing Enter on Status field")
+	}
+}

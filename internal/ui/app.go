@@ -2586,20 +2586,22 @@ func (m Model) handleACLFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case "enter":
-		opts, err := m.aclForm.Build()
-		if err != nil {
-			m.status = err.Error()
-			m.statusErr = true
-			return m, nil
+		if m.aclForm.focus == aclFieldSave {
+			opts, err := m.aclForm.Build()
+			if err != nil {
+				m.status = err.Error()
+				m.statusErr = true
+				return m, nil
+			}
+			action := tr("追加")
+			if m.aclForm.editing {
+				action = tr("更新")
+			}
+			m.status = fmt.Sprintf(tr("アクセスリストルールを%sしています..."), action)
+			m.statusErr = false
+			m.screen = screenHubDetail
+			return m, m.saveACLRule(m.hubDetail.profile, m.hubDetail.hubName, opts, m.aclForm.editing, m.aclForm.targetID)
 		}
-		action := tr("追加")
-		if m.aclForm.editing {
-			action = tr("更新")
-		}
-		m.status = fmt.Sprintf(tr("アクセスリストルールを%sしています..."), action)
-		m.statusErr = false
-		m.screen = screenHubDetail
-		return m, m.saveACLRule(m.hubDetail.profile, m.hubDetail.hubName, opts, m.aclForm.editing, m.aclForm.targetID)
 	}
 
 	cmd := m.aclForm.Update(msg)
