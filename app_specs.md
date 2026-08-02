@@ -143,6 +143,7 @@
     10. TCP 接続状態 (`TcpState`: `All`, `Established`, `Unestablished`)
     11. 送信元 ユーザー名 / MAC (`Src User`, `Src MAC`)
     12. 送信先 ユーザー名 / MAC (`Dst User`, `Dst MAC`)
+  - **トグル・選択フィールドの `Enter` / `Space` キー操作**: `Action` (`Pass`/`Discard`), `Status` (`Enable`/`Disable`), `Protocol` (`ALL`/`ICMPv4`/`TCP`/`UDP`/`ICMPv6`), `TCP State` (`All`/`Established`/`Unestablished`) の各選択項目にフォーカスがある場合、`Enter` または `Space` キーを押すことで動的に選択肢がトグル・順次切り替わり、`[ Save ]` ボタンフォーカス時のみ `Enter` キーで保存が実行される。
   - **編集時のアトミック書き換え (`AccessDelete` ➔ `AccessAdd`)**: 編集保存時、旧ルール ID を `AccessDelete` 削除した上で更新後のパラメーターで `AccessAdd` を実行。
   - **未保存データ破棄保護 (`confirmDiscardChanges`)**: 入力変更が存在する状態で `Esc` キーを押した際、即時離脱を防ぎ確認モーダルを表示。
 - **有効化/無効化切替 (`o` / `f` キー)** および **削除 (確認ダイアログ必須) (`d` キー)**。

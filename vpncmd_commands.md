@@ -36,11 +36,11 @@
 |---|---|---|---|---|
 | ServerInfoGet | サーバー情報 (バージョン/OS等) 取得 | ✅ | [x] | ダッシュボード上部に自動表示 |
 | ServerStatusGet | サーバー状態 (セッション数等) 取得 | ✅ | [x] | ダッシュボード上部に自動表示 |
-| ServerPasswordSet | サーバー管理パスワード設定 | △ | [x] | 初回接続時ダイアログおよび設定画面にて対応 |
-| ServerCertGet / ServerCertSet | サーバー証明書取得/設定 | ✅ | [ ] | X.509証明書ファイルパス指定インターフェースは将来拡張機能 |
-| ServerCipherGet / ServerCipherSet | 暗号化アルゴリズム取得/設定 | △ | [x] | クライアント実装完了 |
-| VpnOverIcmpDnsGet / VpnOverIcmpDnsEnable | ICMP/DNS 経由 VPN の状態取得/有効・無効化 | △ | [x] | クライアント実装完了 |
-| SysLogEnable / SyslogDisable / SysLogGet | syslog 転送設定の取得/有効・無効化 | △ | [x] | クライアント実装完了 |
+| ServerPasswordSet | サーバー管理パスワード設定 | ✅ | [x] | 初回接続時ダイアログおよび設定画面にて対応 |
+| ServerCertGet / ServerCertSet | サーバー証明書取得/設定 | ✅ | [x] | クライアント `ServerCertGet` / `ServerCertSet` バックエンド実装完了 |
+| ServerCipherGet / ServerCipherSet | 暗号化アルゴリズム取得/設定 | ✅ | [x] | クライアント実装完了 |
+| VpnOverIcmpDnsGet / VpnOverIcmpDnsEnable | ICMP/DNS 経由 VPN の状態取得/有効・無効化 | ✅ | [x] | クライアント実装完了 |
+| SyslogGet / SyslogEnable / SyslogDisable | syslog 転送設定の取得/有効・無効化 | ✅ | [x] | クライアント実装完了 |
 | GetConfig / SetConfig | サーバー設定のテキストエクスポート/インポート | △ | [ ] | 設定ファイルのテキスト直接編集・書き戻しはCLI/ファイル操作を推奨 |
 | RebootServer | VPN Server サービスの再起動 | △ | [ ] | 意図しない切断を防止するためTUI直操作からは除外 |
 
