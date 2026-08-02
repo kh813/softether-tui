@@ -1111,6 +1111,21 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	if m.confirm.active {
 		switch msg.String() {
+		case "left", "right", "tab", "h", "l":
+			if m.confirm.focus == confirmBtnYes {
+				m.confirm.focus = confirmBtnNo
+			} else {
+				m.confirm.focus = confirmBtnYes
+			}
+			return m, nil
+		case "enter":
+			if m.confirm.focus == confirmBtnYes {
+				kind, target := m.confirm.kind, m.confirm.target
+				m.confirm.Hide()
+				return m.applyConfirm(kind, target)
+			}
+			m.confirm.Hide()
+			return m, nil
 		case "y", "Y":
 			kind, target := m.confirm.kind, m.confirm.target
 			m.confirm.Hide()

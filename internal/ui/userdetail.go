@@ -18,9 +18,10 @@ import (
 type editableUserField int
 
 const (
-	fieldGroup editableUserField = iota
-	fieldRealName
+	fieldRealName editableUserField = iota
+	fieldGroup
 	fieldNote
+	fieldAuthType
 	fieldPassword
 	fieldExpires
 	editableUserFieldCount
@@ -41,6 +42,13 @@ type userDetailState struct {
 	input        textinput.Model
 	editedValues map[editableUserField]string
 	dirty        bool
+
+	// Auth Type Dropdown overlay state
+	dropdownActive bool
+	dropdownCursor int
+	authType       vpncmd.UserAuthType
+	authParam1     string
+	authParam2     string
 }
 
 type userDetailLoadedMsg struct {
@@ -74,12 +82,41 @@ func (d userDetailState) View() string {
 		d.renderSections(&b)
 	}
 
-	if d.editing {
+	if d.dropdownActive {
+		b.WriteString("\n" + d.renderAuthTypeDropdown())
+	} else if d.editing {
 		b.WriteString("\n" + renderHelp("Enter", tr("決定"), "Esc", tr("キャンセル")))
 	} else if d.dirty {
 		b.WriteString("\n" + renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更"), "s", tr("保存 (Save)"), "c", tr("変更を破棄 (Cancel)")))
 	} else {
 		b.WriteString("\n" + renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更"), "d", tr("削除"), "Esc", tr("戻る"), "q", tr("終了")))
+	}
+	return b.String()
+}
+
+func (d userDetailState) renderAuthTypeDropdown() string {
+	var b strings.Builder
+	b.WriteString(headerStyle.Render(tr("--- 認証方式の選択 (↑/↓:移動 Enter:決定 Esc:閉じる) ---")) + "\n")
+	options := []struct {
+		authType vpncmd.UserAuthType
+		label    string
+	}{
+		{vpncmd.UserAuthPassword, "Password Authentication (パスワード認証)"},
+		{vpncmd.UserAuthAnonymous, "Anonymous Authentication (匿名認証)"},
+		{vpncmd.UserAuthRadius, "RADIUS Authentication (RADIUS認証)"},
+		{vpncmd.UserAuthCert, "Individual Certificate Authentication (個別証明書認証)"},
+		{vpncmd.UserAuthSignedCert, "Signed Certificate Authentication (CA署名付き証明書認証)"},
+		{vpncmd.UserAuthNTLM, "NT Domain / Active Directory Authentication (NTドメイン/AD認証)"},
+	}
+
+	for i, opt := range options {
+		marker := "  "
+		style := statusBarStyle
+		if d.dropdownCursor == i {
+			marker = "> "
+			style = selectedStyle
+		}
+		fmt.Fprintf(&b, "%s%s\n", marker, style.Render(opt.label))
 	}
 	return b.String()
 }
@@ -91,7 +128,7 @@ func (d userDetailState) renderSections(b *strings.Builder) {
 	d.renderEditableField(b, fieldRealName, "Full Name", d.getKV("Full Name", "User Full Name"))
 	d.renderEditableField(b, fieldGroup, "Group Name", d.getKV("Group Name", "Group"))
 	d.renderEditableField(b, fieldNote, "Description", d.getKV("Description", "User Description"))
-	d.renderFieldLine(b, "Auth Type", d.getKV("Auth Type", "Auth Method"))
+	d.renderEditableField(b, fieldAuthType, "Auth Type", d.getKV("Auth Type", "Auth Method"))
 	d.renderPasswordField(b)
 	d.renderEditableField(b, fieldExpires, "Expiration Date", d.getKV("Expiration Date", "Expiration Date (UTC)"))
 	d.renderFieldLine(b, "Created on", d.getKV("Created on", "Created at"))
@@ -186,6 +223,50 @@ func (d userDetailState) renderPasswordField(b *strings.Builder) {
 func (m Model) handleUserDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	d := &m.userDetail
 
+	if d.dropdownActive {
+		switch msg.String() {
+		case "up", "k":
+			if d.dropdownCursor > 0 {
+				d.dropdownCursor--
+			}
+			return m, nil
+		case "down", "j":
+			if d.dropdownCursor < 5 {
+				d.dropdownCursor++
+			}
+			return m, nil
+		case "enter":
+			types := []vpncmd.UserAuthType{
+				vpncmd.UserAuthPassword,
+				vpncmd.UserAuthAnonymous,
+				vpncmd.UserAuthRadius,
+				vpncmd.UserAuthCert,
+				vpncmd.UserAuthSignedCert,
+				vpncmd.UserAuthNTLM,
+			}
+			labels := []string{
+				"Password Authentication",
+				"Anonymous Authentication",
+				"RADIUS Authentication",
+				"Individual Certificate Authentication",
+				"Signed Certificate Authentication",
+				"NT Domain / Active Directory Authentication",
+			}
+			d.authType = types[d.dropdownCursor]
+			if d.editedValues == nil {
+				d.editedValues = make(map[editableUserField]string)
+			}
+			d.editedValues[fieldAuthType] = labels[d.dropdownCursor]
+			d.dirty = true
+			d.dropdownActive = false
+			return m, nil
+		case "esc":
+			d.dropdownActive = false
+			return m, nil
+		}
+		return m, nil
+	}
+
 	if d.editing {
 		switch msg.String() {
 		case "enter":
@@ -238,6 +319,7 @@ func (m Model) handleUserDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if d.dirty && (msg.String() == "c" || msg.String() == "C") {
 			d.editedValues = make(map[editableUserField]string)
 			d.dirty = false
+			d.authType = vpncmd.UserAuthNone
 			m.status = tr("変更を破棄しました")
 			m.statusErr = false
 			return m, nil
@@ -256,6 +338,12 @@ func (m Model) handleUserDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "enter":
+		if d.cursor == fieldAuthType {
+			d.dropdownActive = true
+			d.dropdownCursor = 0
+			return m, nil
+		}
+
 		d.editing = true
 		d.editingField = d.cursor
 		ti := textinput.New()
@@ -293,12 +381,14 @@ func (m Model) handleUserDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (d userDetailState) getFieldValue(field editableUserField) string {
 	switch field {
-	case fieldGroup:
-		return d.getKV("Group Name", "Group")
 	case fieldRealName:
 		return d.getKV("Full Name", "User Full Name")
+	case fieldGroup:
+		return d.getKV("Group Name", "Group")
 	case fieldNote:
 		return d.getKV("Description", "User Description")
+	case fieldAuthType:
+		return d.getKV("Auth Type", "Auth Method")
 	case fieldExpires:
 		return d.getKV("Expiration Date", "Expiration Date (UTC)")
 	}
@@ -326,7 +416,34 @@ func (m Model) saveUserDetailChanges() (tea.Model, tea.Cmd) {
 		cmds = append(cmds, m.setUserSet(p, hub, name, opts))
 	}
 
-	if pw, ok := d.editedValues[fieldPassword]; ok && pw != "" {
+	// Change Auth Type if updated
+	if d.authType != vpncmd.UserAuthNone {
+		client := m.client
+		target := m.targetFromProfile(p).WithHub(hub)
+		authType := d.authType
+		pw := d.editedValues[fieldPassword]
+
+		cmds = append(cmds, func() tea.Msg {
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+			var err error
+			switch authType {
+			case vpncmd.UserAuthPassword:
+				err = client.UserPasswordSet(ctx, target, name, pw)
+			case vpncmd.UserAuthAnonymous:
+				err = client.UserAnonymousSet(ctx, target, name)
+			case vpncmd.UserAuthRadius:
+				err = client.UserRadiusSet(ctx, target, name, d.authParam1)
+			case vpncmd.UserAuthCert:
+				err = client.UserCertSet(ctx, target, name, d.authParam1)
+			case vpncmd.UserAuthSignedCert:
+				err = client.UserSignedSet(ctx, target, name, d.authParam1, d.authParam2)
+			case vpncmd.UserAuthNTLM:
+				err = client.UserNTLMSet(ctx, target, name, d.authParam1)
+			}
+			return userActionResultMsg{action: tr("認証方式変更"), name: name, err: err}
+		})
+	} else if pw, ok := d.editedValues[fieldPassword]; ok && pw != "" {
 		cmds = append(cmds, m.setUserPassword(p, hub, name, pw))
 	}
 

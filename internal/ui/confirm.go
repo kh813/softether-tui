@@ -30,11 +30,19 @@ const (
 // the action as a kind+target pair rather than a closure: Model.Update uses
 // value semantics (a fresh Model each call), so a closure captured at Show
 // time would see stale profile state by the time the user answers.
+type confirmButton int
+
+const (
+	confirmBtnYes confirmButton = iota
+	confirmBtnNo
+)
+
 type confirmDialog struct {
 	active  bool
 	kind    confirmKind
 	target  string
 	message string
+	focus   confirmButton
 }
 
 func (c *confirmDialog) Show(kind confirmKind, target, message string) {
@@ -42,6 +50,7 @@ func (c *confirmDialog) Show(kind confirmKind, target, message string) {
 	c.kind = kind
 	c.target = target
 	c.message = message
+	c.focus = confirmBtnYes
 }
 
 func (c *confirmDialog) Hide() {
@@ -49,6 +58,22 @@ func (c *confirmDialog) Hide() {
 }
 
 func (c *confirmDialog) View() string {
-	content := tr("確認") + "\n\n" + c.message + "\n\n" + tr("[ y: 実行する ]   [ n: キャンセル ]")
+	yesStyle := inactiveTabStyle
+	noStyle := inactiveTabStyle
+	yesMarker := "  "
+	noMarker := "  "
+
+	if c.focus == confirmBtnYes {
+		yesStyle = saveKeyStyle
+		yesMarker = "> "
+	} else {
+		noStyle = saveKeyStyle
+		noMarker = "> "
+	}
+
+	yesBtn := yesMarker + yesStyle.Render(tr(" [ y: 実行する ] "))
+	noBtn := noMarker + noStyle.Render(tr(" [ n: キャンセル ] "))
+
+	content := tr("確認") + "\n\n" + c.message + "\n\n" + yesBtn + "   " + noBtn
 	return borderStyle().BorderForeground(lipgloss.Color("196")).Render(content)
 }

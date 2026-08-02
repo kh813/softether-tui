@@ -418,7 +418,8 @@ func (t Target) WithHub(hubName string) Target {
 type UserAuthType int
 
 const (
-	UserAuthPassword UserAuthType = iota
+	UserAuthNone UserAuthType = iota
+	UserAuthPassword
 	UserAuthAnonymous
 	UserAuthRadius
 	UserAuthCert
