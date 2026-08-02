@@ -1285,6 +1285,14 @@ func (m Model) submitPrompt() (tea.Model, tea.Cmd) {
 		m.statusErr = false
 		return m, m.setUserGroup(profile, hub, target, value)
 
+	case promptAddGroupMember:
+		user := strings.TrimSpace(value)
+		if user != "" {
+			m.status = fmt.Sprintf(tr("ユーザー %q をグループ %q に追加しています..."), user, target)
+			m.statusErr = false
+			return m, m.setUserGroup(profile, hub, user, target)
+		}
+
 	case promptUserExpires:
 		formatted := normalizeAndFormatDate(strings.TrimSpace(value))
 		expires, err := time.Parse("2006/01/02", formatted)

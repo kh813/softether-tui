@@ -79,7 +79,7 @@ func (d groupDetailState) View() string {
 	} else if selectedCount > 0 {
 		b.WriteString("\n" + renderHelp("↑/↓", tr("移動"), "Space", tr("選択解除/トグル"), "r", tr("選択ユーザーをグループ解除"), "Esc", tr("戻る")))
 	} else {
-		b.WriteString("\n" + renderHelp("↑/↓", tr("移動"), "Space", tr("ユーザー選択"), "Enter", tr("値の変更"), "d", tr("削除"), "Esc", tr("戻る"), "q", tr("終了")))
+		b.WriteString("\n" + renderHelp("↑/↓", tr("移動"), "a", tr("ユーザー追加"), "Space", tr("ユーザー選択"), "Enter", tr("値の変更"), "d", tr("削除"), "Esc", tr("戻る"), "q", tr("終了")))
 	}
 	return b.String()
 }
@@ -237,7 +237,7 @@ func (m Model) handleGroupDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.screen = screenHubDetail
 		return m, nil
 
-	case "c", "C":
+	case "a", "A", "c", "C":
 		if d.selectedCount() > 0 {
 			d.selectedMembers = make(map[string]bool)
 			return m, nil
@@ -249,6 +249,8 @@ func (m Model) handleGroupDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.statusErr = false
 			return m, nil
 		}
+		m.prompt.Show(promptAddGroupMember, d.groupName, fmt.Sprintf(tr("グループ %q に追加するユーザー名:"), d.groupName), tr("ユーザー名"), false)
+		return m, nil
 
 	case "up", "k":
 		if d.cursor > 0 {

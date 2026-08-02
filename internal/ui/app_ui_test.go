@@ -256,3 +256,18 @@ func TestACLFormEnterKeySelectFieldsToggling(t *testing.T) {
 		t.Fatalf("expected enable = false after pressing Enter on Status field")
 	}
 }
+
+func TestGroupDetailAddMemberPrompt(t *testing.T) {
+	m := setupTestModel(t)
+	m.screen = screenGroupDetail
+	m.groupDetail = groupDetailState{
+		groupName: "Group1",
+		members:   []string{"User03"},
+	}
+
+	// Pressing 'a' on Group Detail should trigger promptAddGroupMember
+	m = sendKey(m, "a")
+	if !m.prompt.active || m.prompt.kind != promptAddGroupMember {
+		t.Fatalf("expected promptAddGroupMember on 'a' key in Group Detail")
+	}
+}
