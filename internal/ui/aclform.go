@@ -145,8 +145,9 @@ func (f *aclForm) parseContents(contents string) {
 	if contents == "" {
 		return
 	}
-	// Parse protocol if present in contents, e.g. "(icmp)" -> protocol 1
 	cLower := strings.ToLower(contents)
+
+	// Protocol
 	switch {
 	case strings.Contains(cLower, "(icmpv6)") || strings.Contains(cLower, "protocol: 58"):
 		f.protocolIdx = 4
@@ -159,6 +160,58 @@ func (f *aclForm) parseContents(contents string) {
 	default:
 		f.protocolIdx = 0
 	}
+
+	// Parse fields from space-separated or key:value contents if present
+	// SoftEther formats Contents as e.g. "(TCP) Src: 192.168.1.0/24:80 Dst: 10.0.0.1:443" or similar
+	parts := strings.Fields(contents)
+	for i, p := range parts {
+		pLower := strings.ToLower(p)
+		if strings.HasPrefix(pLower, "src:") || strings.HasPrefix(pLower, "src_ip:") {
+			val := strings.TrimPrefix(p, "src:")
+			val = strings.TrimPrefix(val, "src_ip:")
+			if host, port, ok := parseIPAndPort(val); ok {
+				f.inputs[2].SetValue(host)
+				f.inputs[4].SetValue(port)
+			} else {
+				f.inputs[2].SetValue(val)
+			}
+		} else if strings.HasPrefix(pLower, "dst:") || strings.HasPrefix(pLower, "dst_ip:") {
+			val := strings.TrimPrefix(p, "dst:")
+			val = strings.TrimPrefix(val, "dst_ip:")
+			if host, port, ok := parseIPAndPort(val); ok {
+				f.inputs[3].SetValue(host)
+				f.inputs[5].SetValue(port)
+			} else {
+				f.inputs[3].SetValue(val)
+			}
+		} else if strings.HasPrefix(pLower, "srcport:") || strings.HasPrefix(pLower, "sport:") {
+			f.inputs[4].SetValue(strings.TrimPrefix(strings.TrimPrefix(p, "srcport:"), "sport:"))
+		} else if strings.HasPrefix(pLower, "dstport:") || strings.HasPrefix(pLower, "dport:") {
+			f.inputs[5].SetValue(strings.TrimPrefix(strings.TrimPrefix(p, "dstport:"), "dport:"))
+		} else if strings.HasPrefix(pLower, "srcuser:") {
+			f.inputs[6].SetValue(strings.TrimPrefix(p, "srcuser:"))
+		} else if strings.HasPrefix(pLower, "dstuser:") {
+			f.inputs[7].SetValue(strings.TrimPrefix(p, "dstuser:"))
+		} else if strings.HasPrefix(pLower, "srcmac:") {
+			f.inputs[8].SetValue(strings.TrimPrefix(p, "srcmac:"))
+		} else if strings.HasPrefix(pLower, "dstmac:") {
+			f.inputs[9].SetValue(strings.TrimPrefix(p, "dstmac:"))
+		} else if strings.Contains(pLower, "established") {
+			if strings.Contains(pLower, "unestablished") {
+				f.tcpStateIdx = 2
+			} else {
+				f.tcpStateIdx = 1
+			}
+		}
+		_ = i
+	}
+}
+
+func parseIPAndPort(val string) (ip string, port string, ok bool) {
+	if idx := strings.LastIndex(val, ":"); idx > 0 {
+		return val[:idx], val[idx+1:], true
+	}
+	return val, "0", false
 }
 
 func (f *aclForm) setFocus(field aclFormField) {
