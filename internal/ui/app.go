@@ -1952,7 +1952,13 @@ func (m Model) handleHubUsersAndGroupsKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		if !d.activeUserSection {
 			if name, ok := d.currentUserName(); ok {
-				m.userDetail = userDetailState{profile: d.profile, hubName: d.hubName, userName: name, loading: true}
+				var groupNames []string
+				for _, row := range d.groups.Rows {
+					if gName := d.groups.NameOf(row); gName != "" {
+						groupNames = append(groupNames, gName)
+					}
+				}
+				m.userDetail = userDetailState{profile: d.profile, hubName: d.hubName, userName: name, groups: groupNames, loading: true}
 				m.screen = screenUserDetail
 				m.status = ""
 				return m, m.fetchUserDetail(d.profile, d.hubName, name)

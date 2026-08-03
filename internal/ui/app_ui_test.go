@@ -480,3 +480,39 @@ func TestSecureNatActionResultRefreshesServerInfo(t *testing.T) {
 	}
 }
 
+func TestUserDetailGroupDropdown(t *testing.T) {
+	m := setupTestModel(t)
+	m.screen = screenUserDetail
+	m.userDetail = userDetailState{
+		profile:  config.Profile{Name: "localhost"},
+		hubName:  "DEFAULT",
+		userName: "TestUser",
+		groups:   []string{"GroupA", "GroupB"},
+		cursor:   fieldGroup,
+	}
+
+	// Pressing enter on Group Name field should open group dropdown
+	m = sendKey(m, "enter")
+	if !m.userDetail.groupDropdownActive {
+		t.Fatalf("expected groupDropdownActive to be true after pressing enter on Group field")
+	}
+
+	view := m.userDetail.View()
+	if !strings.Contains(view, "GroupA") || !strings.Contains(view, "GroupB") {
+		t.Fatalf("expected group dropdown to render GroupA and GroupB, got: %s", view)
+	}
+
+	// Pressing enter on dropdown should select group and close dropdown
+	m = sendKey(m, "down") // Move cursor to GroupA
+	m = sendKey(m, "enter")
+	if m.userDetail.groupDropdownActive {
+		t.Fatalf("expected groupDropdownActive to be false after selection")
+	}
+	if !m.userDetail.dirty {
+		t.Fatalf("expected userDetail to be dirty after group selection")
+	}
+	if m.userDetail.editedValues[fieldGroup] != "GroupA" {
+		t.Fatalf("expected edited group to be GroupA, got: %q", m.userDetail.editedValues[fieldGroup])
+	}
+}
+

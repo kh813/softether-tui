@@ -49,6 +49,11 @@ type userDetailState struct {
 	authType       vpncmd.UserAuthType
 	authParam1     string
 	authParam2     string
+
+	// Group Dropdown overlay state
+	groups              []string
+	groupDropdownActive bool
+	groupDropdownCursor int
 }
 
 type userDetailLoadedMsg struct {
@@ -82,7 +87,9 @@ func (d userDetailState) View() string {
 		d.renderSections(&b)
 	}
 
-	if d.dropdownActive {
+	if d.groupDropdownActive {
+		b.WriteString("\n" + d.renderGroupDropdown())
+	} else if d.dropdownActive {
 		b.WriteString("\n" + d.renderAuthTypeDropdown())
 	} else if d.editing {
 		b.WriteString("\n" + renderHelp("Enter", tr("決定"), "Esc", tr("キャンセル")))
@@ -90,6 +97,23 @@ func (d userDetailState) View() string {
 		b.WriteString("\n" + renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更"), "s", tr("保存 (Save)"), "n", tr("変更を破棄 (Cancel)")))
 	} else {
 		b.WriteString("\n" + renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更"), "d", tr("削除"), "Esc", tr("戻る"), "q", tr("終了")))
+	}
+	return b.String()
+}
+
+func (d userDetailState) renderGroupDropdown() string {
+	var b strings.Builder
+	b.WriteString(headerStyle.Render(tr("--- 所属グループの選択 (↑/↓:移動 Enter:決定 Esc:閉じる) ---")) + "\n")
+	options := append([]string{tr("(なし / 所属解除)")}, d.groups...)
+
+	for i, opt := range options {
+		marker := "  "
+		style := statusBarStyle
+		if d.groupDropdownCursor == i {
+			marker = "> "
+			style = selectedStyle
+		}
+		fmt.Fprintf(&b, "%s%s\n", marker, style.Render(opt))
 	}
 	return b.String()
 }
@@ -223,6 +247,37 @@ func (d userDetailState) renderPasswordField(b *strings.Builder) {
 func (m Model) handleUserDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	d := &m.userDetail
 
+	if d.groupDropdownActive {
+		switch msg.String() {
+		case "up", "k":
+			if d.groupDropdownCursor > 0 {
+				d.groupDropdownCursor--
+			}
+			return m, nil
+		case "down", "j":
+			if d.groupDropdownCursor < len(d.groups) {
+				d.groupDropdownCursor++
+			}
+			return m, nil
+		case "enter":
+			val := ""
+			if d.groupDropdownCursor > 0 && d.groupDropdownCursor-1 < len(d.groups) {
+				val = d.groups[d.groupDropdownCursor-1]
+			}
+			if d.editedValues == nil {
+				d.editedValues = make(map[editableUserField]string)
+			}
+			d.editedValues[fieldGroup] = val
+			d.dirty = true
+			d.groupDropdownActive = false
+			return m, nil
+		case "esc":
+			d.groupDropdownActive = false
+			return m, nil
+		}
+		return m, nil
+	}
+
 	if d.dropdownActive {
 		switch msg.String() {
 		case "up", "k":
@@ -340,6 +395,22 @@ func (m Model) handleUserDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "enter":
+		if d.cursor == fieldGroup {
+			d.groupDropdownActive = true
+			currentGroup := d.editedValues[fieldGroup]
+			if currentGroup == "" {
+				currentGroup = d.getKV("Group Name", "Group")
+			}
+			d.groupDropdownCursor = 0
+			for i, g := range d.groups {
+				if g == currentGroup {
+					d.groupDropdownCursor = i + 1
+					break
+				}
+			}
+			return m, nil
+		}
+
 		if d.cursor == fieldAuthType {
 			d.dropdownActive = true
 			d.dropdownCursor = 0
