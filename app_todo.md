@@ -155,7 +155,7 @@ M9 で実施した「`app_specs.md` 8章のUI/UXルールと実装の突き合�
 
 一番簡単で影響範囲が狭いフェーズ。他の全画面はキー操作ヘルプを共通関数 `renderHelp()` (`internal/ui/styles.go`) で描画しており、キー名が色付きハイライトされる。この2ファイルだけ素の文字列を `dimStyle.Render(...)` で描画しており、キーがハイライトされない。
 
-- [ ] `internal/ui/accountform.go` の `View()` 内、以下の行を探す:
+- [x] `internal/ui/accountform.go` の `View()` 内、以下の行を探す:
   ```go
   b.WriteString("\n" + dimStyle.Render(tr("Tab/↑↓: 項目移動  ←→: 認証方式切替  Enter: 作成  Esc: キャンセル")))
   ```
@@ -163,7 +163,7 @@ M9 で実施した「`app_specs.md` 8章のUI/UXルールと実装の突き合�
   ```go
   b.WriteString("\n" + renderHelp("Tab/↑↓", tr("項目移動"), "←→", tr("認証方式切替"), "Enter", tr("作成"), "Esc", tr("キャンセル")))
   ```
-- [ ] `internal/ui/bridgeform.go` の `View()` 内、以下の行を探す:
+- [x] `internal/ui/bridgeform.go` の `View()` 内、以下の行を探す:
   ```go
   b.WriteString("\n" + dimStyle.Render(tr("Tab/↑↓: 項目移動  ←→: TAP切替  Enter: 作成  Esc: キャンセル")))
   ```
@@ -171,8 +171,9 @@ M9 で実施した「`app_specs.md` 8章のUI/UXルールと実装の突き合�
   ```go
   b.WriteString("\n" + renderHelp("Tab/↑↓", tr("項目移動"), "←→", tr("TAP切替"), "Enter", tr("作成"), "Esc", tr("キャンセル")))
   ```
-- [ ] `internal/ui/app_ui_test.go` に、この2画面のヘルプ行が `renderHelp` 経由になったことを確認する軽いテストを追加する (既存の他画面向けテストを参考に、`View()` の出力に ANSI カラーコードが含まれること、または既存の `renderHelp` を使ったテストパターンを流用してよい)。
-- [ ] `go build ./...` / `go vet ./...` / `go test ./...` を実行しエラーがないことを確認
+- [x] `internal/ui/app_ui_test.go` に、この2画面のヘルプ行が `renderHelp` 経由になったことを確認する軽いテストを追加する (既存の他画面向けテストを参考に、`View()` の出力に ANSI カラーコードが含まれること、または既存の `renderHelp` を使ったテストパターンを流用してよい)。
+  - 実装メモ: `go test` はttyなしで実行されるため lipgloss は ANSI コードを出力しない。そのため「色が付くこと」ではなく、`renderHelp` が `"key"+":"+"desc"` (コロン前にスペースなし) で連結するのに対し旧実装は `"key: desc"` (コロン前にスペースあり) だった、という文字列上の違いで判定する `TestAccountFormAndBridgeFormUseSharedHelpRenderer` を追加した。
+- [x] `go build ./...` / `go vet ./...` / `go test ./...` を実行しエラーがないことを確認
 - [ ] `git commit` (例: "Phase 1: accountform/bridgeform のヘルプバーを renderHelp() に統一")
 
 ### Phase 2: 「その場で破棄」用の共通確認ダイアログを追加する (基盤整備)

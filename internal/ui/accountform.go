@@ -209,7 +209,7 @@ func (f *accountForm) View() string {
 		fmt.Fprintf(&b, "%s%-14s %s\n", pwMarker, tr("パスワード:"), f.password.View())
 	}
 
-	b.WriteString("\n" + dimStyle.Render(tr("Tab/↑↓: 項目移動  ←→: 認証方式切替  Enter: 作成  Esc: キャンセル")))
+	b.WriteString("\n" + renderHelp("Tab/↑↓", tr("項目移動"), "←→", tr("認証方式切替"), "Enter", tr("作成"), "Esc", tr("キャンセル")))
 	b.WriteString("\n" + dimStyle.Render(tr("(証明書認証は未対応)")))
 	return b.String()
 }

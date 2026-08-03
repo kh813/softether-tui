@@ -417,6 +417,7 @@ var enCatalog = map[string]string{
 	"DHCP設定変更":                                     "DHCP settings update",
 	"項目移動":                                         "move focus",
 	"認証方式切替":                                       "switch auth method",
+	"TAP切替":                                         "toggle TAP",
 	"Hub name":                                     "Hub name",
 	"Admin password":                               "Admin password",
 	"ホスト名:ポート (例: 192.168.1.100:1812)":             "hostname:port (e.g. 192.168.1.100:1812)",

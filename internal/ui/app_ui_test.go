@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -290,5 +291,35 @@ func TestGroupDetailAddMemberPrompt(t *testing.T) {
 	}
 	if m.groupDetail.isMember("User01") {
 		t.Fatalf("expected User01 staged edit to be cleared on discard")
+	}
+}
+
+// TestAccountFormAndBridgeFormUseSharedHelpRenderer guards against the two
+// forms falling back to a hand-rolled dimStyle.Render(...) help line: that
+// path never highlights key names, unlike every other screen's renderHelp()
+// output. renderHelp joins "key"+":"+"desc" (no space before the colon),
+// while the old ad-hoc line used "key: desc" (space before the colon) -
+// that's a stable, ANSI-independent way to tell the two apart under `go
+// test` (no tty, so lipgloss emits no color codes either way).
+func TestAccountFormAndBridgeFormUseSharedHelpRenderer(t *testing.T) {
+	want := "Esc:" + tr("キャンセル")
+	unwant := "Esc: " + tr("キャンセル")
+
+	af := newAccountForm()
+	aOut := af.View()
+	if !strings.Contains(aOut, want) {
+		t.Fatalf("expected accountForm help line to use renderHelp() key:desc format (%q), got: %q", want, aOut)
+	}
+	if strings.Contains(aOut, unwant) {
+		t.Fatalf("accountForm help line still uses the old dimStyle.Render(\"key: desc\") format: %q", aOut)
+	}
+
+	bf := newBridgeForm()
+	bOut := bf.View()
+	if !strings.Contains(bOut, want) {
+		t.Fatalf("expected bridgeForm help line to use renderHelp() key:desc format (%q), got: %q", want, bOut)
+	}
+	if strings.Contains(bOut, unwant) {
+		t.Fatalf("bridgeForm help line still uses the old dimStyle.Render(\"key: desc\") format: %q", bOut)
 	}
 }

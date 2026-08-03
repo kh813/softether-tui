@@ -124,6 +124,6 @@ func (f *bridgeForm) View() string {
 	}
 	fmt.Fprintf(&b, "%s%-10s < %s >\n", tapMarker, "TAP:", tapLabel)
 
-	b.WriteString("\n" + dimStyle.Render(tr("Tab/↑↓: 項目移動  ←→: TAP切替  Enter: 作成  Esc: キャンセル")))
+	b.WriteString("\n" + renderHelp("Tab/↑↓", tr("項目移動"), "←→", tr("TAP切替"), "Enter", tr("作成"), "Esc", tr("キャンセル")))
 	return b.String()
 }
