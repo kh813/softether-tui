@@ -1274,6 +1274,12 @@ func (m Model) submitPrompt() (tea.Model, tea.Cmd) {
 		m.statusErr = false
 		return m, m.setUserExpires(profile, hub, target, expires)
 
+	case promptUserRadiusAlias, promptUserCertPath, promptUserNTLMAlias, promptUserSignedCN:
+		if m.screen == screenUserDetail {
+			m.userDetail.authParam1 = strings.TrimSpace(value)
+			m.userDetail.dirty = true
+		}
+
 	case promptListenerCreate:
 		port, err := strconv.Atoi(strings.TrimSpace(value))
 		if err != nil || port <= 0 || port > 65535 {

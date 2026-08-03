@@ -30,6 +30,10 @@ const (
 	promptHubPassword
 	promptAccountUsername
 	promptAddGroupMember
+	promptUserRadiusAlias
+	promptUserCertPath
+	promptUserNTLMAlias
+	promptUserSignedCN
 )
 
 // prompt is a single-line input overlay, e.g. for password reset or setting

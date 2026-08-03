@@ -224,11 +224,75 @@ func (d userDetailState) renderEditableField(b *strings.Builder, field editableU
 	}
 }
 
-func (d userDetailState) renderPasswordField(b *strings.Builder) {
-	pwVal := "********"
-	if ed, ok := d.editedValues[fieldPassword]; ok && ed != "" {
-		pwVal = ed + " " + selectedStyle.Render(tr("(変更あり)"))
+func (d userDetailState) effectiveAuthType() vpncmd.UserAuthType {
+	if d.authType != vpncmd.UserAuthNone {
+		return d.authType
 	}
+	currentStr := d.getKV("Auth Type", "Auth Method")
+	currentLower := strings.ToLower(currentStr)
+	switch {
+	case strings.Contains(currentLower, "radius"):
+		return vpncmd.UserAuthRadius
+	case strings.Contains(currentLower, "signed"):
+		return vpncmd.UserAuthSignedCert
+	case strings.Contains(currentLower, "cert") || strings.Contains(currentLower, "certificate"):
+		return vpncmd.UserAuthCert
+	case strings.Contains(currentLower, "ntlm") || strings.Contains(currentLower, "nt domain") || strings.Contains(currentLower, "active directory"):
+		return vpncmd.UserAuthNTLM
+	case strings.Contains(currentLower, "anonymous"):
+		return vpncmd.UserAuthAnonymous
+	default:
+		return vpncmd.UserAuthPassword
+	}
+}
+
+func (d userDetailState) renderPasswordField(b *strings.Builder) {
+	auth := d.effectiveAuthType()
+	if auth == vpncmd.UserAuthAnonymous {
+		return
+	}
+
+	label := tr("Password (reset)")
+	val := "********"
+
+	switch auth {
+	case vpncmd.UserAuthRadius:
+		label = tr("RADIUS User Alias")
+		val = d.authParam1
+		if val == "" {
+			val = tr("(None / Same as User Name)")
+		}
+	case vpncmd.UserAuthCert:
+		label = tr("Certificate File Path")
+		val = d.authParam1
+		if val == "" {
+			val = tr("(None)")
+		}
+	case vpncmd.UserAuthSignedCert:
+		label = tr("Signed Cert CN/Serial")
+		val = d.authParam1
+		if d.authParam2 != "" {
+			val += " / Serial: " + d.authParam2
+		}
+		if val == "" {
+			val = tr("(None)")
+		}
+	case vpncmd.UserAuthNTLM:
+		label = tr("NT Domain User Alias")
+		val = d.authParam1
+		if val == "" {
+			val = tr("(None / Same as User Name)")
+		}
+	default:
+		if ed, ok := d.editedValues[fieldPassword]; ok && ed != "" {
+			val = ed + " " + selectedStyle.Render(tr("(変更あり)"))
+		}
+	}
+
+	if (auth == vpncmd.UserAuthRadius || auth == vpncmd.UserAuthCert || auth == vpncmd.UserAuthSignedCert || auth == vpncmd.UserAuthNTLM) && d.authParam1 != "" {
+		val += " " + selectedStyle.Render(tr("(変更あり)"))
+	}
+
 	marker := "  "
 	style := statusBarStyle
 	if d.cursor == fieldPassword {
@@ -236,11 +300,10 @@ func (d userDetailState) renderPasswordField(b *strings.Builder) {
 		style = selectedStyle
 	}
 
-	label := tr("Password (reset)")
 	if d.editing && d.editingField == fieldPassword {
 		fmt.Fprintf(b, "%s%-28s %s\n", marker, label+":", d.input.View())
 	} else {
-		fmt.Fprintf(b, "%s%-28s %s\n", marker, label+":", style.Render(pwVal))
+		fmt.Fprintf(b, "%s%-28s %s\n", marker, label+":", style.Render(val))
 	}
 }
 
@@ -307,13 +370,25 @@ func (m Model) handleUserDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				"Signed Certificate Authentication",
 				"NT Domain / Active Directory Authentication",
 			}
-			d.authType = types[d.dropdownCursor]
+			selectedAuth := types[d.dropdownCursor]
+			d.authType = selectedAuth
 			if d.editedValues == nil {
 				d.editedValues = make(map[editableUserField]string)
 			}
 			d.editedValues[fieldAuthType] = labels[d.dropdownCursor]
 			d.dirty = true
 			d.dropdownActive = false
+
+			switch selectedAuth {
+			case vpncmd.UserAuthRadius:
+				m.prompt.Show(promptUserRadiusAlias, d.userName, tr("RADIUS User Alias (任意, 空欄でユーザー名と同等):"), d.authParam1, false)
+			case vpncmd.UserAuthCert:
+				m.prompt.Show(promptUserCertPath, d.userName, tr("証明書ファイルパス (/path/to/cert.cer):"), d.authParam1, false)
+			case vpncmd.UserAuthNTLM:
+				m.prompt.Show(promptUserNTLMAlias, d.userName, tr("NT Domain / AD User Alias (任意, 空欄でユーザー名と同等):"), d.authParam1, false)
+			case vpncmd.UserAuthSignedCert:
+				m.prompt.Show(promptUserSignedCN, d.userName, tr("CA署名付き証明書の許容 Common Name (CN, 任意):"), d.authParam1, false)
+			}
 			return m, nil
 		case "esc":
 			d.dropdownActive = false
@@ -415,6 +490,26 @@ func (m Model) handleUserDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			d.dropdownActive = true
 			d.dropdownCursor = 0
 			return m, nil
+		}
+
+		if d.cursor == fieldPassword {
+			auth := d.effectiveAuthType()
+			switch auth {
+			case vpncmd.UserAuthRadius:
+				m.prompt.Show(promptUserRadiusAlias, d.userName, tr("RADIUS User Alias (任意, 空欄でユーザー名と同等):"), d.authParam1, false)
+				return m, nil
+			case vpncmd.UserAuthCert:
+				m.prompt.Show(promptUserCertPath, d.userName, tr("証明書ファイルパス (/path/to/cert.cer):"), d.authParam1, false)
+				return m, nil
+			case vpncmd.UserAuthNTLM:
+				m.prompt.Show(promptUserNTLMAlias, d.userName, tr("NT Domain / AD User Alias (任意, 空欄でユーザー名と同等):"), d.authParam1, false)
+				return m, nil
+			case vpncmd.UserAuthSignedCert:
+				m.prompt.Show(promptUserSignedCN, d.userName, tr("CA署名付き証明書の許容 Common Name (CN, 任意):"), d.authParam1, false)
+				return m, nil
+			case vpncmd.UserAuthAnonymous:
+				return m, nil
+			}
 		}
 
 		d.editing = true
