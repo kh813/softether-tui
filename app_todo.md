@@ -182,8 +182,8 @@ Phase 3〜6 で使う共通の仕組みをここで先に作る。**ここが一
 
 現在、`Esc` で破棄する場合は必ず「本当に破棄しますか?」の確認ダイアログ (`confirmDiscardChanges`) が出るが、これは確認後に **前の画面に戻る** 動作までセットになっている (`internal/ui/app.go` の `confirmDiscardChanges` ケース、`m.screen = screenHubDetail` の行を参照)。Phase 3〜6 で直すショートカットは「画面には留まったまま、入力内容だけ破棄する」動作なので、画面遷移をしない新しい確認種別 `confirmDiscardInPlace` を追加する。
 
-- [ ] `internal/ui/confirm.go` の `confirmKind` の `const` 一覧に、`confirmDiscardChanges` の次の行として `confirmDiscardInPlace` を追加する。
-- [ ] `internal/ui/app.go` で `confirmDiscardChanges` を処理している `case confirmDiscardChanges:` ブロック (だいたい1410行目付近) を探す。その直後に、以下のような新しい `case` を追加する (`m.screen = screenHubDetail` の代入を **入れない** ことがポイント。画面を移動させず、その場に留まる):
+- [x] `internal/ui/confirm.go` の `confirmKind` の `const` 一覧に、`confirmDiscardChanges` の次の行として `confirmDiscardInPlace` を追加する。
+- [x] `internal/ui/app.go` で `confirmDiscardChanges` を処理している `case confirmDiscardChanges:` ブロック (だいたい1410行目付近) を探す。その直後に、以下のような新しい `case` を追加する (`m.screen = screenHubDetail` の代入を **入れない** ことがポイント。画面を移動させず、その場に留まる):
   ```go
   case confirmDiscardInPlace:
       if m.screen == screenUserDetail {
@@ -206,8 +206,8 @@ Phase 3〜6 で使う共通の仕組みをここで先に作る。**ここが一
       return m, nil
   ```
   (`screenSecureNATDetail` 用の分岐は、調査の過程で見つかった別の不整合の修正でもある: 現行コードでは `screenSecureNATDetail` 画面で `Esc` 経由の破棄確認をしても、既存の `confirmDiscardChanges` ケースにはこの画面用の分岐がなく `dirty` フラグと編集内容がリセットされていなかった。)
-- [ ] このフェーズだけでは呼び出し元がまだないので、動作確認は「コンパイルが通ること」のみでよい (Phase 3〜6 で実際に呼び出す)。
-- [ ] `go build ./...` / `go vet ./...` / `go test ./...` を実行しエラーがないことを確認
+- [x] このフェーズだけでは呼び出し元がまだないので、動作確認は「コンパイルが通ること」のみでよい (Phase 3〜6 で実際に呼び出す)。
+- [x] `go build ./...` / `go vet ./...` / `go test ./...` を実行しエラーがないことを確認
 - [ ] `git commit` (例: "Phase 2: その場に留まって破棄する confirmDiscardInPlace を追加")
 
 ### Phase 3: `securenatdetail.go` の `c` キーを `n` に変更する

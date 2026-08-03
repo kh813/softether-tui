@@ -25,6 +25,9 @@ const (
 	confirmQuitUnsaved
 	confirmQuitApp
 	confirmDiscardChanges
+	// confirmDiscardInPlace discards edits without navigating away, unlike
+	// confirmDiscardChanges which always sets m.screen = screenHubDetail.
+	confirmDiscardInPlace
 )
 
 // confirmDialog is a modal yes/no prompt for destructive actions. It stores

@@ -1425,6 +1425,26 @@ func (m Model) applyConfirm(kind confirmKind, target string) (tea.Model, tea.Cmd
 		m.statusErr = false
 		return m, nil
 
+	case confirmDiscardInPlace:
+		if m.screen == screenUserDetail {
+			m.userDetail.editedValues = make(map[editableUserField]string)
+			m.userDetail.dirty = false
+			m.userDetail.authType = vpncmd.UserAuthNone
+		} else if m.screen == screenGroupDetail {
+			m.groupDetail.editedValues = make(map[editableGroupField]string)
+			m.groupDetail.pendingMemberEdits = make(map[string]bool)
+			m.groupDetail.dirty = false
+		} else if m.screen == screenSecureNATDetail {
+			m.secureNatDetail.editedValues = make(map[editableSecureNATField]string)
+			m.secureNatDetail.dirty = false
+		} else if m.screen == screenHubDetail && m.hubDetail.tab == hubTabSecureNAT {
+			m.hubDetail.secureNatEditedValues = make(map[editableSecureNATField]string)
+			m.hubDetail.secureNatDirty = false
+		}
+		m.status = tr("変更を破棄しました")
+		m.statusErr = false
+		return m, nil
+
 	case confirmDisconnectSession:
 		m.status = fmt.Sprintf(tr("セッション %q を切断しています..."), target)
 		m.statusErr = false
