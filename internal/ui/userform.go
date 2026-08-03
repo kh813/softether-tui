@@ -120,7 +120,7 @@ func (f *userForm) IsDirty() bool {
 
 func (f *userForm) fieldCount() userFormField {
 	switch f.authType {
-	case vpncmd.UserAuthPassword, vpncmd.UserAuthCert, vpncmd.UserAuthNTLM, vpncmd.UserAuthRadius:
+	case vpncmd.UserAuthPassword, vpncmd.UserAuthCert, vpncmd.UserAuthNTLM:
 		return userFieldAuthParam1 + 1
 	case vpncmd.UserAuthSignedCert:
 		return userFormFieldCount
@@ -358,13 +358,6 @@ func (f *userForm) View() string {
 		f.authParam1.Placeholder = tr("NTドメイン/ActiveDirectory ユーザーエイリアス (任意)")
 		fmt.Fprintf(&b, "%s%-14s %s\n", pMarker, tr("ADユーザーエイリアス:"), f.authParam1.View())
 	case vpncmd.UserAuthRadius:
-		pMarker := "  "
-		if f.focus == userFieldAuthParam1 {
-			pMarker = "> "
-		}
-		f.authParam1.EchoMode = textinput.EchoNormal
-		f.authParam1.Placeholder = tr("RADIUS User Alias (任意)")
-		fmt.Fprintf(&b, "%s%-14s %s\n", pMarker, tr("RADIUSエイリアス:"), f.authParam1.View())
 		fmt.Fprintf(&b, "  %-14s %s\n", tr("RADIUSサーバー:"), selectedStyle.Render(tr("[ R: RADIUS サーバー (IP/Host, Secret) を設定 ]")))
 	}
 
