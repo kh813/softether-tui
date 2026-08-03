@@ -29,6 +29,7 @@ var enCatalog = map[string]string{
 	"選択した %d 名のユーザーをグループ %q から解除しますか?": "Are you sure you want to remove %d selected user(s) from group %q?",
 	"未保存の変更があります。変更を破棄して終了しますか?":       "Unsaved changes exist. Discard changes and quit?",
 	"未保存の変更があります。変更を破棄して戻りますか?":        "Unsaved changes exist. Discard changes and return?",
+	"未保存の変更があります。変更を破棄しますか?":           "Unsaved changes exist. Discard changes?",
 	"アプリケーションを終了しますか?":                 "Are you sure you want to quit the application?",
 	" [ y: OK ] ":    " [ y: OK ] ",
 	" [ n: キャンセル ] ": " [ n: Cancel ] ",

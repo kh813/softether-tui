@@ -294,6 +294,42 @@ func TestGroupDetailAddMemberPrompt(t *testing.T) {
 	}
 }
 
+// TestSecureNATDetailDiscardKeyIsNNotC guards against the historical key
+// collision where 'c' meant "discard changes" here but "Create" everywhere
+// else in the app. 'n' (matching the confirm dialog's own "n: Cancel"
+// convention) must now require confirmation via confirmDiscardInPlace and
+// must reset dirty/editedValues without leaving screenSecureNATDetail.
+func TestSecureNATDetailDiscardKeyIsNNotC(t *testing.T) {
+	m := setupTestModel(t)
+	m.screen = screenSecureNATDetail
+	m.secureNatDetail.dirty = true
+	m.secureNatDetail.editedValues = map[editableSecureNATField]string{fieldNatIP: "10.0.0.1"}
+
+	// 'c' must no longer discard - it has no effect on this screen anymore.
+	m = sendKey(m, "c")
+	if !m.secureNatDetail.dirty {
+		t.Fatalf("expected 'c' to no longer discard changes on SecureNAT detail screen")
+	}
+
+	// 'n' must open the confirmation dialog rather than discarding immediately.
+	m = sendKey(m, "n")
+	if !m.confirm.active || m.confirm.kind != confirmDiscardInPlace {
+		t.Fatalf("expected confirmDiscardInPlace modal on 'n' when dirty, active: %v, kind: %v", m.confirm.active, m.confirm.kind)
+	}
+
+	// Confirming with 'y' discards in place and stays on the same screen.
+	m = sendKey(m, "y")
+	if m.secureNatDetail.dirty {
+		t.Fatalf("expected dirty to be false after confirming discard")
+	}
+	if len(m.secureNatDetail.editedValues) != 0 {
+		t.Fatalf("expected editedValues to be cleared after confirming discard")
+	}
+	if m.screen != screenSecureNATDetail {
+		t.Fatalf("expected screen to remain screenSecureNATDetail, got %v", m.screen)
+	}
+}
+
 // TestAccountFormAndBridgeFormUseSharedHelpRenderer guards against the two
 // forms falling back to a hand-rolled dimStyle.Render(...) help line: that
 // path never highlights key names, unlike every other screen's renderHelp()

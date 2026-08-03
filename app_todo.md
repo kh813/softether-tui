@@ -224,7 +224,7 @@ case "c", "C":
     }
 ```
 
-- [ ] 上記ブロックを、キーを `n`/`N` に変え、直接破棄するのではなく Phase 2 で作った確認ダイアログを呼ぶ形に書き換える:
+- [x] 上記ブロックを、キーを `n`/`N` に変え、直接破棄するのではなく Phase 2 で作った確認ダイアログを呼ぶ形に書き換える:
   ```go
   case "n", "N":
       if d.dirty {
@@ -232,10 +232,10 @@ case "c", "C":
           return m, nil
       }
   ```
-- [ ] `internal/ui/catalog_en.go` に `"未保存の変更があります。変更を破棄しますか?"` の英訳エントリを追加する (既存の似た文言 `"未保存の変更があります。変更を破棄して戻りますか?"` の訳を参考にする)。
-- [ ] `View()` 内のヘルプ表示行 (`renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更"), "s", tr("保存 (Save)"), "c", tr("変更を破棄 (Cancel)"))`) の `"c"` を `"n"` に変更する。
-- [ ] `internal/ui/app_ui_test.go` に「SecureNAT詳細画面で dirty な状態で `n` を押すと確認ダイアログが出て、`y` で確定すると `dirty` が `false` に戻り画面は同じ (`screenSecureNATDetail`) のままであること」を確認するテストを追加する。
-- [ ] `go build ./...` / `go vet ./...` / `go test ./...` を実行しエラーがないことを確認
+- [x] `internal/ui/catalog_en.go` に `"未保存の変更があります。変更を破棄しますか?"` の英訳エントリを追加する (既存の似た文言 `"未保存の変更があります。変更を破棄して戻りますか?"` の訳を参考にする)。
+- [x] `View()` 内のヘルプ表示行 (`renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更"), "s", tr("保存 (Save)"), "c", tr("変更を破棄 (Cancel)"))`) の `"c"` を `"n"` に変更する。
+- [x] `internal/ui/app_ui_test.go` に「SecureNAT詳細画面で dirty な状態で `n` を押すと確認ダイアログが出て、`y` で確定すると `dirty` が `false` に戻り画面は同じ (`screenSecureNATDetail`) のままであること」を確認するテストを追加する (`TestSecureNATDetailDiscardKeyIsNNotC`。合わせて `c` キーを押しても何も起きないことも確認)。
+- [x] `go build ./...` / `go vet ./...` / `go test ./...` を実行しエラーがないことを確認
 - [ ] `git commit` (例: "Phase 3: securenatdetail.go の破棄キーを c から n に変更")
 
 ### Phase 4: `userdetail.go` の `c` キーを `n` に変更する
