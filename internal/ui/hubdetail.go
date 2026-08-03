@@ -424,7 +424,7 @@ func (d hubDetailState) renderSecureNATFields(b *strings.Builder) {
 	if snEnabled {
 		snStr = selectedStyle.Render("[enabled]")
 	} else {
-		snStr = selectedStyle.Render("[disabled]")
+		snStr = statusBarStyle.Render("[disabled]")
 	}
 	marker := "  "
 	if d.secureNatCursor == fieldSecureNAT {
@@ -452,7 +452,7 @@ func (d hubDetailState) renderSecureNATFields(b *strings.Builder) {
 	if dhcpEnabled {
 		dhcpStr = selectedStyle.Render("[enabled]")
 	} else {
-		dhcpStr = selectedStyle.Render("[disabled]")
+		dhcpStr = statusBarStyle.Render("[disabled]")
 	}
 	marker = "  "
 	if d.secureNatCursor == fieldDHCP {

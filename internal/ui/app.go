@@ -934,7 +934,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.status = msg.action
 		m.statusErr = false
-		return m, m.fetchSecureNAT(m.hubDetail.profile, m.hubDetail.hubName)
+		return m, tea.Batch(
+			m.fetchSecureNAT(m.hubDetail.profile, m.hubDetail.hubName),
+			m.fetchServerInfo(m.hubDetail.profile),
+		)
 
 	case accessLoadedMsg:
 		if m.hubDetail.hubName == msg.hubName {
@@ -1697,15 +1700,16 @@ func (m Model) handleHubDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleHubUserFilterKey(msg)
 	}
 
+	if m.hubDetail.tab == hubTabSecureNAT && m.hubDetail.secureNatEditing {
+		return m.handleHubSecureNATKey(msg)
+	}
+
 	switch msg.String() {
 	case "q":
 		m.quitting = true
 		return m, tea.Quit
 
 	case "esc":
-		if m.hubDetail.tab == hubTabSecureNAT && m.hubDetail.secureNatEditing {
-			return m.handleHubSecureNATKey(msg)
-		}
 		if m.hubDetail.tab == hubTabSecureNAT && m.hubDetail.secureNatDirty {
 			m.confirm.Show(confirmDiscardChanges, "", tr("未保存の変更があります。変更を破棄して戻りますか?"))
 			return m, nil

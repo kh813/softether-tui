@@ -448,3 +448,35 @@ func TestAccountFormAndBridgeFormUseSharedHelpRenderer(t *testing.T) {
 		t.Fatalf("bridgeForm help line still uses the old dimStyle.Render(\"key: desc\") format: %q", bOut)
 	}
 }
+
+func TestSecureNATEditingEscProtection(t *testing.T) {
+	m := setupTestModel(t)
+	m.screen = screenHubDetail
+	m.hubDetail.tab = hubTabSecureNAT
+	m.hubDetail.secureNatEditing = true
+	m.hubDetail.secureNatEditingField = fieldNatIP
+
+	// Pressing esc while editing a field should cancel editing without changing screens
+	m = sendKey(m, "esc")
+	if m.hubDetail.secureNatEditing {
+		t.Fatalf("expected secureNatEditing to be false after pressing esc while editing")
+	}
+	if m.screen != screenHubDetail {
+		t.Fatalf("expected screen to remain screenHubDetail, got %v", m.screen)
+	}
+}
+
+func TestSecureNatActionResultRefreshesServerInfo(t *testing.T) {
+	m := setupTestModel(t)
+	m.screen = screenHubDetail
+	m.hubDetail.profile = config.Profile{Name: "localhost", Host: "127.0.0.1", Port: 443}
+	m.hubDetail.hubName = "DEFAULT"
+
+	// Trigger secureNatActionResultMsg
+	updated, cmd := m.Update(secureNatActionResultMsg{action: "SecureNAT enabled", err: nil})
+	m = updated.(Model)
+	if cmd == nil {
+		t.Fatalf("expected batch command containing fetchSecureNAT and fetchServerInfo")
+	}
+}
+
