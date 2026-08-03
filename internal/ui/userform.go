@@ -44,16 +44,16 @@ var userAuthOrder = []vpncmd.UserAuthType{
 }
 
 type userForm struct {
-	inputs            [5]textinput.Model // name, group, realname, note, expires
-	authParam1        textinput.Model    // Password / Cert Path / SignedCert CN / NTLM Alias / Radius Alias
-	authParam2        textinput.Model    // SignedCert Serial
-	authType          vpncmd.UserAuthType
-	focus             userFormField
-	groups            []string // available groups for selector
-	groupIndex        int      // 0 for (none), 1..len(groups)
-	dropdownActive    bool
-	dropdownCursor    int
-	dropdownIsAuth    bool // false = Group dropdown, true = Auth dropdown
+	inputs         [5]textinput.Model // name, group, realname, note, expires
+	authParam1     textinput.Model    // Password / Cert Path / SignedCert CN / NTLM Alias / Radius Alias
+	authParam2     textinput.Model    // SignedCert Serial
+	authType       vpncmd.UserAuthType
+	focus          userFormField
+	groups         []string // available groups for selector
+	groupIndex     int      // 0 for (none), 1..len(groups)
+	dropdownActive bool
+	dropdownCursor int
+	dropdownIsAuth bool // false = Group dropdown, true = Auth dropdown
 }
 
 func newUserForm() *userForm {

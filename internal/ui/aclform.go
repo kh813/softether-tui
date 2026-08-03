@@ -33,8 +33,6 @@ const (
 	aclFieldCount
 )
 
-var aclInputCount = int(aclFieldSave)
-
 type aclForm struct {
 	pass        bool // true = pass, false = discard
 	enable      bool // true = enable, false = disable
@@ -74,16 +72,16 @@ func newACLForm() *aclForm {
 		enable: true,
 	}
 	placeholders := []string{
-		"100",                      // priority
-		tr("ルール説明・メモ"),             // memo
-		"0.0.0.0/0",                // srcIP
-		"0.0.0.0/0",                // dstIP
-		"0",                        // srcPort
-		"0",                        // dstPort
-		tr("送信元ユーザー名 (任意)"),        // srcUser
-		tr("送信先ユーザー名 (任意)"),        // dstUser
-		"00:00:00:00:00:00",        // srcMAC
-		"00:00:00:00:00:00",        // dstMAC
+		"100",               // priority
+		tr("ルール説明・メモ"),      // memo
+		"0.0.0.0/0",         // srcIP
+		"0.0.0.0/0",         // dstIP
+		"0",                 // srcPort
+		"0",                 // dstPort
+		tr("送信元ユーザー名 (任意)"), // srcUser
+		tr("送信先ユーザー名 (任意)"), // dstUser
+		"00:00:00:00:00:00", // srcMAC
+		"00:00:00:00:00:00", // dstMAC
 	}
 	for i := range f.inputs {
 		ti := textinput.New()

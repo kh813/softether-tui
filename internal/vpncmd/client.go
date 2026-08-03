@@ -123,7 +123,7 @@ func (c *Client) run(ctx context.Context, t Target, command string, args []strin
 			msg = strings.TrimSpace(outStr)
 		}
 		if strings.Contains(msg, "Access has been denied") {
-			return "", fmt.Errorf("Access has been denied")
+			return "", errors.New("access denied")
 		}
 		return "", fmt.Errorf("vpncmd %s failed: %w: %s", command, err, msg)
 	}
@@ -925,19 +925,19 @@ func (c *Client) AccessList(ctx context.Context, t Target) (Table, error) {
 
 // AccessAddOptions contains fields required to create a new Access List rule.
 type AccessAddOptions struct {
-	Pass        bool   // true = pass, false = discard
-	Memo        string // description
-	Priority    int    // rule priority (>= 1)
-	SrcUser     string
-	DstUser     string
-	SrcMAC      string
-	DstMAC      string
-	SrcIP       string // e.g. "0.0.0.0/0"
-	DstIP       string // e.g. "0.0.0.0/0"
-	Protocol    string // e.g. "0" or "tcp", "udp", "icmpv4"
-	SrcPort     string // e.g. "0"
-	DstPort     string // e.g. "0"
-	TcpState    string // e.g. "" or "Established" / "Unestablished"
+	Pass     bool   // true = pass, false = discard
+	Memo     string // description
+	Priority int    // rule priority (>= 1)
+	SrcUser  string
+	DstUser  string
+	SrcMAC   string
+	DstMAC   string
+	SrcIP    string // e.g. "0.0.0.0/0"
+	DstIP    string // e.g. "0.0.0.0/0"
+	Protocol string // e.g. "0" or "tcp", "udp", "icmpv4"
+	SrcPort  string // e.g. "0"
+	DstPort  string // e.g. "0"
+	TcpState string // e.g. "" or "Established" / "Unestablished"
 }
 
 func (c *Client) AccessAdd(ctx context.Context, t Target, opts AccessAddOptions) error {

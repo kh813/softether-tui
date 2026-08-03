@@ -91,8 +91,6 @@ func (d groupDetailState) View() string {
 	return b.String()
 }
 
-
-
 func (d groupDetailState) isMember(user string) bool {
 	if ped, ok := d.pendingMemberEdits[user]; ok {
 		return ped
@@ -454,21 +452,4 @@ func (m Model) saveGroupDetailChanges() (tea.Model, tea.Cmd) {
 		}
 		return groupDetailLoadedMsg{groupName: name, info: res.Info, members: res.Members, allUsers: userNames, err: err}
 	}
-}
-
-func (m Model) setGroupSet(p config.Profile, hub, name string, opts vpncmd.GroupSetOptions) tea.Cmd {
-	client := m.client
-	target := m.targetFromProfile(p).WithHub(hub)
-	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		defer cancel()
-		err := client.GroupSet(ctx, target, name, opts)
-		return groupActionResultMsg{action: tr("グループ設定変更"), name: name, err: err}
-	}
-}
-
-type groupActionResultMsg struct {
-	action string
-	name   string
-	err    error
 }

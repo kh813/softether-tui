@@ -639,7 +639,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case serverInfoMsg:
 		p := m.dashboard.profile
-		if msg.err != nil && (strings.Contains(msg.err.Error(), "Access has been denied") || strings.Contains(msg.err.Error(), "exit status 1")) {
+		if msg.err != nil && (strings.Contains(msg.err.Error(), "access denied") || strings.Contains(msg.err.Error(), "exit status 1")) {
 			// Clear invalid password from session & saved profile so prompt is re-shown
 			delete(m.sessionPasswords, p.Name)
 			for i, prof := range m.profiles {

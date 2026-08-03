@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -74,18 +75,18 @@ type hubDetailState struct {
 	logErr     error
 	logCursor  int
 
-	secureNatStatus        vpncmd.KeyValue
-	secureNatHubStatus     vpncmd.KeyValue
-	secureNatHost          vpncmd.KeyValue
-	secureNatDhcp          vpncmd.KeyValue
-	secureNatLoaded        bool
-	secureNatLoading       bool
-	secureNatErr           error
-	secureNatCursor        editableSecureNATField
-	secureNatEditing       bool
-	secureNatEditingField  editableSecureNATField
-	secureNatEditedValues  map[editableSecureNATField]string
-	secureNatDirty         bool
+	secureNatStatus       vpncmd.KeyValue
+	secureNatHubStatus    vpncmd.KeyValue
+	secureNatHost         vpncmd.KeyValue
+	secureNatDhcp         vpncmd.KeyValue
+	secureNatLoaded       bool
+	secureNatLoading      bool
+	secureNatErr          error
+	secureNatCursor       editableSecureNATField
+	secureNatEditing      bool
+	secureNatEditingField editableSecureNATField
+	secureNatEditedValues map[editableSecureNATField]string
+	secureNatDirty        bool
 
 	access        vpncmd.Table
 	accessLoaded  bool
@@ -648,26 +649,6 @@ func (m Model) setSecureNatEnabled(p config.Profile, hub string, enabled bool) t
 	}
 }
 
-func (m Model) setNatEnabled(p config.Profile, hub string, enabled bool) tea.Cmd {
-	client := m.client
-	target := m.targetFromProfile(p).WithHub(hub)
-	action := tr("Virtual NAT 無効化")
-	if enabled {
-		action = tr("Virtual NAT 有効化")
-	}
-	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-		defer cancel()
-		var err error
-		if enabled {
-			err = client.NatEnable(ctx, target)
-		} else {
-			err = client.NatDisable(ctx, target)
-		}
-		return secureNatActionResultMsg{action: action, err: err}
-	}
-}
-
 func (m Model) setDhcpEnabled(p config.Profile, hub string, enabled bool) tea.Cmd {
 	client := m.client
 	target := m.targetFromProfile(p).WithHub(hub)
@@ -805,8 +786,6 @@ type cascadeLoadedMsg struct {
 	err     error
 }
 
-
-
 func (m Model) addAccessRule(p config.Profile, hub string, opts vpncmd.AccessAddOptions) tea.Cmd {
 	client := m.client
 	target := m.targetFromProfile(p).WithHub(hub)
@@ -817,8 +796,6 @@ func (m Model) addAccessRule(p config.Profile, hub string, opts vpncmd.AccessAdd
 		return accessActionResultMsg{action: tr("追加"), id: opts.Memo, err: err}
 	}
 }
-
-
 
 func (m Model) fetchCascade(p config.Profile, hub string) tea.Cmd {
 	client := m.client
@@ -880,7 +857,9 @@ func (m Model) handleHubCascadeKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			port := 443
 			if parts := strings.Split(hostPort, ":"); len(parts) == 2 {
 				host = parts[0]
-				fmt.Sscanf(parts[1], "%d", &port)
+				if p, err := strconv.Atoi(parts[1]); err == nil {
+					port = p
+				}
 			}
 			targetHub := row["Virtual Hub"]
 			user := row["User Name"]
