@@ -127,7 +127,227 @@
 - [x] **丸ごと欠落していたコマンド群を追加 (90件超)**: 接続維持 (`Keep*`)、TCP接続管理 (`Connection*`)、IPsec/EtherIP/OpenVPN/SSTP/VPN Azure/DDNS、CA証明書管理 (`CA*`)、Cascade詳細設定 (`Cascade*` 約20コマンド)、拡張ACL (`AccessAddEx`/`Add6`/`AddEx6`)、接続元IP制限リスト (`Ac*`、`AccessList`とは別機能)、グループ参加/ポリシー、MAC/IPテーブル、NAT/DHCPテーブル、Hub拡張オプション、VPN Client Account詳細サブコマンド (約20コマンド) 等
 - [x] `app_specs.md` 3.1/3.2 を更新: 「MVPスコープ」という限定的な表現から「vpncmd全コマンドの網羅を目標とする」方針に変更
 - [ ] 今回追加した約90件の未実装コマンドの実装は今後のマイルストーンで順次対応 (優先度は `vpncmd_commands.md` の「対応方針」列 ✅/△/✕ を参照)
-- [ ] UI/UX の一貫性チェック (今回のユーザー指摘: 「他メンバーに実装してもらった際、見た目や操作の一貫性維持が難しかった」) — `app_specs.md` の UI/UX ルール (8章) と実装の突き合わせは別タスクとして実施予定
+- [x] UI/UX の一貫性チェック (今回のユーザー指摘: 「他メンバーに実装してもらった際、見た目や操作の一貫性維持が難しかった」) — 実際に `internal/ui/*.go` を `app_specs.md` 8章のルールと突き合わせて調査した。結果は M10 に切り出した
+
+## M10: UI/UX 一貫性の是正
+
+M9 で実施した「`app_specs.md` 8章のUI/UXルールと実装の突き合わせ調査」で見つかった不整合を修正する。**経験の浅いプログラマーでも迷わず対応できるように、フェーズを細かく分割している。**
+
+### 進め方のルール (全フェーズ共通)
+
+- フェーズは **上から順番に** 進める (後のフェーズは前のフェーズの変更を前提にしている箇所がある)。
+- 1つのフェーズが終わったら、必ず次の3点を確認してから次のフェーズに進む:
+  1. `go build ./...` がエラーなく通ること
+  2. `go vet ./...` がエラーなく通ること
+  3. `go test ./...` が全て PASS すること (`internal/ui` の `TestEnCatalogCoversAllSourceStrings` は新しい日本語文言を追加したら英語カタログにも追加しないと失敗するので注意)
+- 上記3点を確認できたら、そのフェーズの変更だけを1つの `git commit` にする (フェーズをまとめて1コミットにしない)。コミットメッセージは各フェーズの見出しをそのまま使ってよい。
+- わからないことがあれば、自己判断で仕様を変えずに、コメントで質問を残すか一旦中断してよい。
+
+### 背景 (なぜ直すのか)
+
+現在、`c` キーが画面によって意味が違う。
+- 一覧画面 (`app.go` のダッシュボード類, `dashboard.go`, `bridge.go`, `clientdashboard.go`, `listener.go`, Hub詳細のユーザー/グループタブ) では `c` = **新規作成 (Create)**。
+- 一部の「フィールド編集パネル」画面 (`userdetail.go`, `groupdetail.go`, `securenatdetail.go`, Hub詳細の SecureNAT タブ) では `c` = **編集内容の破棄 (Cancel)**。
+
+これは `app_specs.md` §8.1.1 の必須ルール5「Create は常に `c`、Cancel/No は常に `n`」に反しており、ユーザーが画面をまたいで操作するときに混乱する直接の原因になっている。さらに、この4画面では `c` での破棄には確認ダイアログが出ない一方、`Esc` での破棄には確認ダイアログが出るという、同じ「破棄」操作なのに安全性が異なるバグもある。
+
+### Phase 1: ヘルプバーの見た目統一 (`accountform.go` / `bridgeform.go`)
+
+一番簡単で影響範囲が狭いフェーズ。他の全画面はキー操作ヘルプを共通関数 `renderHelp()` (`internal/ui/styles.go`) で描画しており、キー名が色付きハイライトされる。この2ファイルだけ素の文字列を `dimStyle.Render(...)` で描画しており、キーがハイライトされない。
+
+- [ ] `internal/ui/accountform.go` の `View()` 内、以下の行を探す:
+  ```go
+  b.WriteString("\n" + dimStyle.Render(tr("Tab/↑↓: 項目移動  ←→: 認証方式切替  Enter: 作成  Esc: キャンセル")))
+  ```
+  これを `renderHelp()` を使った形に書き換える:
+  ```go
+  b.WriteString("\n" + renderHelp("Tab/↑↓", tr("項目移動"), "←→", tr("認証方式切替"), "Enter", tr("作成"), "Esc", tr("キャンセル")))
+  ```
+- [ ] `internal/ui/bridgeform.go` の `View()` 内、以下の行を探す:
+  ```go
+  b.WriteString("\n" + dimStyle.Render(tr("Tab/↑↓: 項目移動  ←→: TAP切替  Enter: 作成  Esc: キャンセル")))
+  ```
+  同様に書き換える:
+  ```go
+  b.WriteString("\n" + renderHelp("Tab/↑↓", tr("項目移動"), "←→", tr("TAP切替"), "Enter", tr("作成"), "Esc", tr("キャンセル")))
+  ```
+- [ ] `internal/ui/app_ui_test.go` に、この2画面のヘルプ行が `renderHelp` 経由になったことを確認する軽いテストを追加する (既存の他画面向けテストを参考に、`View()` の出力に ANSI カラーコードが含まれること、または既存の `renderHelp` を使ったテストパターンを流用してよい)。
+- [ ] `go build ./...` / `go vet ./...` / `go test ./...` を実行しエラーがないことを確認
+- [ ] `git commit` (例: "Phase 1: accountform/bridgeform のヘルプバーを renderHelp() に統一")
+
+### Phase 2: 「その場で破棄」用の共通確認ダイアログを追加する (基盤整備)
+
+Phase 3〜6 で使う共通の仕組みをここで先に作る。**ここが一番概念的に難しいフェーズなので、慎重に進める。**
+
+現在、`Esc` で破棄する場合は必ず「本当に破棄しますか?」の確認ダイアログ (`confirmDiscardChanges`) が出るが、これは確認後に **前の画面に戻る** 動作までセットになっている (`internal/ui/app.go` の `confirmDiscardChanges` ケース、`m.screen = screenHubDetail` の行を参照)。Phase 3〜6 で直すショートカットは「画面には留まったまま、入力内容だけ破棄する」動作なので、画面遷移をしない新しい確認種別 `confirmDiscardInPlace` を追加する。
+
+- [ ] `internal/ui/confirm.go` の `confirmKind` の `const` 一覧に、`confirmDiscardChanges` の次の行として `confirmDiscardInPlace` を追加する。
+- [ ] `internal/ui/app.go` で `confirmDiscardChanges` を処理している `case confirmDiscardChanges:` ブロック (だいたい1410行目付近) を探す。その直後に、以下のような新しい `case` を追加する (`m.screen = screenHubDetail` の代入を **入れない** ことがポイント。画面を移動させず、その場に留まる):
+  ```go
+  case confirmDiscardInPlace:
+      if m.screen == screenUserDetail {
+          m.userDetail.editedValues = make(map[editableUserField]string)
+          m.userDetail.dirty = false
+          m.userDetail.authType = vpncmd.UserAuthNone
+      } else if m.screen == screenGroupDetail {
+          m.groupDetail.editedValues = make(map[editableGroupField]string)
+          m.groupDetail.pendingMemberEdits = make(map[string]bool)
+          m.groupDetail.dirty = false
+      } else if m.screen == screenSecureNATDetail {
+          m.secureNatDetail.editedValues = make(map[editableSecureNATField]string)
+          m.secureNatDetail.dirty = false
+      } else if m.screen == screenHubDetail && m.hubDetail.tab == hubTabSecureNAT {
+          m.hubDetail.secureNatEditedValues = make(map[editableSecureNATField]string)
+          m.hubDetail.secureNatDirty = false
+      }
+      m.status = tr("変更を破棄しました")
+      m.statusErr = false
+      return m, nil
+  ```
+  (`screenSecureNATDetail` 用の分岐は、調査の過程で見つかった別の不整合の修正でもある: 現行コードでは `screenSecureNATDetail` 画面で `Esc` 経由の破棄確認をしても、既存の `confirmDiscardChanges` ケースにはこの画面用の分岐がなく `dirty` フラグと編集内容がリセットされていなかった。)
+- [ ] このフェーズだけでは呼び出し元がまだないので、動作確認は「コンパイルが通ること」のみでよい (Phase 3〜6 で実際に呼び出す)。
+- [ ] `go build ./...` / `go vet ./...` / `go test ./...` を実行しエラーがないことを確認
+- [ ] `git commit` (例: "Phase 2: その場に留まって破棄する confirmDiscardInPlace を追加")
+
+### Phase 3: `securenatdetail.go` の `c` キーを `n` に変更する
+
+`internal/ui/securenatdetail.go` の `Update()` 内、以下のブロックを探す:
+```go
+case "c", "C":
+    if d.dirty {
+        d.editedValues = make(map[editableSecureNATField]string)
+        d.dirty = false
+        m.status = tr("変更を破棄しました")
+        m.statusErr = false
+        return m, nil
+    }
+```
+
+- [ ] 上記ブロックを、キーを `n`/`N` に変え、直接破棄するのではなく Phase 2 で作った確認ダイアログを呼ぶ形に書き換える:
+  ```go
+  case "n", "N":
+      if d.dirty {
+          m.confirm.Show(confirmDiscardInPlace, "", tr("未保存の変更があります。変更を破棄しますか?"))
+          return m, nil
+      }
+  ```
+- [ ] `internal/ui/catalog_en.go` に `"未保存の変更があります。変更を破棄しますか?"` の英訳エントリを追加する (既存の似た文言 `"未保存の変更があります。変更を破棄して戻りますか?"` の訳を参考にする)。
+- [ ] `View()` 内のヘルプ表示行 (`renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更"), "s", tr("保存 (Save)"), "c", tr("変更を破棄 (Cancel)"))`) の `"c"` を `"n"` に変更する。
+- [ ] `internal/ui/app_ui_test.go` に「SecureNAT詳細画面で dirty な状態で `n` を押すと確認ダイアログが出て、`y` で確定すると `dirty` が `false` に戻り画面は同じ (`screenSecureNATDetail`) のままであること」を確認するテストを追加する。
+- [ ] `go build ./...` / `go vet ./...` / `go test ./...` を実行しエラーがないことを確認
+- [ ] `git commit` (例: "Phase 3: securenatdetail.go の破棄キーを c から n に変更")
+
+### Phase 4: `userdetail.go` の `c` キーを `n` に変更する
+
+Phase 3 と全く同じパターン。`internal/ui/userdetail.go` の `Update()` 内、以下のブロックを探す:
+```go
+case "c", "C":
+    if d.dirty {
+        d.editedValues = make(map[editableUserField]string)
+        d.dirty = false
+        d.authType = vpncmd.UserAuthNone
+        m.status = tr("変更を破棄しました")
+        m.statusErr = false
+        return m, nil
+    }
+```
+
+- [ ] キーを `n`/`N` に変え、確認ダイアログ経由にする:
+  ```go
+  case "n", "N":
+      if d.dirty {
+          m.confirm.Show(confirmDiscardInPlace, "", tr("未保存の変更があります。変更を破棄しますか?"))
+          return m, nil
+      }
+  ```
+- [ ] `View()` 内のヘルプ表示行の `"c"` を `"n"` に変更する。
+- [ ] `internal/ui/app_ui_test.go` に Phase 3 と同様のテストをユーザー詳細画面向けに追加する。
+- [ ] `go build ./...` / `go vet ./...` / `go test ./...` を実行しエラーがないことを確認
+- [ ] `git commit` (例: "Phase 4: userdetail.go の破棄キーを c から n に変更")
+
+### Phase 5: `groupdetail.go` の `c` キーを整理する (注意: この画面だけ `c` に2つの役割がある)
+
+`groupdetail.go` は他の3画面と違い、`c`/`C` に **2つの役割** が同居している (`a`/`A` と同じ「グループメンバー追加」、かつ dirty時は「破棄」)。**「メンバー追加」の役割はそのまま残し、「破棄」の役割だけを `n` に移す** のがこのフェーズの目的。
+
+- [ ] `internal/ui/groupdetail.go` の `Update()` 内、以下のブロックを探す:
+  ```go
+  case "c", "C":
+      if d.dirty {
+          d.editedValues = make(map[editableGroupField]string)
+          d.pendingMemberEdits = make(map[string]bool)
+          d.dirty = false
+          m.status = tr("変更を破棄しました")
+          m.statusErr = false
+          return m, nil
+      }
+      m.prompt.Show(promptAddGroupMember, d.groupName, fmt.Sprintf(tr("グループ %q に追加するユーザー名:"), d.groupName), tr("ユーザー名"), false)
+      return m, nil
+  ```
+  これを、dirty時は何もしない (メンバー追加を許可しない、という既存の挙動は維持) ように単純化し、新しく `n`/`N` のケースを追加する:
+  ```go
+  case "c", "C":
+      if !d.dirty {
+          m.prompt.Show(promptAddGroupMember, d.groupName, fmt.Sprintf(tr("グループ %q に追加するユーザー名:"), d.groupName), tr("ユーザー名"), false)
+          return m, nil
+      }
+
+  case "n", "N":
+      if d.dirty {
+          m.confirm.Show(confirmDiscardInPlace, "", tr("未保存の変更があります。変更を破棄しますか?"))
+          return m, nil
+      }
+  ```
+- [ ] 同じファイル内、画面上の `[ キャンセル (Cancel) ]` ボタン (カーソルを合わせて `Enter`/`Space` で実行するボタン。`"cancelText"` 変数のあたり) を Enter で実行している箇所も、直接破棄せず同じ確認ダイアログを経由するように変更する。該当箇所 (`case " ", "enter":` 内、`d.cursor == 3+len(users)` で保存、それ以外で破棄している部分) を探し、破棄側の分岐を次のように変更する:
+  ```go
+  m.confirm.Show(confirmDiscardInPlace, "", tr("未保存の変更があります。変更を破棄しますか?"))
+  return m, nil
+  ```
+  (直接 `d.editedValues = ...` 等をリセットしていた行は削除する。カーソル位置のリセット (`d.cursor = 0`) も確認ダイアログの結果を待ってから行うべきだが、今回は挙動を変えすぎないよう、リセットは省略してよい。気になる場合はコメントで相談する。)
+- [ ] `View()` 内のヘルプ表示行の `"c"` (破棄の意味で使っている方) を `"n"` に変更する。「メンバー追加」の意味で `"c"`/`"a"` を表示している箇所はそのまま残す。
+- [ ] `internal/ui/app_ui_test.go` に「グループ詳細画面で dirty でない状態で `c` を押すとメンバー追加プロンプトが開くこと」「dirty な状態で `n` を押すと確認ダイアログが開くこと」の2つを確認するテストを追加する。
+- [ ] `go build ./...` / `go vet ./...` / `go test ./...` を実行しエラーがないことを確認
+- [ ] `git commit` (例: "Phase 5: groupdetail.go の破棄キーを c から n に変更 (メンバー追加の c は維持)")
+
+### Phase 6: Hub詳細の SecureNAT タブ (`app.go` 側) の `c` キーを `n` に変更する
+
+これは `internal/ui/hubdetail.go` の View ではなく、キー処理は `internal/ui/app.go` の Hub詳細画面の `Update` 処理内にある。
+
+- [ ] `internal/ui/app.go` 内、以下のブロックを探す (`hubTabSecureNAT` のキー処理の中):
+  ```go
+  case "c", "C":
+      if d.secureNatDirty {
+          d.secureNatEditedValues = make(map[editableSecureNATField]string)
+          d.secureNatDirty = false
+          m.status = tr("変更を破棄しました")
+          m.statusErr = false
+  ```
+  (この続きの行も含めて) キーを `n`/`N` に変え、確認ダイアログ経由にする:
+  ```go
+  case "n", "N":
+      if d.secureNatDirty {
+          m.confirm.Show(confirmDiscardInPlace, "", tr("未保存の変更があります。変更を破棄しますか?"))
+          return m, nil
+      }
+  ```
+- [ ] `internal/ui/hubdetail.go` の `viewSecureNAT()` 内、ヘルプ表示行 (`renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更/切替"), "s", tr("保存 (Save)"), "c", tr("変更を破棄 (Cancel)"))`) の `"c"` を `"n"` に変更する。
+- [ ] `internal/ui/app_ui_test.go` に Phase 3 と同様のテストを Hub詳細画面の SecureNAT タブ向けに追加する。
+- [ ] `go build ./...` / `go vet ./...` / `go test ./...` を実行しエラーがないことを確認
+- [ ] `git commit` (例: "Phase 6: Hub詳細 SecureNAT タブの破棄キーを c から n に変更")
+
+### Phase 7: 最終確認・仕上げ
+
+- [ ] リポジトリ全体で `grep -rn '"c", "C"' internal/ui/*.go` を実行し、破棄 (Cancel/Discard) の意味で `c` が使われている箇所が残っていないことを目で確認する (Create/新規作成/メンバー追加の意味で使われている `c` は残ってよい)。
+- [ ] `internal/ui/app_ui_test.go` を通し実行し、Phase 1・3〜6 で追加したテストを含め全て PASS することを確認する。
+- [ ] `vpncmd_commands.md` は今回の変更と無関係なので変更不要 (念のため確認のみ)。
+- [ ] `app_specs.md` に変更履歴として1行追記する (例: 8章の末尾または改訂履歴節に「2026-08: `c`/`n` キーの衝突を解消 (Create=c, Cancel/Discard=n に統一)」)。
+- [ ] 本ファイル (`app_todo.md`) の M10 の各チェックボックスが全て `[x]` になっていることを確認する。
+- [ ] 最終確認として `go build ./...` / `go vet ./...` / `go test ./...` / `golangci-lint run` を実行し、全て問題ないことを確認する。
+- [ ] `git commit` (例: "Phase 7: M10 UI/UX 一貫性是正の仕上げ・ドキュメント更新")
+
+### このマイルストーンで対応しないこと (別タスク・将来対応)
+
+- `groupdetail.go` にのみ存在する画面上の `[ 保存 ]`/`[ キャンセル ]` ボタン行を、`userdetail.go`/`securenatdetail.go` にも同様に追加するかどうかの検討 (レイアウト・カーソル数の変更を伴う大きめの変更のため、今回のキーバインド統一とは別タスクとする)。
+- `accountform.go`/`bridgeform.go` のような「常時入力編集」形式のフォームと、`userdetail.go` 等の「フィールド選択→Enterで編集」形式のフォームが混在している点。両方とも用途に応じた合理的な設計であり、現時点では不整合とはみなさないが、将来的に `app_specs.md` 8章の「2フェーズ状態モデル」の適用範囲を明文化する際に再検討する。
 
 ## 将来 (11章 12章 未決事項)
 
@@ -137,4 +357,4 @@
 - [ ] OS キーチェーン連携 (パスワード保存)
 - [ ] リリース成果物の署名 (cosign 等)
 - [ ] 英語/日本語以外の言語への対応
-- [ ] UI/UX 一貫性の突き合わせチェック (M9で提起、別タスク化予定)
+- [ ] groupdetail.go 以外の詳細編集画面への画面上 Save/Cancel ボタン行の追加検討 (M10 で対応を見送った項目)
