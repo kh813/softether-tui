@@ -2385,6 +2385,14 @@ func (m Model) handleUserFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.screen = screenHubDetail
 		return m, nil
 
+	case "r", "R":
+		if m.userForm.authType == vpncmd.UserAuthRadius {
+			m.radiusForm.Reset()
+			m.screen = screenRadiusForm
+			m.status = ""
+			return m, nil
+		}
+
 	case "enter":
 		// Handle Group or AuthType selection opening dropdown via Update first
 		if m.userForm.focus == userFieldGroup || m.userForm.focus == userFieldAuthType {

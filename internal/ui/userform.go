@@ -365,6 +365,7 @@ func (f *userForm) View() string {
 		f.authParam1.EchoMode = textinput.EchoNormal
 		f.authParam1.Placeholder = tr("RADIUS User Alias (任意)")
 		fmt.Fprintf(&b, "%s%-14s %s\n", pMarker, tr("RADIUSエイリアス:"), f.authParam1.View())
+		fmt.Fprintf(&b, "  %-14s %s\n", tr("RADIUSサーバー:"), selectedStyle.Render(tr("[ R: RADIUS サーバー (IP/Host, Secret) を設定 ]")))
 	}
 
 	if f.dropdownActive {
