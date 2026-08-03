@@ -337,12 +337,12 @@ case "c", "C":
 
 ### Phase 7: 最終確認・仕上げ
 
-- [ ] リポジトリ全体で `grep -rn '"c", "C"' internal/ui/*.go` を実行し、破棄 (Cancel/Discard) の意味で `c` が使われている箇所が残っていないことを目で確認する (Create/新規作成/メンバー追加の意味で使われている `c` は残ってよい)。
-- [ ] `internal/ui/app_ui_test.go` を通し実行し、Phase 1・3〜6 で追加したテストを含め全て PASS することを確認する。
-- [ ] `vpncmd_commands.md` は今回の変更と無関係なので変更不要 (念のため確認のみ)。
-- [ ] `app_specs.md` に変更履歴として1行追記する (例: 8章の末尾または改訂履歴節に「2026-08: `c`/`n` キーの衝突を解消 (Create=c, Cancel/Discard=n に統一)」)。
-- [ ] 本ファイル (`app_todo.md`) の M10 の各チェックボックスが全て `[x]` になっていることを確認する。
-- [ ] 最終確認として `go build ./...` / `go vet ./...` / `go test ./...` / `golangci-lint run` を実行し、全て問題ないことを確認する。
+- [x] リポジトリ全体で `grep -rn '"c", "C"' internal/ui/*.go` を実行し、破棄 (Cancel/Discard) の意味で `c` が使われている箇所が残っていないことを目で確認する (Create/新規作成/メンバー追加の意味で使われている `c` は残ってよい)。→ 残っている `"c", "C"` は全て Create 系 (プロファイル/Hub/Bridge/Listener/Account/グループメンバー追加) であることを確認済み。
+- [x] `internal/ui/app_ui_test.go` を通し実行し、Phase 1・3〜6 で追加したテストを含め全て PASS することを確認する。
+- [x] `vpncmd_commands.md` は今回の変更と無関係なので変更不要 (念のため確認のみ)。
+- [x] `app_specs.md` に変更履歴として1行追記する (例: 8章の末尾または改訂履歴節に「2026-08: `c`/`n` キーの衝突を解消 (Create=c, Cancel/Discard=n に統一)」)。→ 8.5 改訂履歴として新設し追記済み。
+- [x] 本ファイル (`app_todo.md`) の M10 の各チェックボックスが全て `[x]` になっていることを確認する。
+- [x] 最終確認として `go build ./...` / `go vet ./...` / `go test ./...` / `golangci-lint run` を実行し、全て問題ないことを確認する。(`gofmt -l .` も実行し、`catalog_en.go` の整列崩れを `gofmt -w` で修正済み)
 - [ ] `git commit` (例: "Phase 7: M10 UI/UX 一貫性是正の仕上げ・ドキュメント更新")
 
 ### このマイルストーンで対応しないこと (別タスク・将来対応)
