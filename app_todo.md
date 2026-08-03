@@ -115,11 +115,26 @@
 - [x] ローカルで `go build` / `go vet` / `go test` 実行 (全パッケージPASS)。`--lang en`/`--lang ja`起動時のCLIメッセージ(vpncmd未検出警告等)が言語別に正しく出力されることを非対話実行で確認。擬似端末上でのTUI描画の目視確認は今回の環境では安定して再現できず未実施 (自動テストとCLI出力確認でカバー)
 - [x] vpncmd自体の出力(エラーメッセージ等)は翻訳対象外である旨は`app_specs.md` 6.5節に明記済み (README未作成のため6.5節が一次情報源)
 
+## M9: vpncmd_commands.md の公式マニュアル照合・網羅性チェック
+
+「vpncmd の TUI ラッパーである以上、公式マニュアル記載のコマンドは基本的に全て実行可能にすべき」という方針の見直しを受け、`vpncmd_commands.md` を SoftEther 公式マニュアル (ja.softether.org 6.3〜6.6) と全面照合した。
+
+- [x] 公式マニュアル 6.3 (サーバー全体)・6.4 (Virtual HUB)・6.5 (VPN Client)・6.6 (VPN Tools) を取得し、掲載されている全コマンドを抽出
+- [x] `internal/vpncmd/client.go` の実コード (`Run`/`RunWithInput` に渡すコマンド文字列) を直接検索し、「実装済み」の自己申告と実態を突き合わせ
+- [x] **誤って「実装済み `[x]`」になっていたが実際は未実装だった項目を修正**: `ServerCertGet`/`ServerCertSet`/`Caps`/`PolicyList`/`NatSet`
+- [x] **コマンド名が誤っていた項目を修正**: `GetConfig`/`SetConfig`→`ConfigGet`/`ConfigSet`、`RebootServer`→`Reboot`、`Layer3*`→`Router*` (体系ごと異なる)、`ClusterSettingSet`→`ClusterSettingStandalone`/`Controller`/`Member`
+- [x] **公式マニュアルに記載が見当たらないコマンドを「要確認」として明記**: `GetPerformance`、`LicenseList`系、`MakeCert2048`、`AccountDetailGet`
+- [x] **丸ごと欠落していたコマンド群を追加 (90件超)**: 接続維持 (`Keep*`)、TCP接続管理 (`Connection*`)、IPsec/EtherIP/OpenVPN/SSTP/VPN Azure/DDNS、CA証明書管理 (`CA*`)、Cascade詳細設定 (`Cascade*` 約20コマンド)、拡張ACL (`AccessAddEx`/`Add6`/`AddEx6`)、接続元IP制限リスト (`Ac*`、`AccessList`とは別機能)、グループ参加/ポリシー、MAC/IPテーブル、NAT/DHCPテーブル、Hub拡張オプション、VPN Client Account詳細サブコマンド (約20コマンド) 等
+- [x] `app_specs.md` 3.1/3.2 を更新: 「MVPスコープ」という限定的な表現から「vpncmd全コマンドの網羅を目標とする」方針に変更
+- [ ] 今回追加した約90件の未実装コマンドの実装は今後のマイルストーンで順次対応 (優先度は `vpncmd_commands.md` の「対応方針」列 ✅/△/✕ を参照)
+- [ ] UI/UX の一貫性チェック (今回のユーザー指摘: 「他メンバーに実装してもらった際、見た目や操作の一貫性維持が難しかった」) — `app_specs.md` の UI/UX ルール (8章) と実装の突き合わせは別タスクとして実施予定
+
 ## 将来 (11章 12章 未決事項)
 
-- [ ] VPN Client の証明書認証・NIC管理・信頼するCA管理・自動接続設定・設定インポート/エクスポート (M7で見送った項目)
-- [ ] VPN Tools モード (`/TOOLS`) 対応
+- [ ] VPN Client の証明書認証・NIC管理・信頼するCA管理・自動接続設定・設定インポート/エクスポート (M7で見送った項目、M9で公式コマンド名を確認済み)
+- [ ] VPN Tools モード (`/TOOLS`) 対応 (M9で対象コマンドを確認済み)
 - [ ] JSON-RPC 管理 API 方式の検討
 - [ ] OS キーチェーン連携 (パスワード保存)
 - [ ] リリース成果物の署名 (cosign 等)
 - [ ] 英語/日本語以外の言語への対応
+- [ ] UI/UX 一貫性の突き合わせチェック (M9で提起、別タスク化予定)
