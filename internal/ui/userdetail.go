@@ -87,7 +87,7 @@ func (d userDetailState) View() string {
 	} else if d.editing {
 		b.WriteString("\n" + renderHelp("Enter", tr("決定"), "Esc", tr("キャンセル")))
 	} else if d.dirty {
-		b.WriteString("\n" + renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更"), "s", tr("保存 (Save)"), "c", tr("変更を破棄 (Cancel)")))
+		b.WriteString("\n" + renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更"), "s", tr("保存 (Save)"), "n", tr("変更を破棄 (Cancel)")))
 	} else {
 		b.WriteString("\n" + renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更"), "d", tr("削除"), "Esc", tr("戻る"), "q", tr("終了")))
 	}
@@ -323,13 +323,9 @@ func (m Model) handleUserDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.screen = screenHubDetail
 		return m, nil
 
-	case "c", "C":
+	case "n", "N":
 		if d.dirty {
-			d.editedValues = make(map[editableUserField]string)
-			d.dirty = false
-			d.authType = vpncmd.UserAuthNone
-			m.status = tr("変更を破棄しました")
-			m.statusErr = false
+			m.confirm.Show(confirmDiscardInPlace, "", tr("未保存の変更があります。変更を破棄しますか?"))
 			return m, nil
 		}
 

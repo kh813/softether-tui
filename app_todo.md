@@ -253,7 +253,7 @@ case "c", "C":
     }
 ```
 
-- [ ] キーを `n`/`N` に変え、確認ダイアログ経由にする:
+- [x] キーを `n`/`N` に変え、確認ダイアログ経由にする:
   ```go
   case "n", "N":
       if d.dirty {
@@ -261,9 +261,9 @@ case "c", "C":
           return m, nil
       }
   ```
-- [ ] `View()` 内のヘルプ表示行の `"c"` を `"n"` に変更する。
-- [ ] `internal/ui/app_ui_test.go` に Phase 3 と同様のテストをユーザー詳細画面向けに追加する。
-- [ ] `go build ./...` / `go vet ./...` / `go test ./...` を実行しエラーがないことを確認
+- [x] `View()` 内のヘルプ表示行の `"c"` を `"n"` に変更する。
+- [x] `internal/ui/app_ui_test.go` に Phase 3 と同様のテストをユーザー詳細画面向けに追加する (`TestUserDetailDiscardKeyIsNNotC`)。
+- [x] `go build ./...` / `go vet ./...` / `go test ./...` を実行しエラーがないことを確認
 - [ ] `git commit` (例: "Phase 4: userdetail.go の破棄キーを c から n に変更")
 
 ### Phase 5: `groupdetail.go` の `c` キーを整理する (注意: この画面だけ `c` に2つの役割がある)

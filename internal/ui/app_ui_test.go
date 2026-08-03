@@ -330,6 +330,38 @@ func TestSecureNATDetailDiscardKeyIsNNotC(t *testing.T) {
 	}
 }
 
+// TestUserDetailDiscardKeyIsNNotC mirrors TestSecureNATDetailDiscardKeyIsNNotC
+// for the User Detail screen: 'c' must no longer discard changes, and 'n'
+// must require confirmation via confirmDiscardInPlace before discarding,
+// without navigating away from screenUserDetail.
+func TestUserDetailDiscardKeyIsNNotC(t *testing.T) {
+	m := setupTestModel(t)
+	m.screen = screenUserDetail
+	m.userDetail.dirty = true
+	m.userDetail.editedValues = map[editableUserField]string{fieldRealName: "Someone"}
+
+	m = sendKey(m, "c")
+	if !m.userDetail.dirty {
+		t.Fatalf("expected 'c' to no longer discard changes on User Detail screen")
+	}
+
+	m = sendKey(m, "n")
+	if !m.confirm.active || m.confirm.kind != confirmDiscardInPlace {
+		t.Fatalf("expected confirmDiscardInPlace modal on 'n' when dirty, active: %v, kind: %v", m.confirm.active, m.confirm.kind)
+	}
+
+	m = sendKey(m, "y")
+	if m.userDetail.dirty {
+		t.Fatalf("expected dirty to be false after confirming discard")
+	}
+	if len(m.userDetail.editedValues) != 0 {
+		t.Fatalf("expected editedValues to be cleared after confirming discard")
+	}
+	if m.screen != screenUserDetail {
+		t.Fatalf("expected screen to remain screenUserDetail, got %v", m.screen)
+	}
+}
+
 // TestAccountFormAndBridgeFormUseSharedHelpRenderer guards against the two
 // forms falling back to a hand-rolled dimStyle.Render(...) help line: that
 // path never highlights key names, unlike every other screen's renderHelp()
