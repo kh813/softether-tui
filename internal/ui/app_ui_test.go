@@ -388,6 +388,37 @@ func TestUserDetailDiscardKeyIsNNotC(t *testing.T) {
 	}
 }
 
+// TestHubDetailSecureNATTabDiscardKeyIsNNotC mirrors the other three
+// discard-key fixes for the SecureNAT tab embedded in the Hub Detail screen.
+func TestHubDetailSecureNATTabDiscardKeyIsNNotC(t *testing.T) {
+	m := setupTestModel(t)
+	m.screen = screenHubDetail
+	m.hubDetail.tab = hubTabSecureNAT
+	m.hubDetail.secureNatDirty = true
+	m.hubDetail.secureNatEditedValues = map[editableSecureNATField]string{fieldNatIP: "10.0.0.1"}
+
+	m = sendKey(m, "c")
+	if !m.hubDetail.secureNatDirty {
+		t.Fatalf("expected 'c' to no longer discard changes on the Hub Detail SecureNAT tab")
+	}
+
+	m = sendKey(m, "n")
+	if !m.confirm.active || m.confirm.kind != confirmDiscardInPlace {
+		t.Fatalf("expected confirmDiscardInPlace modal on 'n' when dirty, active: %v, kind: %v", m.confirm.active, m.confirm.kind)
+	}
+
+	m = sendKey(m, "y")
+	if m.hubDetail.secureNatDirty {
+		t.Fatalf("expected secureNatDirty to be false after confirming discard")
+	}
+	if len(m.hubDetail.secureNatEditedValues) != 0 {
+		t.Fatalf("expected secureNatEditedValues to be cleared after confirming discard")
+	}
+	if m.screen != screenHubDetail || m.hubDetail.tab != hubTabSecureNAT {
+		t.Fatalf("expected to remain on screenHubDetail/hubTabSecureNAT, got screen=%v tab=%v", m.screen, m.hubDetail.tab)
+	}
+}
+
 // TestAccountFormAndBridgeFormUseSharedHelpRenderer guards against the two
 // forms falling back to a hand-rolled dimStyle.Render(...) help line: that
 // path never highlights key names, unlike every other screen's renderHelp()

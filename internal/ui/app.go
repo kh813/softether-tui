@@ -2256,12 +2256,9 @@ func (m Model) handleHubSecureNATKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.saveHubSecureNATChanges()
 		}
 
-	case "c", "C":
+	case "n", "N":
 		if d.secureNatDirty {
-			d.secureNatEditedValues = make(map[editableSecureNATField]string)
-			d.secureNatDirty = false
-			m.status = tr("変更を破棄しました")
-			m.statusErr = false
+			m.confirm.Show(confirmDiscardInPlace, "", tr("未保存の変更があります。変更を破棄しますか?"))
 			return m, nil
 		}
 	}

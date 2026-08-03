@@ -380,7 +380,7 @@ func (d hubDetailState) viewSecureNAT(b *strings.Builder) {
 	if d.secureNatEditing {
 		b.WriteString("\n" + renderHelp("Enter", tr("決定"), "Esc", tr("キャンセル")))
 	} else if d.secureNatDirty {
-		b.WriteString("\n" + renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更/切替"), "s", tr("保存 (Save)"), "c", tr("変更を破棄 (Cancel)")))
+		b.WriteString("\n" + renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更/切替"), "s", tr("保存 (Save)"), "n", tr("変更を破棄 (Cancel)")))
 	} else {
 		b.WriteString("\n" + renderHelp(
 			"↑/↓", tr("項目選択"),

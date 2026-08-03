@@ -313,7 +313,7 @@ case "c", "C":
 
 これは `internal/ui/hubdetail.go` の View ではなく、キー処理は `internal/ui/app.go` の Hub詳細画面の `Update` 処理内にある。
 
-- [ ] `internal/ui/app.go` 内、以下のブロックを探す (`hubTabSecureNAT` のキー処理の中):
+- [x] `internal/ui/app.go` 内、以下のブロックを探す (`hubTabSecureNAT` のキー処理の中):
   ```go
   case "c", "C":
       if d.secureNatDirty {
@@ -330,9 +330,9 @@ case "c", "C":
           return m, nil
       }
   ```
-- [ ] `internal/ui/hubdetail.go` の `viewSecureNAT()` 内、ヘルプ表示行 (`renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更/切替"), "s", tr("保存 (Save)"), "c", tr("変更を破棄 (Cancel)"))`) の `"c"` を `"n"` に変更する。
-- [ ] `internal/ui/app_ui_test.go` に Phase 3 と同様のテストを Hub詳細画面の SecureNAT タブ向けに追加する。
-- [ ] `go build ./...` / `go vet ./...` / `go test ./...` を実行しエラーがないことを確認
+- [x] `internal/ui/hubdetail.go` の `viewSecureNAT()` 内、ヘルプ表示行 (`renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更/切替"), "s", tr("保存 (Save)"), "c", tr("変更を破棄 (Cancel)"))`) の `"c"` を `"n"` に変更する。
+- [x] `internal/ui/app_ui_test.go` に Phase 3 と同様のテストを Hub詳細画面の SecureNAT タブ向けに追加する (`TestHubDetailSecureNATTabDiscardKeyIsNNotC`)。
+- [x] `go build ./...` / `go vet ./...` / `go test ./...` を実行しエラーがないことを確認
 - [ ] `git commit` (例: "Phase 6: Hub詳細 SecureNAT タブの破棄キーを c から n に変更")
 
 ### Phase 7: 最終確認・仕上げ
