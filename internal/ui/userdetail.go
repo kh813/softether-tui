@@ -54,12 +54,16 @@ type userDetailState struct {
 	groups              []string
 	groupDropdownActive bool
 	groupDropdownCursor int
+
+	// Radius Server Info (for previewing Hub's RADIUS server settings)
+	radiusServer string
 }
 
 type userDetailLoadedMsg struct {
-	userName string
-	info     vpncmd.KeyValue
-	err      error
+	userName     string
+	info         vpncmd.KeyValue
+	radiusServer string
+	err          error
 }
 
 func (m Model) fetchUserDetail(p config.Profile, hub, name string) tea.Cmd {
@@ -69,7 +73,14 @@ func (m Model) fetchUserDetail(p config.Profile, hub, name string) tea.Cmd {
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 		info, err := client.UserGet(ctx, target, name)
-		return userDetailLoadedMsg{userName: name, info: info, err: err}
+		radInfo, _ := client.RadiusServerGet(ctx, target)
+		radServer := ""
+		if radInfo != nil {
+			if s, ok := radInfo["RADIUS Server Name"]; ok && s != "" {
+				radServer = s
+			}
+		}
+		return userDetailLoadedMsg{userName: name, info: info, radiusServer: radServer, err: err}
 	}
 }
 
@@ -262,6 +273,11 @@ func (d userDetailState) renderPasswordField(b *strings.Builder) {
 		if val == "" {
 			val = tr("(None / Same as User Name)")
 		}
+		radSrv := d.radiusServer
+		if radSrv == "" {
+			radSrv = tr("(Not Configured - Press R in Overview)")
+		}
+		val += fmt.Sprintf("  [%s: %s]", tr("RADIUS Server"), radSrv)
 	case vpncmd.UserAuthCert:
 		label = tr("Certificate File Path")
 		val = d.authParam1

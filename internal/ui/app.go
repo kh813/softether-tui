@@ -1073,6 +1073,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.userDetail.loading = false
 		m.userDetail.err = msg.err
 		m.userDetail.info = msg.info
+		m.userDetail.radiusServer = msg.radiusServer
 		return m, nil
 
 	case groupDetailLoadedMsg:
