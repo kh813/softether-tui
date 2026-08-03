@@ -84,7 +84,7 @@ func (d groupDetailState) View() string {
 	if d.editing {
 		b.WriteString("\n" + renderHelp("Enter", tr("決定"), "Esc", tr("キャンセル")))
 	} else if d.dirty {
-		b.WriteString("\n" + renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更"), "s", tr("保存 (Save)"), "c", tr("変更を破棄 (Cancel)")))
+		b.WriteString("\n" + renderHelp("↑/↓", tr("項目選択"), "Enter", tr("値の変更"), "s", tr("保存 (Save)"), "n", tr("変更を破棄 (Cancel)")))
 	} else {
 		b.WriteString("\n" + renderHelp("↑/↓", tr("移動"), "Space/Enter", tr("所属切り替え(トグル)"), "a", tr("手動ユーザー追加"), "d", tr("削除"), "Esc", tr("戻る"), "q", tr("終了")))
 	}
@@ -287,16 +287,16 @@ func (m Model) handleGroupDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "c", "C":
-		if d.dirty {
-			d.editedValues = make(map[editableGroupField]string)
-			d.pendingMemberEdits = make(map[string]bool)
-			d.dirty = false
-			m.status = tr("変更を破棄しました")
-			m.statusErr = false
+		if !d.dirty {
+			m.prompt.Show(promptAddGroupMember, d.groupName, fmt.Sprintf(tr("グループ %q に追加するユーザー名:"), d.groupName), tr("ユーザー名"), false)
 			return m, nil
 		}
-		m.prompt.Show(promptAddGroupMember, d.groupName, fmt.Sprintf(tr("グループ %q に追加するユーザー名:"), d.groupName), tr("ユーザー名"), false)
-		return m, nil
+
+	case "n", "N":
+		if d.dirty {
+			m.confirm.Show(confirmDiscardInPlace, "", tr("未保存の変更があります。変更を破棄しますか?"))
+			return m, nil
+		}
 
 	case "up", "k":
 		if d.cursor > 0 {
@@ -324,12 +324,7 @@ func (m Model) handleGroupDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if d.cursor == 3+len(users) {
 				return m.saveGroupDetailChanges()
 			}
-			d.editedValues = make(map[editableGroupField]string)
-			d.pendingMemberEdits = make(map[string]bool)
-			d.dirty = false
-			d.cursor = 0
-			m.status = tr("変更を破棄しました")
-			m.statusErr = false
+			m.confirm.Show(confirmDiscardInPlace, "", tr("未保存の変更があります。変更を破棄しますか?"))
 			return m, nil
 		}
 

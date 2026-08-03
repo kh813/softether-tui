@@ -274,6 +274,13 @@ func TestGroupDetailAddMemberPrompt(t *testing.T) {
 	}
 	m.prompt.Hide()
 
+	// 'c' is kept as an alias for 'a' (Create-family shortcut) when not dirty.
+	m = sendKey(m, "c")
+	if !m.prompt.active || m.prompt.kind != promptAddGroupMember {
+		t.Fatalf("expected promptAddGroupMember on 'c' key in Group Detail when not dirty")
+	}
+	m.prompt.Hide()
+
 	// Move focus to User01 row (cursor = 3) and press Space -> stages change, sets dirty = true
 	m.groupDetail.cursor = 3
 	m = sendKey(m, " ")
@@ -284,13 +291,32 @@ func TestGroupDetailAddMemberPrompt(t *testing.T) {
 		t.Fatalf("expected User01 to be staged as member")
 	}
 
-	// Pressing 'c' discards pending edits
+	// While dirty, 'c' must no longer discard (it collided with the app-wide
+	// "c" = Create shortcut) and must not open the add-member prompt either.
 	m = sendKey(m, "c")
+	if !m.groupDetail.dirty {
+		t.Fatalf("expected 'c' to have no discard effect while groupDetail is dirty")
+	}
+	if m.prompt.active {
+		t.Fatalf("expected 'c' to not open the add-member prompt while groupDetail is dirty")
+	}
+
+	// 'n' opens the discard confirmation instead of discarding immediately.
+	m = sendKey(m, "n")
+	if !m.confirm.active || m.confirm.kind != confirmDiscardInPlace {
+		t.Fatalf("expected confirmDiscardInPlace modal on 'n' when dirty, active: %v, kind: %v", m.confirm.active, m.confirm.kind)
+	}
+
+	// Confirming with 'y' discards the pending member edit in place.
+	m = sendKey(m, "y")
 	if m.groupDetail.dirty {
-		t.Fatalf("expected groupDetail dirty to be false after 'c' key discard")
+		t.Fatalf("expected groupDetail dirty to be false after confirming discard")
 	}
 	if m.groupDetail.isMember("User01") {
 		t.Fatalf("expected User01 staged edit to be cleared on discard")
+	}
+	if m.screen != screenGroupDetail {
+		t.Fatalf("expected screen to remain screenGroupDetail, got %v", m.screen)
 	}
 }
 
