@@ -396,8 +396,6 @@ func (m Model) handleUserDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			d.dropdownActive = false
 
 			switch selectedAuth {
-			case vpncmd.UserAuthRadius:
-				m.prompt.Show(promptUserRadiusAlias, d.userName, tr("RADIUS User Alias (任意, 空欄でユーザー名と同等):"), d.authParam1, false)
 			case vpncmd.UserAuthCert:
 				m.prompt.Show(promptUserCertPath, d.userName, tr("証明書ファイルパス (/path/to/cert.cer):"), d.authParam1, false)
 			case vpncmd.UserAuthNTLM:
@@ -512,7 +510,6 @@ func (m Model) handleUserDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			auth := d.effectiveAuthType()
 			switch auth {
 			case vpncmd.UserAuthRadius:
-				m.prompt.Show(promptUserRadiusAlias, d.userName, tr("RADIUS User Alias (任意, 空欄でユーザー名と同等):"), d.authParam1, false)
 				return m, nil
 			case vpncmd.UserAuthCert:
 				m.prompt.Show(promptUserCertPath, d.userName, tr("証明書ファイルパス (/path/to/cert.cer):"), d.authParam1, false)
