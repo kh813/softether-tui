@@ -268,16 +268,13 @@ func (d userDetailState) renderPasswordField(b *strings.Builder) {
 
 	switch auth {
 	case vpncmd.UserAuthRadius:
-		label = tr("RADIUS User Alias")
-		val = d.authParam1
-		if val == "" {
-			val = tr("(None / Same as User Name)")
-		}
+		label = tr("RADIUS Server")
 		radSrv := d.radiusServer
 		if radSrv == "" {
-			radSrv = tr("(Not Configured - Press R in Overview)")
+			val = tr("(Not Configured - Press R or Enter to set)")
+		} else {
+			val = radSrv
 		}
-		val += fmt.Sprintf("  [%s: %s]", tr("RADIUS Server"), radSrv)
 	case vpncmd.UserAuthCert:
 		label = tr("Certificate File Path")
 		val = d.authParam1
@@ -294,10 +291,11 @@ func (d userDetailState) renderPasswordField(b *strings.Builder) {
 			val = tr("(None)")
 		}
 	case vpncmd.UserAuthNTLM:
-		label = tr("NT Domain User Alias")
-		val = d.authParam1
-		if val == "" {
-			val = tr("(None / Same as User Name)")
+		label = tr("NT Domain Status")
+		if d.authParam1 != "" {
+			val = fmt.Sprintf("%s (%s: %s)", tr("Joined Domain"), tr("Alias"), d.authParam1)
+		} else {
+			val = tr("Windows NT / Active Directory Authentication")
 		}
 	default:
 		if ed, ok := d.editedValues[fieldPassword]; ok && ed != "" {
@@ -510,6 +508,9 @@ func (m Model) handleUserDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			auth := d.effectiveAuthType()
 			switch auth {
 			case vpncmd.UserAuthRadius:
+				m.radiusForm.Reset()
+				m.screen = screenRadiusForm
+				m.status = ""
 				return m, nil
 			case vpncmd.UserAuthCert:
 				m.prompt.Show(promptUserCertPath, d.userName, tr("証明書ファイルパス (/path/to/cert.cer):"), d.authParam1, false)

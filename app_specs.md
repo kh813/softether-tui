@@ -100,10 +100,10 @@
 - **ユーザー作成 & 認証方式拡充 (`UserCreate`)**:
   - パスワード認証 (`UserPasswordSet`)
   - 匿名認証 (`UserAnonymousSet`)
-  - RADIUS 認証 + RADIUSエイリアス設定 (`UserRadiusSet /ALIAS`) ※RADIUSサーバー本体の設定は Hub 全体の `RadiusServerSet` で動作
+  - RADIUS 認証 (`UserRadiusSet`): RADIUS User Alias は通常不要（デフォルト空欄＝ユーザー名と同等）。Hub 全体の RADIUS サーバー問い合わせ先 (IP/Port, Shared Secret) 設定 (`RadiusServerSet`) をユーザー詳細画面・Hub 概要画面の両方から 1 行表示 ＆ 即時モーダル呼び出し可能。
   - 個別 X.509 証明書認証 (`UserCertSet /LOADCERT`)
   - 署名付き CA 証明書認証 (`UserSignedSet /CN /SERIAL`)
-  - NT ドメイン / Active Directory 認証 (`UserNTLMSet /ALIAS`) ※認証先の AD / ドメインコントローラーは VPN Server が所属する Windows / AD ドメインに依存
+  - NT ドメイン / Active Directory 認証 (`UserNTLMSet`): ドメイン参加状態を 1 行表示。認証先の AD / ドメインコントローラーは VPN Server が所属する Windows / AD ドメインに依存。
 - **ユーザー詳細閲覧・インライン編集** (`UserGet`, `UserSet` による氏名 `/REALNAME:`・備考 `/NOTE:`・グループ `/GROUP:` の変更、および `Auth Type` フィールドからのドロップダウン選択による認証方式の一括変更)。
 - **パスワード再設定** (`UserPasswordSet`)。
 - **アカウント有効期限設定** (`UserExpiresSet`): `2026/01/01` 形式に加え、`20261101` などの数字8桁省略入力を自動フォーマット。
@@ -339,6 +339,10 @@ Client モードのプロファイルは Hub の概念を持たないため、�
 4. **ビルド埋め込み情報の維持と自動テストの連携**
    - `main.go` の `version`, `commit`, `date` 変数は Makefile の `-ldflags` 経由で注入されるため、`main.go` の変数定義を変更しないこと。
    - ビルドフラグ注入を検証するテスト（`main_test.go`）および UI 状態遷移・キー操作テスト（`internal/ui/app_ui_test.go`）を維持・拡充すること。
+
+5. **ユーザー詳細画面における 1 行統一表示レイアウト (1-line Authentication Details)**
+   - `User Details` 画面で RADIUS 認証や NT Domain 認証を選択した際、画面幅をオーバーする冗長な補助パラメータ（RADIUS Alias 等）を不用意に単体行表示してはならない。
+   - RADIUS 認証時は **`RADIUS Server: 192.168.10.10:1812 (Secret: ********)`**、NT Domain 認証時は **`NT Domain Status: Joined to Domain`** のように、問い合わせ先やドメイン情報を 1 行に納めて高密度表示し、Enter キー等で直接設定モーダルを起動できるように設計しなければならない。
 
 ### 8.2 画面ワイヤーフレーム (案)
 
