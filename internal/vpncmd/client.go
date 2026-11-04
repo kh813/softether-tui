@@ -1241,3 +1241,136 @@ func (c *Client) NicDelete(ctx context.Context, t Target, name string) error {
 	_, err := c.Run(ctx, t, "NicDelete", name)
 	return err
 }
+
+// IPsecOptions holds configuration parameters for IPsecEnable.
+type IPsecOptions struct {
+	L2TP       bool
+	L2TPRaw    bool
+	EtherIP    bool
+	PSK        string
+	DefaultHub string
+}
+
+// IPsecGet returns the IPsec / L2TP server configuration.
+func (c *Client) IPsecGet(ctx context.Context, t Target) (KeyValue, error) {
+	out, err := c.Run(ctx, t, "IPsecGet")
+	if err != nil {
+		return nil, err
+	}
+	return ParseCSV(out)
+}
+
+// IPsecEnable configures the IPsec / L2TP server function.
+func (c *Client) IPsecEnable(ctx context.Context, t Target, opts IPsecOptions) error {
+	boolStr := func(b bool) string {
+		if b {
+			return "yes"
+		}
+		return "no"
+	}
+	args := []string{
+		"/L2TP:" + boolStr(opts.L2TP),
+		"/L2TPRAW:" + boolStr(opts.L2TPRaw),
+		"/ETHERIP:" + boolStr(opts.EtherIP),
+		"/PSK:" + opts.PSK,
+		"/DEFAULTHUB:" + opts.DefaultHub,
+	}
+	_, err := c.Run(ctx, t, "IPsecEnable", args...)
+	return err
+}
+
+// OpenVpnGet returns the OpenVPN server configuration.
+func (c *Client) OpenVpnGet(ctx context.Context, t Target) (KeyValue, error) {
+	out, err := c.Run(ctx, t, "OpenVpnGet")
+	if err != nil {
+		return nil, err
+	}
+	return ParseCSV(out)
+}
+
+// OpenVpnEnable configures the OpenVPN server function.
+func (c *Client) OpenVpnEnable(ctx context.Context, t Target, enable bool, ports []int) error {
+	enStr := "no"
+	if enable {
+		enStr = "yes"
+	}
+	portStrs := make([]string, len(ports))
+	for i, p := range ports {
+		portStrs[i] = strconv.Itoa(p)
+	}
+	portsArg := "/PORTS:" + strings.Join(portStrs, ",")
+	_, err := c.Run(ctx, t, "OpenVpnEnable", enStr, portsArg)
+	return err
+}
+
+// OpenVpnMakeConfig generates a sample OpenVPN client configuration file (.zip) at outputPath.
+func (c *Client) OpenVpnMakeConfig(ctx context.Context, t Target, outputPath string) error {
+	_, err := c.Run(ctx, t, "OpenVpnMakeConfig", outputPath)
+	return err
+}
+
+// DynamicDnsGetStatus returns the Dynamic DNS status.
+func (c *Client) DynamicDnsGetStatus(ctx context.Context, t Target) (KeyValue, error) {
+	out, err := c.Run(ctx, t, "DynamicDnsGetStatus")
+	if err != nil {
+		return nil, err
+	}
+	return ParseCSV(out)
+}
+
+// DynamicDnsSetHostname sets the Dynamic DNS hostname prefix.
+func (c *Client) DynamicDnsSetHostname(ctx context.Context, t Target, hostname string) error {
+	_, err := c.Run(ctx, t, "DynamicDnsSetHostname", hostname)
+	return err
+}
+
+// AcList returns the source IP restriction list for the target Hub.
+func (c *Client) AcList(ctx context.Context, t Target) (Table, error) {
+	out, err := c.Run(ctx, t, "AcList")
+	if err != nil {
+		return Table{}, err
+	}
+	return ParseCSVTable(out)
+}
+
+// AcAdd adds a source IP restriction rule to the target Hub.
+func (c *Client) AcAdd(ctx context.Context, t Target, pass bool, priority int, ipMask string) error {
+	action := "deny"
+	if pass {
+		action = "pass"
+	}
+	args := []string{
+		action,
+		fmt.Sprintf("/PRIORITY:%d", priority),
+		"/IP:" + ipMask,
+	}
+	_, err := c.Run(ctx, t, "AcAdd", args...)
+	return err
+}
+
+// AcDel deletes a source IP restriction rule by ID from the target Hub.
+func (c *Client) AcDel(ctx context.Context, t Target, id int) error {
+	_, err := c.Run(ctx, t, "AcDel", strconv.Itoa(id))
+	return err
+}
+
+// CAList returns the list of trusted CA certificates for the target Hub.
+func (c *Client) CAList(ctx context.Context, t Target) (Table, error) {
+	out, err := c.Run(ctx, t, "CAList")
+	if err != nil {
+		return Table{}, err
+	}
+	return ParseCSVTable(out)
+}
+
+// CAAdd adds a trusted CA certificate (from a file path) to the target Hub.
+func (c *Client) CAAdd(ctx context.Context, t Target, certPath string) error {
+	_, err := c.Run(ctx, t, "CAAdd", certPath)
+	return err
+}
+
+// CADelete deletes a trusted CA certificate by ID from the target Hub.
+func (c *Client) CADelete(ctx context.Context, t Target, id int) error {
+	_, err := c.Run(ctx, t, "CADelete", strconv.Itoa(id))
+	return err
+}

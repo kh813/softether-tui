@@ -19,3 +19,50 @@
 - **接続初期化（`fetchServerInfo`）の並列 goroutine 化**:
   - `ServerInfo`, `ServerStatus`, `HubList` の3つの非対話 `vpncmd` 呼び出しを直列順次実行から goroutine による完全並列実行に変更。
   - 「Connecting...」の初期画面表示からダッシュボード描画までの待機時間を従来（直列実行）の約 1/3（最長1コマンドの所要時間のみ）へ大幅短縮・爆速化。
+
+## 2026-11-03: M11 リモートアクセス設定 (IPsec/L2TP, OpenVPN, Dynamic DNS) の実装
+
+### 1. リモートアクセス用 vpncmd コマンド群の統合
+- `internal/vpncmd/client.go` に以下のメソッドおよびデータ構造を新設:
+  - `IPsecGet` / `IPsecEnable`: L2TP/IPsec機能の有効化、事前共有鍵 (PSK)、デフォルトHubの設定
+  - `OpenVpnGet` / `OpenVpnEnable` / `OpenVpnMakeConfig`: OpenVPN互換サーバーの有効化、UDPポート設定、クライアントconfig生成
+  - `DynamicDnsGetStatus` / `DynamicDnsSetHostname`: DDNS状態取得（IPv4/IPv6、現在ホスト名）およびプレフィックスの変更
+- `internal/vpncmd/client_test.go` にコマンド構築と引数の検証テストを追加。
+
+### 2. TUI リモートアクセス画面 (`internal/ui/remoteaccess.go`) の新設
+- ダッシュボードから `v` (VPN Remote Access) キーで遷移する新画面 (`screenRemoteAccess`) を実装。
+- 画面構成:
+  - **IPsec / L2TP / EtherIP 設定**: 有効/無効トグル、PSKテキスト入力、Default Hubテキスト入力
+  - **OpenVPN 互換サーバー設定**: 有効/無効トグル、UDPポート番号テキスト入力
+  - **ダイナミック DNS 状態**: DDNSホスト名編集、割り当て済みグローバルIPv4/IPv6の読み取り表示
+- UI/UX 仕様への完全準拠:
+  - 2段階状態遷移モデル（フィールド移動 ↔ テキスト入力モード）
+  - テキスト入力中の `Esc` による画面遷移保護
+  - 未保存変更 (`dirty`) 存在時の `Esc`/`q` 離脱防止ダイアログ (`confirmDiscardChanges`)
+  - 未保存変更破棄専用キー `n` (`confirmDiscardInPlace`)
+  - 保存（`s`）完了時のサーバーダッシュボード自動再取得 (`tea.Batch`)
+- 多言語対応 (`internal/ui/catalog_en.go`) に全翻訳エントリを登録。
+- 自動テスト (`app_ui_test.go`) に画面遷移・トグル動作・破棄保護のテストを追加。
+
+## 2026-11-03: M12 Virtual HUB セキュリティ拡張 (接続元IP制限 Ac* & 信頼するCA証明書 CA*) の実装
+
+### 1. 接続元IP制限および信頼するCA用 vpncmd コマンドの実装
+- `internal/vpncmd/client.go` に以下のメソッドを追加:
+  - `AcList` / `AcAdd` / `AcDel`: 送信元IPアドレスによるHUB接続許可/拒否ルールの一覧・追加・削除
+  - `CAList` / `CAAdd` / `CADelete`: HUB単位で信頼するCA証明書の一覧・追加・削除
+- `internal/vpncmd/client_test.go` に `AcAdd`, `CAAdd` の引数構築検証テストを追加。
+
+### 2. Hub 詳細画面へのタブ拡張 ＆ 専用フォーム
+- Hub 詳細画面に「接続元制限」(`hubTabAc`) および「信頼するCA」(`hubTabCA`) タブを新設。
+- **接続元IP制限 (`hubTabAc`)**:
+  - マルチカラム一覧テーブル表示、選択中ルールの詳細プロパティ表示。
+  - 新規作成フォーム `acForm` (`screenAcForm` / `internal/ui/acform.go`): Action (Pass/Deny)、Priority、IP/サブネットの対話的入力フォーム。
+  - 削除確認ダイアログ (`confirmDeleteAcRule`) による保護。
+- **信頼するCA証明書 (`hubTabCA`)**:
+  - CA証明書一覧テーブル表示。
+  - `c` キーによる証明書ファイルパス入力モーダル (`promptAddCA`) を新設。
+  - 削除確認ダイアログ (`confirmDeleteCA`) による保護。
+- 多言語カタログ (`internal/ui/catalog_en.go`) に全27エントリを登録。
+- 回帰テスト (`app_ui_test.go`) に各タブでの画面遷移、トグル、モーダル起動のテストを追加。
+
+

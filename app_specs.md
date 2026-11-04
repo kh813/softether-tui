@@ -152,6 +152,19 @@
   - **未保存データ破棄保護 (`confirmDiscardChanges`)**: 入力変更が存在する状態で `Esc` キーを押した際、即時離脱を防ぎ確認モーダルを表示。
 - **有効化/無効化切替 (`o` / `f` キー)** および **削除 (確認ダイアログ必須) (`d` キー)**。
 
+### 5.6.2 Virtual HUB 接続セキュリティ管理 (接続元IP制限 `Ac*` ＆ 信頼するCA証明書 `CA*`)
+
+- **接続元IP制限リスト管理 (`AcList`, `AcAdd`, `AcDel`)**:
+  - Hub 詳細画面に「接続元制限」タブ (`hubTabAc`) を配置。
+  - ルール一覧（ID, Priority, Action, IP/Mask）のマルチカラムテーブル表示。
+  - `c` (Create) キーで専用ルール追加フォーム (`acForm`) を起動。Action (Pass/Deny)、Priority (既定 100)、IP/サブネットを対話的に設定。
+  - `d` キーで対象ルールの削除（確認ダイアログ `confirmDeleteAcRule` 必須）。
+- **信頼するCA証明書管理 (`CAList`, `CAAdd`, `CADelete`)**:
+  - Hub 詳細画面に「信頼するCA」タブ (`hubTabCA`) を配置。
+  - 信頼する CA 証明書一覧（ID, Subject, Issuer, Expires）のテーブル表示。
+  - `c` (Create) キーで CA 証明書ファイルパス入力モーダル (`promptAddCA`) を起動して追加。
+  - `d` キーで対象証明書の削除（確認ダイアログ `confirmDeleteCA` 必須）。
+
 ### 5.7 カスケード接続管理 (Bridge 向け)
 
 - **マルチカラム一覧 ＆ 選択中詳細表示**: `Setting Name`, `Status`, `Destination VPN Server`, `Virtual Hub`, `Established at` のマルチカラム表示および下部選択中詳細パネル (`CascadeGet` 由来) による情報可視化。
@@ -168,6 +181,22 @@
 ### 5.8 ローカルブリッジ管理
 
 - **ダッシュボード統合表示 ＆ 専用管理画面**: サーバーダッシュボード画面下部に一覧をコンパクト表示し、独立画面 (`screenBridge`) では詳細一覧・作成・削除 (`BridgeList`, `BridgeCreate`, `BridgeDelete`) を提供。
+
+### 5.8.1 リモートアクセス設定 (IPsec / OpenVPN / Dynamic DNS)
+
+- **サーバー全体のリモートアクセス設定画面 (`screenRemoteAccess`)**:
+  - ダッシュボードから `v` キーで遷移。
+  - **IPsec / L2TP 設定 (`IPsecGet`, `IPsecEnable`)**:
+    - L2TP サーバー機能、L2TP RAW (暗号化なし)、EtherIP/L2TPv3 の有効/無効トグル。
+    - IPsec 事前共有鍵 (PSK)、デフォルト Virtual HUB のテキスト編集。
+  - **OpenVPN 互換サーバー設定 (`OpenVpnGet`, `OpenVpnEnable`, `OpenVpnMakeConfig`)**:
+    - OpenVPN サーバー機能の有効/無効トグル。
+    - UDP ポート番号一覧 (カンマ区切り) の編集。
+  - **ダイナミック DNS 設定 (`DynamicDnsGetStatus`, `DynamicDnsSetHostname`)**:
+    - 割り当てられた DDNS ホスト名、グローバル IPv4 / IPv6 アドレスの確認。
+    - DDNS ホスト名プレフィックスの変更。
+  - **2段階状態遷移モデル準拠**: フィールド移動とテキスト入力モードの分離、未保存データ変更時の `dirty` 破棄保護 (`confirmDiscardChanges` / `confirmDiscardInPlace`)。
+
 
 ### 5.9 証明書管理 (簡易)
 
@@ -251,10 +280,11 @@ Client モードのプロファイルは Hub の概念を持たないため、�
 
 1. プロファイル選択画面 (起動時)
 2. サーバーダッシュボード (接続後のトップ)
-3. Hub 一覧 → Hub 詳細 (タブ: 概要 / ユーザー / グループ / セッション / セキュリティログ / SecureNAT / アクセスリスト / カスケード)
+3. Hub 一覧 → Hub 詳細 (タブ: 概要 / セッション / Users & Group / SecureNAT / ACL / 接続元制限 / 信頼するCA / カスケード / セキュリティログ)
 4. リスナー管理画面
 5. ローカルブリッジ管理画面
-6. 各種確認ダイアログ (削除・切断など破壊的操作)、キーバインド一覧オーバーレイ (`?`)
+6. リモートアクセス設定画面 (IPsec / OpenVPN / Dynamic DNS)
+7. 各種確認ダイアログ (削除・切断など破壊的操作)、キーバインド一覧オーバーレイ (`?`)
 
 画面遷移は基本的に「プロファイル選択 → ダッシュボード → Hub詳細 (タブ切替)」の一方向ドリルダウン + `Esc` で一段階戻る、をベースとする。
 

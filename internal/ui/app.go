@@ -37,6 +37,8 @@ const (
 	screenAccountForm
 	screenCascadeForm
 	screenACLForm
+	screenRemoteAccess
+	screenAcForm
 )
 
 // Model is the root Bubble Tea model: it routes key input and messages to
@@ -64,6 +66,7 @@ type Model struct {
 	accountForm *accountForm
 	cascadeForm *cascadeForm
 	aclForm     *aclForm
+	acForm      *acForm
 
 	dashboard       dashboardState
 	hubDetail       hubDetailState
@@ -73,6 +76,7 @@ type Model struct {
 	listener        listenerState
 	bridge          bridgeState
 	clientDashboard clientDashboardState
+	remoteAccess    remoteAccessState
 
 	status    string
 	statusErr bool
@@ -99,6 +103,7 @@ func New(store *config.Store, client *vpncmd.Client, version string) Model {
 		accountForm:             newAccountForm(),
 		cascadeForm:             newCascadeForm(),
 		aclForm:                 newACLForm(),
+		acForm:                  newAcForm(),
 		testResults:             map[string]error{},
 		sessionPasswords:        map[string]string{},
 		initialPasswordPrompted: map[string]bool{},
@@ -232,6 +237,28 @@ type logLoadedMsg struct {
 type sessionTickMsg struct {
 	hubName string
 	gen     int
+}
+
+type acLoadedMsg struct {
+	hubName string
+	table   vpncmd.Table
+	err     error
+}
+
+type acActionResultMsg struct {
+	action string
+	err    error
+}
+
+type caLoadedMsg struct {
+	hubName string
+	table   vpncmd.Table
+	err     error
+}
+
+type caActionResultMsg struct {
+	action string
+	err    error
 }
 
 // --- commands ---
@@ -904,6 +931,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case remoteAccessLoadedMsg:
+		m.remoteAccess.loading = false
+		m.remoteAccess.ipsec = msg.ipsec
+		m.remoteAccess.openvpn = msg.openvpn
+		m.remoteAccess.ddns = msg.ddns
+		m.remoteAccess.err = msg.err
+		return m, nil
+
+	case remoteAccessSavedMsg:
+		if msg.err != nil {
+			m.status = fmt.Sprintf(tr("リモートアクセス設定の保存に失敗しました: %s"), msg.err.Error())
+			m.statusErr = true
+			return m, nil
+		}
+		m.status = tr("リモートアクセス設定を保存しました")
+		m.statusErr = false
+		m.remoteAccess.dirty = false
+		m.remoteAccess.editedValues = nil
+		return m, tea.Batch(
+			m.fetchRemoteAccess(m.remoteAccess.profile),
+			m.fetchServerInfo(m.remoteAccess.profile),
+		)
+
 	case listenerActionResultMsg:
 		if msg.err != nil {
 			m.status = fmt.Sprintf(tr("リスナー %s (%s) に失敗しました: %s"), msg.action, msg.port, msg.err.Error())
@@ -998,6 +1048,56 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.status = fmt.Sprintf(tr("カスケード接続 %q を%sしました"), msg.name, msg.action)
 		m.statusErr = false
 		return m, m.fetchCascade(m.hubDetail.profile, m.hubDetail.hubName)
+
+	case acLoadedMsg:
+		if m.hubDetail.hubName == msg.hubName {
+			m.hubDetail.acLoading = false
+			m.hubDetail.acLoaded = true
+			m.hubDetail.ac = msg.table
+			m.hubDetail.acErr = msg.err
+			if m.hubDetail.acCursor >= len(msg.table.Rows) {
+				m.hubDetail.acCursor = len(msg.table.Rows) - 1
+			}
+			if m.hubDetail.acCursor < 0 {
+				m.hubDetail.acCursor = 0
+			}
+		}
+		return m, nil
+
+	case acActionResultMsg:
+		if msg.err != nil {
+			m.status = fmt.Sprintf(tr("接続元IP制限ルールの%sに失敗しました: %s"), msg.action, msg.err.Error())
+			m.statusErr = true
+			return m, nil
+		}
+		m.status = fmt.Sprintf(tr("接続元IP制限ルールを%sしました"), msg.action)
+		m.statusErr = false
+		return m, m.fetchAcList(m.hubDetail.profile, m.hubDetail.hubName)
+
+	case caLoadedMsg:
+		if m.hubDetail.hubName == msg.hubName {
+			m.hubDetail.caLoading = false
+			m.hubDetail.caLoaded = true
+			m.hubDetail.ca = msg.table
+			m.hubDetail.caErr = msg.err
+			if m.hubDetail.caCursor >= len(msg.table.Rows) {
+				m.hubDetail.caCursor = len(msg.table.Rows) - 1
+			}
+			if m.hubDetail.caCursor < 0 {
+				m.hubDetail.caCursor = 0
+			}
+		}
+		return m, nil
+
+	case caActionResultMsg:
+		if msg.err != nil {
+			m.status = fmt.Sprintf(tr("信頼するCA証明書の%sに失敗しました: %s"), msg.action, msg.err.Error())
+			m.statusErr = true
+			return m, nil
+		}
+		m.status = fmt.Sprintf(tr("信頼するCA証明書を%sしました"), msg.action)
+		m.statusErr = false
+		return m, m.fetchCAList(m.hubDetail.profile, m.hubDetail.hubName)
 
 	case bridgesLoadedMsg:
 		m.bridge.loading = false
@@ -1233,6 +1333,13 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleCascadeFormKey(msg)
 	case screenACLForm:
 		return m.handleACLFormKey(msg)
+	case screenRemoteAccess:
+		if m.remoteAccess.editing {
+			return m.handleRemoteAccessKey(msg)
+		}
+		return m.handleRemoteAccessKey(normMsg)
+	case screenAcForm:
+		return m.handleAcFormKey(msg)
 	}
 	return m, nil
 }
@@ -1379,6 +1486,14 @@ func (m Model) submitPrompt() (tea.Model, tea.Cmd) {
 		m.status = fmt.Sprintf(tr("Hub %q のパスワードを設定しています..."), target)
 		m.statusErr = false
 		return m, m.setHubPassword(m.dashboard.profile, target, value)
+
+	case promptAddCA:
+		path := strings.TrimSpace(value)
+		if path != "" {
+			m.status = fmt.Sprintf(tr("CA証明書 %q を追加しています..."), path)
+			m.statusErr = false
+			return m, m.addCACert(profile, hub, path)
+		}
 	}
 	return m, nil
 }
@@ -1429,6 +1544,16 @@ func (m Model) applyConfirm(kind confirmKind, target string) (tea.Model, tea.Cmd
 		} else if m.screen == screenHubDetail && m.hubDetail.tab == hubTabSecureNAT {
 			m.hubDetail.secureNatEditedValues = make(map[editableSecureNATField]string)
 			m.hubDetail.secureNatDirty = false
+		} else if m.screen == screenRemoteAccess {
+			m.remoteAccess.editedValues = nil
+			m.remoteAccess.dirty = false
+		} else if m.screen == screenRemoteAccess {
+			m.remoteAccess.editedValues = nil
+			m.remoteAccess.dirty = false
+			m.screen = screenDashboard
+			m.status = tr("変更を破棄しました")
+			m.statusErr = false
+			return m, nil
 		}
 		m.screen = screenHubDetail
 		m.status = tr("変更を破棄しました")
@@ -1450,6 +1575,9 @@ func (m Model) applyConfirm(kind confirmKind, target string) (tea.Model, tea.Cmd
 		} else if m.screen == screenHubDetail && m.hubDetail.tab == hubTabSecureNAT {
 			m.hubDetail.secureNatEditedValues = make(map[editableSecureNATField]string)
 			m.hubDetail.secureNatDirty = false
+		} else if m.screen == screenRemoteAccess {
+			m.remoteAccess.editedValues = nil
+			m.remoteAccess.dirty = false
 		}
 		m.status = tr("変更を破棄しました")
 		m.statusErr = false
@@ -1469,6 +1597,18 @@ func (m Model) applyConfirm(kind confirmKind, target string) (tea.Model, tea.Cmd
 		m.status = fmt.Sprintf(tr("アクセスリストルール %q を削除しています..."), target)
 		m.statusErr = false
 		return m, m.deleteAccessRule(m.hubDetail.profile, m.hubDetail.hubName, target)
+
+	case confirmDeleteAcRule:
+		m.status = fmt.Sprintf(tr("接続元IP制限ルール %q を削除しています..."), target)
+		m.statusErr = false
+		id, _ := strconv.Atoi(target)
+		return m, m.deleteAcRule(m.hubDetail.profile, m.hubDetail.hubName, id)
+
+	case confirmDeleteCA:
+		m.status = fmt.Sprintf(tr("信頼するCA証明書 %q を削除しています..."), target)
+		m.statusErr = false
+		id, _ := strconv.Atoi(target)
+		return m, m.deleteCACert(m.hubDetail.profile, m.hubDetail.hubName, id)
 
 	case confirmDeleteCascade:
 		m.status = fmt.Sprintf(tr("カスケード接続 %q を削除しています..."), target)
@@ -1683,6 +1823,12 @@ func (m Model) handleDashboardKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.status = ""
 		return m, m.fetchBridges(m.dashboard.profile)
 
+	case "v", "V":
+		m.remoteAccess = remoteAccessState{profile: m.dashboard.profile, loading: true}
+		m.screen = screenRemoteAccess
+		m.status = ""
+		return m, m.fetchRemoteAccess(m.dashboard.profile)
+
 	case "enter":
 		if name, ok := m.currentHubName(); ok {
 			m.hubDetail = hubDetailState{profile: m.dashboard.profile, hubName: name, loading: true, refreshInterval: 5 * time.Second}
@@ -1768,6 +1914,10 @@ func (m Model) handleHubDetailKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleHubSecureNATKey(msg)
 	case hubTabACL:
 		return m.handleHubACLKey(msg)
+	case hubTabAc:
+		return m.handleHubAcKey(msg)
+	case hubTabCA:
+		return m.handleHubCAKey(msg)
 	case hubTabCascade:
 		return m.handleHubCascadeKey(msg)
 	case hubTabLog:
@@ -1812,6 +1962,16 @@ func (m Model) loadHubTabIfNeeded() (tea.Model, tea.Cmd) {
 			m.hubDetail.accessLoading = true
 			return m, m.fetchAccessList(m.hubDetail.profile, m.hubDetail.hubName)
 		}
+	case hubTabAc:
+		if !m.hubDetail.acLoaded && !m.hubDetail.acLoading {
+			m.hubDetail.acLoading = true
+			return m, m.fetchAcList(m.hubDetail.profile, m.hubDetail.hubName)
+		}
+	case hubTabCA:
+		if !m.hubDetail.caLoaded && !m.hubDetail.caLoading {
+			m.hubDetail.caLoading = true
+			return m, m.fetchCAList(m.hubDetail.profile, m.hubDetail.hubName)
+		}
 	case hubTabCascade:
 		if !m.hubDetail.cascadeLoaded && !m.hubDetail.cascadeLoading {
 			m.hubDetail.cascadeLoading = true
@@ -1844,6 +2004,12 @@ func (m Model) refreshCurrentHubTab() (tea.Model, tea.Cmd) {
 	case hubTabACL:
 		m.hubDetail.accessLoading = true
 		return m, m.fetchAccessList(m.hubDetail.profile, m.hubDetail.hubName)
+	case hubTabAc:
+		m.hubDetail.acLoading = true
+		return m, m.fetchAcList(m.hubDetail.profile, m.hubDetail.hubName)
+	case hubTabCA:
+		m.hubDetail.caLoading = true
+		return m, m.fetchCAList(m.hubDetail.profile, m.hubDetail.hubName)
 	case hubTabCascade:
 		m.hubDetail.cascadeLoading = true
 		return m, m.fetchCascade(m.hubDetail.profile, m.hubDetail.hubName)
@@ -2622,6 +2788,44 @@ func (m Model) handleACLFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m Model) handleAcFormKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc":
+		m.screen = screenHubDetail
+		return m, nil
+
+	case "tab", "down":
+		m.acForm.NextField()
+		return m, nil
+
+	case "shift+tab", "up":
+		m.acForm.PrevField()
+		return m, nil
+
+	case "enter", " ":
+		if m.acForm.focus == acFieldAction {
+			m.acForm.pass = !m.acForm.pass
+			return m, nil
+		}
+		if m.acForm.focus == acFieldSave || msg.String() == "enter" {
+			pass, priority, ipMask, err := m.acForm.Build()
+			if err != nil {
+				m.status = err.Error()
+				m.statusErr = true
+				return m, nil
+			}
+			m.screen = screenHubDetail
+			m.status = tr("接続元IP制限ルールを追加しています...")
+			m.statusErr = false
+			return m, m.addAcRule(m.hubDetail.profile, m.hubDetail.hubName, pass, priority, ipMask)
+		}
+	}
+
+	var cmd tea.Cmd
+	m.acForm, cmd = m.acForm.Update(msg)
+	return m, cmd
+}
+
 func (m Model) saveACLRule(p config.Profile, hub string, opts vpncmd.AccessAddOptions, isEdit bool, oldID string) tea.Cmd {
 	client := m.client
 	target := m.targetFromProfile(p).WithHub(hub)
@@ -2708,6 +2912,10 @@ func (m Model) View() string {
 		body = m.cascadeForm.View()
 	case screenACLForm:
 		body = m.aclForm.View()
+	case screenRemoteAccess:
+		body = m.remoteAccess.View()
+	case screenAcForm:
+		body = m.acForm.View()
 	}
 
 	if m.status != "" {

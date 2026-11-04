@@ -23,6 +23,8 @@ const (
 	hubTabUsersAndGroups
 	hubTabSecureNAT
 	hubTabACL
+	hubTabAc
+	hubTabCA
 	hubTabCascade
 	hubTabLog
 	hubTabCount
@@ -30,7 +32,7 @@ const (
 
 func hubTabLabels() [hubTabCount]string {
 	return [hubTabCount]string{
-		tr("概要"), tr("セッション"), tr("Users & Group"), "SecureNAT", "ACL", tr("カスケード"), tr("セキュリティログ"),
+		tr("概要"), tr("セッション"), tr("Users & Group"), "SecureNAT", "ACL", tr("接続元制限"), tr("信頼するCA"), tr("カスケード"), tr("セキュリティログ"),
 	}
 }
 
@@ -93,6 +95,18 @@ type hubDetailState struct {
 	accessLoading bool
 	accessErr     error
 	accessCursor  int
+
+	ac        vpncmd.Table
+	acLoaded  bool
+	acLoading bool
+	acErr     error
+	acCursor  int
+
+	ca        vpncmd.Table
+	caLoaded  bool
+	caLoading bool
+	caErr     error
+	caCursor  int
 
 	cascade        vpncmd.Table
 	cascadeLoaded  bool
@@ -171,6 +185,10 @@ func (d hubDetailState) View() string {
 		d.viewSecureNAT(&b)
 	case hubTabACL:
 		d.viewAccessList(&b)
+	case hubTabAc:
+		d.viewAcList(&b)
+	case hubTabCA:
+		d.viewCAList(&b)
 	case hubTabCascade:
 		d.viewCascade(&b)
 	case hubTabLog:
@@ -917,6 +935,210 @@ func (d hubDetailState) viewCascade(b *strings.Builder) {
 		"f", tr("オフライン化"),
 	))
 	b.WriteString("\n" + renderHelp(
+		"←/→/Tab", tr("タブ切替"),
+		"r", tr("更新"),
+		"Esc", tr("戻る"),
+		"q", tr("終了"),
+	))
+}
+
+func (m Model) handleHubAcKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "up", "k":
+		if m.hubDetail.acCursor > 0 {
+			m.hubDetail.acCursor--
+		}
+	case "down", "j":
+		if m.hubDetail.acCursor < len(m.hubDetail.ac.Rows)-1 {
+			m.hubDetail.acCursor++
+		}
+	case "c", "C", "a", "A":
+		m.acForm.Reset()
+		m.screen = screenAcForm
+		m.status = ""
+		return m, nil
+	case "d":
+		if idStr, ok := m.hubDetail.currentAcRule(); ok {
+			m.confirm.Show(confirmDeleteAcRule, idStr, fmt.Sprintf(tr("接続元IP制限ルール %q を削除しますか?"), idStr))
+		}
+	case "r", "R":
+		m.hubDetail.acLoading = true
+		return m, m.fetchAcList(m.hubDetail.profile, m.hubDetail.hubName)
+	}
+	return m, nil
+}
+
+func (m Model) handleHubCAKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "up", "k":
+		if m.hubDetail.caCursor > 0 {
+			m.hubDetail.caCursor--
+		}
+	case "down", "j":
+		if m.hubDetail.caCursor < len(m.hubDetail.ca.Rows)-1 {
+			m.hubDetail.caCursor++
+		}
+	case "c", "C", "a", "A":
+		m.prompt.Show(promptAddCA, "", tr("追加するCA証明書ファイルのパス:"), tr("ファイルパス (例: /path/to/ca.crt)"), false)
+		return m, nil
+	case "d":
+		if idStr, ok := m.hubDetail.currentCACert(); ok {
+			m.confirm.Show(confirmDeleteCA, idStr, fmt.Sprintf(tr("信頼するCA証明書 %q を削除しますか?"), idStr))
+		}
+	case "r", "R":
+		m.hubDetail.caLoading = true
+		return m, m.fetchCAList(m.hubDetail.profile, m.hubDetail.hubName)
+	}
+	return m, nil
+}
+
+func (m Model) fetchAcList(p config.Profile, hub string) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		table, err := client.AcList(ctx, target)
+		return acLoadedMsg{hubName: hub, table: table, err: err}
+	}
+}
+
+func (m Model) addAcRule(p config.Profile, hub string, pass bool, priority int, ipMask string) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		err := client.AcAdd(ctx, target, pass, priority, ipMask)
+		return acActionResultMsg{action: tr("追加"), err: err}
+	}
+}
+
+func (m Model) deleteAcRule(p config.Profile, hub string, id int) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		err := client.AcDel(ctx, target, id)
+		return acActionResultMsg{action: tr("削除"), err: err}
+	}
+}
+
+func (m Model) fetchCAList(p config.Profile, hub string) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		table, err := client.CAList(ctx, target)
+		return caLoadedMsg{hubName: hub, table: table, err: err}
+	}
+}
+
+func (m Model) addCACert(p config.Profile, hub string, certPath string) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		err := client.CAAdd(ctx, target, certPath)
+		return caActionResultMsg{action: tr("追加"), err: err}
+	}
+}
+
+func (m Model) deleteCACert(p config.Profile, hub string, id int) tea.Cmd {
+	client := m.client
+	target := m.targetFromProfile(p).WithHub(hub)
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		err := client.CADelete(ctx, target, id)
+		return caActionResultMsg{action: tr("削除"), err: err}
+	}
+}
+
+func (d hubDetailState) currentAcRule() (string, bool) {
+	if d.acCursor < 0 || d.acCursor >= len(d.ac.Rows) {
+		return "", false
+	}
+	row := d.ac.Rows[d.acCursor]
+	for _, k := range []string{"ID", "Rule ID", "No"} {
+		if v, exists := row[k]; exists && v != "" {
+			return v, true
+		}
+	}
+	return d.ac.NameOf(row), true
+}
+
+func (d hubDetailState) currentCACert() (string, bool) {
+	if d.caCursor < 0 || d.caCursor >= len(d.ca.Rows) {
+		return "", false
+	}
+	row := d.ca.Rows[d.caCursor]
+	for _, k := range []string{"ID", "Certificate ID", "No"} {
+		if v, exists := row[k]; exists && v != "" {
+			return v, true
+		}
+	}
+	return d.ca.NameOf(row), true
+}
+
+func (d hubDetailState) viewAcList(b *strings.Builder) {
+	switch {
+	case d.acLoading:
+		b.WriteString(tr("読み込み中...") + "\n")
+	case d.acErr != nil:
+		b.WriteString(errorStyle.Render(tr("エラー: ")+d.acErr.Error()) + "\n")
+	case len(d.ac.Rows) == 0:
+		b.WriteString(dimStyle.Render(tr("(接続元IP制限ルールがありません)")) + "\n")
+	default:
+		b.WriteString(renderMultiColumnTable(d.ac, d.acCursor))
+		if d.acCursor >= 0 && d.acCursor < len(d.ac.Rows) {
+			row := d.ac.Rows[d.acCursor]
+			b.WriteString("\n" + headerStyle.Render(tr("選択中のルール詳細")) + "\n")
+			for _, k := range d.ac.Headers {
+				if v, ok := row[k]; ok && v != "" {
+					fmt.Fprintf(b, "  %-16s %s\n", k+":", v)
+				}
+			}
+		}
+	}
+	b.WriteString("\n" + renderHelp(
+		"↑/↓", tr("選択"),
+		"c", tr("追加"),
+		"d", tr("削除"),
+		"←/→/Tab", tr("タブ切替"),
+		"r", tr("更新"),
+		"Esc", tr("戻る"),
+		"q", tr("終了"),
+	))
+}
+
+func (d hubDetailState) viewCAList(b *strings.Builder) {
+	switch {
+	case d.caLoading:
+		b.WriteString(tr("読み込み中...") + "\n")
+	case d.caErr != nil:
+		b.WriteString(errorStyle.Render(tr("エラー: ")+d.caErr.Error()) + "\n")
+	case len(d.ca.Rows) == 0:
+		b.WriteString(dimStyle.Render(tr("(信頼するCA証明書がありません)")) + "\n")
+	default:
+		b.WriteString(renderMultiColumnTable(d.ca, d.caCursor))
+		if d.caCursor >= 0 && d.caCursor < len(d.ca.Rows) {
+			row := d.ca.Rows[d.caCursor]
+			b.WriteString("\n" + headerStyle.Render(tr("選択中の証明書詳細")) + "\n")
+			for _, k := range d.ca.Headers {
+				if v, ok := row[k]; ok && v != "" {
+					fmt.Fprintf(b, "  %-16s %s\n", k+":", v)
+				}
+			}
+		}
+	}
+	b.WriteString("\n" + renderHelp(
+		"↑/↓", tr("選択"),
+		"c", tr("証明書追加"),
+		"d", tr("削除"),
 		"←/→/Tab", tr("タブ切替"),
 		"r", tr("更新"),
 		"Esc", tr("戻る"),

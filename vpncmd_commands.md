@@ -129,16 +129,16 @@
 
 | コマンド | 概要 | 対応方針 | 実装状況 | 備考・未実装の理由 |
 |---|---|---|---|---|
-| IPsecEnable | IPsec/L2TP サーバー機能の有効化/無効化・事前共有鍵設定 | ✅ | [ ] | 未着手 (旧ドラフトで完全に欠落) |
-| IPsecGet | IPsec/L2TP サーバー設定取得 | ✅ | [ ] | 未着手 |
+| IPsecEnable | IPsec/L2TP サーバー機能の有効化/無効化・事前共有鍵設定 | ✅ | [x] | リモートアクセス画面 (`v`キー) で設定可能 |
+| IPsecGet | IPsec/L2TP サーバー設定取得 | ✅ | [x] | リモートアクセス画面で表示 |
 | EtherIpClientAdd / EtherIpClientDelete / EtherIpClientList | EtherIP/L2TPv3 クライアント接続設定 | △ | [ ] | レガシープロトコル。未着手 |
-| OpenVpnEnable | OpenVPN 互換サーバー機能の有効化/無効化 | ✅ | [ ] | 未着手 |
-| OpenVpnGet | OpenVPN サーバー設定取得 | ✅ | [ ] | 未着手 |
-| OpenVpnMakeConfig | OpenVPN クライアント設定ファイルのサンプル生成 | ✅ | [ ] | 未着手 |
+| OpenVpnEnable | OpenVPN 互換サーバー機能の有効化/無効化 | ✅ | [x] | リモートアクセス画面 (`v`キー) で設定可能 |
+| OpenVpnGet | OpenVPN サーバー設定取得 | ✅ | [x] | リモートアクセス画面で表示 |
+| OpenVpnMakeConfig | OpenVPN クライアント設定ファイルのサンプル生成 | ✅ | [x] | クライアント実装完了 |
 | SstpEnable / SstpGet | Microsoft SSTP 互換機能の有効化/無効化・設定取得 | ✅ | [ ] | 未着手 |
 | VpnOverIcmpDnsGet / VpnOverIcmpDnsEnable | ICMP/DNS 経由 VPN の状態取得/有効・無効化 | ✅ | [x] | クライアント実装完了 |
-| DynamicDnsGetStatus | Dynamic DNS 機能の状態確認 | ✅ | [ ] | 未着手 |
-| DynamicDnsSetHostname | Dynamic DNS ホスト名設定 | ✅ | [ ] | 未着手 |
+| DynamicDnsGetStatus | Dynamic DNS 機能の状態確認 | ✅ | [x] | リモートアクセス画面で表示 |
+| DynamicDnsSetHostname | Dynamic DNS ホスト名設定 | ✅ | [x] | リモートアクセス画面 (`v`キー) でインライン変更可能 |
 | VpnAzureGetStatus | VPN Azure 機能の状態確認 | △ | [ ] | SoftEther提供のクラウド中継サービス依存機能。未着手 |
 | VpnAzureSetEnable | VPN Azure 機能の有効化/無効化 | △ | [ ] | 同上 |
 
@@ -264,10 +264,10 @@
 
 | コマンド | 概要 | 対応方針 | 実装状況 | 備考・未実装の理由 |
 |---|---|---|---|---|
-| AcList | 接続元IP制限リスト一覧 | ✅ | [ ] | 未着手 (旧ドラフトで完全に欠落) |
-| AcAdd | 接続元IP制限ルール追加 (IPv4) | ✅ | [ ] | 未着手 |
-| AcAdd6 | 接続元IP制限ルール追加 (IPv6) | ✅ | [ ] | 未着手 |
-| AcDel | 接続元IP制限ルール削除 | ✅ | [ ] | 未着手 |
+| AcList | 接続元IP制限リスト一覧 | ✅ | [x] | Hub詳細「接続元制限」タブで一覧表示 |
+| AcAdd | 接続元IP制限ルール追加 (IPv4) | ✅ | [x] | Hub詳細「接続元制限」タブ `c` キーで作成フォーム起動 (※OSS版実機では Error 147 未実装エラーが返ることを確認) |
+| AcAdd6 | 接続元IP制限ルール追加 (IPv6) | ✅ | [ ] | IPv6対応は未着手 (IPv4のみ対応) |
+| AcDel | 接続元IP制限ルール削除 | ✅ | [x] | Hub詳細「接続元制限」タブ `d` キーで削除 |
 
 ### 2.9 カスケード接続 (拠点間接続、Bridge 向け)
 
@@ -298,9 +298,9 @@
 
 | コマンド | 概要 | 対応方針 | 実装状況 | 備考・未実装の理由 |
 |---|---|---|---|---|
-| CAList | 信頼するCA証明書一覧取得 | ✅ | [ ] | 未着手 (旧ドラフトで完全に欠落) |
-| CAAdd | 信頼するCA証明書の追加 | ✅ | [ ] | 未着手 |
-| CADelete | 信頼するCA証明書の削除 | ✅ | [ ] | 未着手 |
+| CAList | 信頼するCA証明書一覧取得 | ✅ | [x] | Hub詳細「信頼するCA」タブで一覧表示 |
+| CAAdd | 信頼するCA証明書の追加 | ✅ | [x] | Hub詳細「信頼するCA」タブ `c` キーでファイルパス入力追加 |
+| CADelete | 信頼するCA証明書の削除 | ✅ | [x] | Hub詳細「信頼するCA」タブ `d` キーで削除 |
 | CAGet | 信頼するCA証明書の取得 (ファイル出力) | ✅ | [ ] | 未着手 |
 
 ### 2.11 証明書失効リスト (CRL)

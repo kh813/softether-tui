@@ -350,6 +350,48 @@ case "c", "C":
 - `groupdetail.go` にのみ存在する画面上の `[ 保存 ]`/`[ キャンセル ]` ボタン行を、`userdetail.go`/`securenatdetail.go` にも同様に追加するかどうかの検討 (レイアウト・カーソル数の変更を伴う大きめの変更のため、今回のキーバインド統一とは別タスクとする)。
 - `accountform.go`/`bridgeform.go` のような「常時入力編集」形式のフォームと、`userdetail.go` 等の「フィールド選択→Enterで編集」形式のフォームが混在している点。両方とも用途に応じた合理的な設計であり、現時点では不整合とはみなさないが、将来的に `app_specs.md` 8章の「2フェーズ状態モデル」の適用範囲を明文化する際に再検討する。
 
+## M11: リモートアクセス設定 (IPsec/L2TP, OpenVPN, Dynamic DNS)
+
+SoftEther VPN Server を実運用する上で必須となるリモートアクセスプロトコル設定（IPsec/L2TP、OpenVPN）および Dynamic DNS (DDNS) の閲覧・設定機能を実装する。
+
+- [x] `internal/vpncmd/client.go` にリモートアクセス関連コマンドを実装
+  - [x] `IPsecGet` / `IPsecEnable` (L2TP/IPsec有効化、PSK、デフォルトHub)
+  - [x] `OpenVpnGet` / `OpenVpnEnable` / `OpenVpnMakeConfig` (OpenVPN互換サーバー有効化、ポート設定、クライアント設定ファイル生成)
+  - [x] `DynamicDnsGetStatus` / `DynamicDnsSetHostname` (DDNS状態取得、ホスト名プレフィックス変更)
+- [x] `internal/vpncmd/client_test.go` にパースおよびコマンド構築のユニットテストを追加
+- [x] TUI: リモートアクセス設定画面 (`screenRemoteAccess` / `internal/ui/remoteaccess.go`) の新設
+  - [x] IPsec/L2TP 設定セクション（有効/無効、PSK、デフォルトHub）
+  - [x] OpenVPN 設定セクション（有効/無効、ポート番号）
+  - [x] Dynamic DNS 設定セクション（DDNSホスト名、グローバルIPv4/IPv6）
+  - [x] 2段階状態遷移モデルとインライン編集・保存の実装
+- [x] ダッシュボード画面 (`screenDashboard`) からリモートアクセス設定画面への遷移導線を追加 (`v` キー: VPNリモートアクセス設定)
+- [x] 多言語カタログ (`internal/ui/catalog_en.go`) に全翻訳エントリを追加
+- [x] `internal/ui/app_ui_test.go` に画面遷移・キー操作・テストコードを追加
+- [x] `vpncmd_commands.md` の対応状況を更新
+- [x] `app_specs.md` および `app_devlog.md` の更新
+- [x] `go build` / `go vet` / `go test` が全て PASS することを確認
+
+## M12: Virtual HUB セキュリティ拡張 (接続元IP制限 Ac* & 信頼するCA証明書 CA*)
+
+Virtual HUB に対する接続セキュリティを強化するため、送信元IP制限リスト (`Ac*`) と信頼するCA証明書リスト (`CA*`) の TUI 管理機能を実装する。
+
+- [x] `internal/vpncmd/client.go` にコマンドを実装
+  - [x] `AcList` / `AcAdd` / `AcDel` (接続元IP制限リスト取得・追加・削除)
+  - [x] `CAList` / `CAAdd` / `CADelete` (信頼するCA証明書一覧取得・追加・削除)
+- [x] `internal/vpncmd/client_test.go` に引数構築の単体テストを追加
+- [x] TUI: Hub 詳細画面に「接続元制限」タブ (`hubTabAc`) を追加
+  - [x] 接続元IP制限ルール一覧テーブル描画 (`AcList`)
+  - [x] ルール追加フォーム (`acForm` / `c` キー)
+  - [x] ルール削除確認ダイアログ (`d` キー)
+- [x] TUI: Hub 詳細画面に「信頼するCA」タブ (`hubTabCA`) を追加
+  - [x] CA証明書一覧テーブル描画 (`CAList`)
+  - [x] CA証明書追加プロンプト (証明書ファイルパス入力 / `c` キー)
+  - [x] CA証明書削除確認ダイアログ (`d` キー)
+- [x] 多言語カタログ (`internal/ui/catalog_en.go`) に全翻訳エントリを追加
+- [x] `internal/ui/app_ui_test.go` にタブ遷移・キー操作テストを追加
+- [x] `vpncmd_commands.md`, `app_specs.md`, `app_devlog.md` の更新
+- [x] `go build` / `go vet` / `go test` が全て PASS することを確認
+
 ## 将来 (11章 12章 未決事項)
 
 - [ ] VPN Client の証明書認証・NIC管理・信頼するCA管理・自動接続設定・設定インポート/エクスポート (M7で見送った項目、M9で公式コマンド名を確認済み)

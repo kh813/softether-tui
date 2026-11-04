@@ -320,3 +320,59 @@ func TestLocateSameDirectory(t *testing.T) {
 		t.Errorf("Locate() = %q, want %q", locEval, expectedEval)
 	}
 }
+
+func TestIPsecArgs(t *testing.T) {
+	target := Target{Host: "127.0.0.1", Port: 443, Mode: config.ModeServer}
+	got := buildArgs(target, "IPsecEnable", []string{
+		"/L2TP:yes",
+		"/L2TPRAW:no",
+		"/ETHERIP:no",
+		"/PSK:mysecret",
+		"/DEFAULTHUB:DEFAULT",
+	})
+	want := []string{
+		"127.0.0.1:443", "/SERVER", "/CSV", "/CMD", "IPsecEnable",
+		"/L2TP:yes", "/L2TPRAW:no", "/ETHERIP:no", "/PSK:mysecret", "/DEFAULTHUB:DEFAULT",
+	}
+	assertEqualSlice(t, got, want)
+}
+
+func TestOpenVpnArgs(t *testing.T) {
+	target := Target{Host: "127.0.0.1", Port: 443, Mode: config.ModeServer}
+	got := buildArgs(target, "OpenVpnEnable", []string{"yes", "/PORTS:1194,1195"})
+	want := []string{
+		"127.0.0.1:443", "/SERVER", "/CSV", "/CMD", "OpenVpnEnable",
+		"yes", "/PORTS:1194,1195",
+	}
+	assertEqualSlice(t, got, want)
+}
+
+func TestDynamicDnsArgs(t *testing.T) {
+	target := Target{Host: "127.0.0.1", Port: 443, Mode: config.ModeServer}
+	got := buildArgs(target, "DynamicDnsSetHostname", []string{"myvpn"})
+	want := []string{
+		"127.0.0.1:443", "/SERVER", "/CSV", "/CMD", "DynamicDnsSetHostname",
+		"myvpn",
+	}
+	assertEqualSlice(t, got, want)
+}
+
+func TestAcAddArgs(t *testing.T) {
+	target := Target{Host: "127.0.0.1", Port: 443, Mode: config.ModeServer, Hub: "DEFAULT"}
+	got := buildArgs(target, "AcAdd", []string{"pass", "/PRIORITY:100", "/IP:192.168.1.0/24"})
+	want := []string{
+		"127.0.0.1:443", "/SERVER", "/HUB:DEFAULT", "/CSV", "/CMD", "AcAdd",
+		"pass", "/PRIORITY:100", "/IP:192.168.1.0/24",
+	}
+	assertEqualSlice(t, got, want)
+}
+
+func TestCAAddArgs(t *testing.T) {
+	target := Target{Host: "127.0.0.1", Port: 443, Mode: config.ModeServer, Hub: "DEFAULT"}
+	got := buildArgs(target, "CAAdd", []string{"/path/to/ca.crt"})
+	want := []string{
+		"127.0.0.1:443", "/SERVER", "/HUB:DEFAULT", "/CSV", "/CMD", "CAAdd",
+		"/path/to/ca.crt",
+	}
+	assertEqualSlice(t, got, want)
+}

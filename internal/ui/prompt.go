@@ -34,6 +34,7 @@ const (
 	promptUserCertPath
 	promptUserNTLMAlias
 	promptUserSignedCN
+	promptAddCA
 )
 
 // prompt is a single-line input overlay, e.g. for password reset or setting

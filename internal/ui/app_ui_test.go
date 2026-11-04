@@ -516,3 +516,163 @@ func TestUserDetailGroupDropdown(t *testing.T) {
 	}
 }
 
+func TestRemoteAccessNavigationFromDashboard(t *testing.T) {
+	m := setupTestModel(t)
+	m.screen = screenDashboard
+	m.dashboard.profile = config.Profile{Name: "localhost", Host: "127.0.0.1", Port: 443}
+
+	m = sendKey(m, "v")
+	if m.screen != screenRemoteAccess {
+		t.Fatalf("expected screenRemoteAccess after pressing 'v' in dashboard, got %v", m.screen)
+	}
+	if !m.remoteAccess.loading {
+		t.Fatalf("expected remoteAccess.loading to be true")
+	}
+
+	// Loading view
+	view := m.remoteAccess.View()
+	if !strings.Contains(view, "IPsec") {
+		t.Fatalf("expected view to contain IPsec title, got: %s", view)
+	}
+}
+
+func TestRemoteAccessToggleAndEscProtection(t *testing.T) {
+	m := setupTestModel(t)
+	m.screen = screenRemoteAccess
+	m.remoteAccess = remoteAccessState{
+		profile: config.Profile{Name: "localhost"},
+		ipsec: vpncmd.KeyValue{
+			"L2TP Server Function": "Disabled",
+		},
+		cursor: fieldL2TP,
+	}
+
+	// Pressing Enter on L2TP toggle field toggles it
+	m = sendKey(m, "enter")
+	if !m.remoteAccess.dirty {
+		t.Fatalf("expected remoteAccess to be dirty after toggle")
+	}
+	if !m.remoteAccess.isEnabled(fieldL2TP) {
+		t.Fatalf("expected L2TP to be enabled after toggle")
+	}
+
+	// Move cursor to text field (fieldIPsecPSK)
+	m.remoteAccess.cursor = fieldIPsecPSK
+	m = sendKey(m, "enter")
+	if !m.remoteAccess.editing {
+		t.Fatalf("expected editing to be true for text field")
+	}
+
+	// Esc while editing cancels editing without popping screen
+	m = sendKey(m, "esc")
+	if m.remoteAccess.editing {
+		t.Fatalf("expected editing to be false after esc")
+	}
+	if m.screen != screenRemoteAccess {
+		t.Fatalf("expected screen to remain screenRemoteAccess, got %v", m.screen)
+	}
+}
+
+func TestRemoteAccessDiscardKeyIsN(t *testing.T) {
+	m := setupTestModel(t)
+	m.screen = screenRemoteAccess
+	m.remoteAccess = remoteAccessState{
+		profile:      config.Profile{Name: "localhost"},
+		dirty:        true,
+		editedValues: map[editableRemoteAccessField]string{fieldIPsecPSK: "testpsk"},
+	}
+
+	// Pressing 'n' triggers confirmDiscardInPlace
+	m = sendKey(m, "n")
+	if !m.confirm.active {
+		t.Fatalf("expected confirm dialog to be active on 'n'")
+	}
+	if m.confirm.kind != confirmDiscardInPlace {
+		t.Fatalf("expected confirmDiscardInPlace, got %v", m.confirm.kind)
+	}
+
+	// Confirming with 'y' resets dirty and keeps screen
+	m = sendKey(m, "y")
+	if m.remoteAccess.dirty {
+		t.Fatalf("expected dirty to be false after discarding")
+	}
+	if m.screen != screenRemoteAccess {
+		t.Fatalf("expected screen to stay screenRemoteAccess, got %v", m.screen)
+	}
+}
+
+func TestHubDetailAcTabAndForm(t *testing.T) {
+	m := setupTestModel(t)
+	m.screen = screenHubDetail
+	m.hubDetail.tab = hubTabAc
+	m.hubDetail.hubName = "DEFAULT"
+
+	// Pressing 'c' opens screenAcForm
+	m = sendKey(m, "c")
+	if m.screen != screenAcForm {
+		t.Fatalf("expected screenAcForm on 'c' key in Ac tab, got %v", m.screen)
+	}
+
+	// Pressing space toggles action from Deny to Pass
+	if m.acForm.pass {
+		t.Fatalf("expected default pass to be false (Deny)")
+	}
+	m = sendKey(m, " ")
+	if !m.acForm.pass {
+		t.Fatalf("expected pass to be true (Pass) after space")
+	}
+
+	// Pressing Esc returns to screenHubDetail
+	m = sendKey(m, "esc")
+	if m.screen != screenHubDetail {
+		t.Fatalf("expected return to screenHubDetail on esc, got %v", m.screen)
+	}
+}
+
+func TestHubDetailCATabPrompt(t *testing.T) {
+	m := setupTestModel(t)
+	m.screen = screenHubDetail
+	m.hubDetail.tab = hubTabCA
+	m.hubDetail.hubName = "DEFAULT"
+
+	// Pressing 'c' in CA tab opens promptAddCA
+	m = sendKey(m, "c")
+	if !m.prompt.active {
+		t.Fatalf("expected prompt to be active on 'c' in CA tab")
+	}
+	if m.prompt.kind != promptAddCA {
+		t.Fatalf("expected promptAddCA, got %v", m.prompt.kind)
+	}
+
+	// Pressing esc cancels prompt
+	m = sendKey(m, "esc")
+	if m.prompt.active {
+		t.Fatalf("expected prompt to close on esc")
+	}
+}
+
+func TestAcRuleDeleteConfirm(t *testing.T) {
+	m := setupTestModel(t)
+	m.screen = screenHubDetail
+	m.hubDetail.tab = hubTabAc
+	m.hubDetail.hubName = "DEFAULT"
+	m.hubDetail.ac = vpncmd.Table{
+		Headers: []string{"ID", "Action", "Priority", "IP"},
+		Rows: []vpncmd.KeyValue{
+			{"ID": "1", "Action": "Pass", "Priority": "100", "IP": "192.168.1.0/24"},
+		},
+	}
+	m.hubDetail.acCursor = 0
+
+	// Pressing 'd' opens confirmDeleteAcRule
+	m = sendKey(m, "d")
+	if !m.confirm.active {
+		t.Fatalf("expected confirm dialog on 'd' in Ac tab")
+	}
+	if m.confirm.kind != confirmDeleteAcRule {
+		t.Fatalf("expected confirmDeleteAcRule, got %v", m.confirm.kind)
+	}
+	if m.confirm.target != "1" {
+		t.Fatalf("expected target '1', got %q", m.confirm.target)
+	}
+}

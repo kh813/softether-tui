@@ -17,6 +17,8 @@ const (
 	confirmDeleteCascade
 	confirmDeleteBridge
 	confirmDeleteAccount
+	confirmDeleteAcRule
+	confirmDeleteCA
 	confirmToggleSecureNAT
 	confirmToggleDHCP
 	confirmEnableListener
