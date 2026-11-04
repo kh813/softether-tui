@@ -252,7 +252,7 @@ Client モードのプロファイルは Hub の概念を持たないため、�
 
 - 言語: Go
 - TUI フレームワーク: Bubble Tea (+ Lip Gloss でスタイリング、Bubbles で一覧/テーブル/フォームの部品を利用)
-- 配布形態: シングルバイナリ。GitHub Actions + GitHub Releases でクロスコンパイル済みバイナリ (linux/amd64, linux/arm64, darwin/arm64, windows/amd64) を配布し、`curl` でのダウンロード実行に対応する (詳細は 11 章)。
+- 配布形態: シングルバイナリ。GitHub Actions + GitHub Releases でクロスコンパイル済みバイナリ (Linux, macOS/Darwin, FreeBSD, OpenBSD, NetBSD, Windows × amd64/arm64) を配布し、`curl` でのワンライナーインストールに対応する (詳細は 11 章)。
 - 対象 vpncmd: 実行環境に `vpncmd` バイナリ (SoftEther VPN Server または VPN Bridge に付属) が必要。本体には同梱しない。起動時に `vpncmd` の存在確認・バージョン確認を行う。
 
 ### 6.5 多言語対応 (i18n)
@@ -527,19 +527,19 @@ Client モードのプロファイルは Hub の概念を持たないため、�
 ### 11.1 ビルド・リリース (GitHub Actions)
 
 - タグ push (`v*`, 例: `v0.1.0`) をトリガーに GitHub Actions でリリースワークフローを実行する。
-- クロスコンパイルおよびリリース作成には [GoReleaser](https://goreleaser.com/) を利用し、`.goreleaser.yaml` でビルドターゲット (linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64) とアーカイブ形式を定義する。
+- クロスコンパイルおよびリリース作成には [GoReleaser](https://goreleaser.com/) を利用し、`.goreleaser.yaml` でビルドターゲット (linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, freebsd/amd64, freebsd/arm64, openbsd/amd64, openbsd/arm64, netbsd/amd64, netbsd/arm64, windows/amd64, windows/arm64) とアーカイブ形式を定義する。
 - バージョン・コミットハッシュ・ビルド日時は `-ldflags "-X main.version=... -X main.commit=... -X main.date=..."` でバイナリに埋め込み、TUI 上 (バージョン表示コマンドや起動画面) から確認できるようにする。
 - リリース成果物:
-  - OS/アーキテクチャごとのアーカイブ (例: `softether-tui_linux_amd64.tar.gz`, `softether-tui_windows_amd64.zip`)
+  - OS/アーキテクチャごとのアーカイブ (例: `softether-tui_linux_amd64.tar.gz`, `softether-tui_freebsd_arm64.tar.gz`, `softether-tui_windows_amd64.zip`)
   - `checksums.txt` (SHA-256) を同梱し、ダウンロードしたバイナリの検証を可能にする。
-- PR / main への push 時は別ワークフローで `go build` / `go vet` / `go test` / lint (`golangci-lint`) を実行し、リリースワークフローとは分離する。
+- PR / main への push 時は別ワークフロー (`ci.yml`) で `go build` / `go vet` / `go test` / lint (`golangci-lint`) に加え、上記全12プラットフォームのマトリクスビルドテストを実行し、常にクロスコンパイル互換性を担保する。
 
 ### 11.2 ローカルでの (クロス) コンパイル (Makefile)
 
 - リポジトリ直下の `Makefile` に、CI/GoReleaser と同じビルドオプション (バージョン ldflags、クロスコンパイル対象 OS/アーキテクチャ) をローカルで再現できるターゲットを用意する。GoReleaser を都度実行しなくても、開発中に手元でクロスビルドを試せるようにすることが目的。
 - 主なターゲット:
   - `make build`: 現在の (または `GOOS`/`GOARCH` を上書きした) プラットフォーム向けに1つビルドする。
-  - `make cross`: `.goreleaser.yaml` と同じ対象 (linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64) を `dist/` に一括ビルドする。
+  - `make cross`: `.goreleaser.yaml` と同じ全対象 (linux, darwin, freebsd, openbsd, netbsd, windows × amd64/arm64) を `dist/` に一括ビルドする。
   - `make checksums`: `dist/` の成果物から `checksums.txt` を生成する。
   - `make check`: `gofmt` / `go vet` / `go test` をまとめて実行する (CI の `ci.yml` と同じ検証)。
   - `make lint` / `make install` / `make run` / `make clean` / `make help`。

@@ -65,4 +65,21 @@
 - 多言語カタログ (`internal/ui/catalog_en.go`) に全27エントリを登録。
 - 回帰テスト (`app_ui_test.go`) に各タブでの画面遷移、トグル、モーダル起動のテストを追加。
 
+## 2026-11-04: マルチプラットフォーム配布拡張 (BSD各種 / macOS / Linux / Windows)
+
+- **ターゲットプラットフォームの拡充 (計12環境)**:
+  - Linux: `amd64`, `arm64`
+  - macOS (Darwin): `arm64` (Apple Silicon), `amd64` (Intel)
+  - FreeBSD: `amd64`, `arm64`
+  - OpenBSD: `amd64`, `arm64`
+  - NetBSD: `amd64`, `arm64`
+  - Windows: `amd64`, `arm64`
+- **設定ファイルの更新**:
+  - `.goreleaser.yaml`: `freebsd`, `openbsd`, `netbsd` をビルド対象に追加し、全12ターゲットの tar.gz/zip アーカイブ生成に対応。
+  - `install.sh`: `detect_os` に `FreeBSD`, `OpenBSD`, `NetBSD` を追加し、BSD環境でも `curl ... | sh` の自動インストールが動作するよう拡張。
+  - `Makefile`: `PLATFORMS` に全12ターゲットを反映。`make cross` で手元一括ビルドが可能。
+  - `.github/workflows/ci.yml`: 全12ターゲットのマトリクスビルド (`cross-build` ジョブ) を新設し、CI で常時クロスコンパイル互換性を検証。
+- **ローカルビルド検証**: 全12ターゲットの Pure Go クロスコンパイルがエラーなく成功することを確認。
+
+
 

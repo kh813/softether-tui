@@ -86,6 +86,7 @@
 - [x] `main.go`に`commit`/`date`変数を追加。`.goreleaser.yaml`が注入する`main.commit`/`main.date`のldflagsが実は変数未定義で黙って無視されていたバグを修正し、`--version`出力にコミットハッシュとビルド日時を追加表示するようにした
 - [x] リポジトリパスを実値 `kh813/softether-tui` に差し替え (`.goreleaser.yaml` の `release.github.owner`、`install.sh` の `REPO` と使用例コメント)
 - [x] 初回push後のCI失敗を修正: `ci.yml` の `golangci-lint-action@v6` (v1系CLI前提) が `version: latest` で導入されたv2系golangci-lintと非互換 (v6が渡す `--out-format` フラグをv2 CLIが未サポート、exit code 3) だったため `golangci-lint-action@v7` に更新。ローカルで同事象を再現の上、修正後 `golangci-lint run` が0件で通ることを確認
+- [x] マルチプラットフォーム配布拡張: `.goreleaser.yaml`, `Makefile`, `install.sh`, `ci.yml` に FreeBSD, OpenBSD, NetBSD, macOS/Darwin, Windows (amd64, arm64 計12ターゲット) を追加し、クロスビルド検証完了
 
 ## M7: VPN Client モード対応 (`/CLIENT`、前倒し着手)
 

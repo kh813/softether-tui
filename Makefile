@@ -16,7 +16,13 @@ LDFLAGS := -s -w \
 	-X main.date=$(DATE)
 
 # GOOS/GOARCH pairs `make cross` builds; keep in sync with .goreleaser.yaml.
-PLATFORMS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64
+PLATFORMS := \
+	linux/amd64 linux/arm64 \
+	darwin/amd64 darwin/arm64 \
+	freebsd/amd64 freebsd/arm64 \
+	openbsd/amd64 openbsd/arm64 \
+	netbsd/amd64 netbsd/arm64 \
+	windows/amd64 windows/arm64
 
 # Matches the current environment (or an overridden GOOS, e.g.
 # `GOOS=windows make build`), so `make build` names the output .exe when
